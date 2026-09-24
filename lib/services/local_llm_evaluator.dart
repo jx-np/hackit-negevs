@@ -12,6 +12,11 @@ class LocalLlmEvaluator implements ScamEvaluator {
 
   static const int _maxOutputTokens = 200;
 
+  /// The on-device context window is 1024 tokens and the prompt already uses
+  /// a few hundred, so a very long chat message is capped before it is fed to
+  /// the model. The full text is still stored in the notification log.
+  static const int _maxInputChars = 1200;
+
   final GemmaModelManager _models;
 
   InferenceModel? _model;
@@ -45,7 +50,8 @@ class LocalLlmEvaluator implements ScamEvaluator {
       try {
         final prompt = buildScamPrompt(
           appLabel: record.appLabel,
-          message: record.body,
+          sender: record.title,
+          message: _truncate(record.content, _maxInputChars),
         );
         await session.addQueryChunk(Message(text: prompt, isUser: true));
         final buffer = StringBuffer();
@@ -82,6 +88,11 @@ class LocalLlmEvaluator implements ScamEvaluator {
     } catch (error) {
       return ScamVerdict.unsure(reason: 'Local model error: $error');
     }
+  }
+
+  String _truncate(String text, int maxChars) {
+    if (text.length <= maxChars) return text;
+    return '${text.substring(0, maxChars)}… [message truncated]';
   }
 
   @override

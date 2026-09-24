@@ -127,10 +127,38 @@ void main() {
   test('prompt steers ordinary chat towards not_scam', () {
     final prompt = buildScamPrompt(
       appLabel: 'Discord',
+      sender: 'Alex',
       message: 'hey are we still on for dinner?',
     );
     expect(prompt, contains('not_scam'));
     expect(prompt, contains('App: Discord'));
+    expect(prompt, contains('Sender: Alex'));
     expect(prompt, contains('dinner'));
+  });
+
+  test('router keeps the local verdict when the cloud is unavailable', () async {
+    final router = EvaluationRouter(
+      local: _FakeEvaluator(
+        const ScamVerdict(
+          label: ScamLabel.asksAppInstall,
+          confidence: 0.99,
+          reason: 'asks to install an app',
+          source: EvaluationSource.local,
+        ),
+      ),
+      remote: _FakeEvaluator(
+        const ScamVerdict(
+          label: ScamLabel.unsure,
+          confidence: 0,
+          reason: 'Cloud review is not configured yet',
+          source: EvaluationSource.remote,
+        ),
+      ),
+      confidenceThreshold: 1.0,
+    );
+    final verdict = await router.evaluate(_record());
+    expect(verdict.label, ScamLabel.asksAppInstall);
+    expect(verdict.source, EvaluationSource.local);
+    expect(verdict.escalated, isFalse);
   });
 }

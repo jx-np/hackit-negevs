@@ -4,6 +4,7 @@ import 'scam_verdict.dart';
 
 String buildScamPrompt({
   required String appLabel,
+  required String sender,
   required String message,
 }) {
   return '''
@@ -36,24 +37,37 @@ If the message is ambiguous but has no clear scam signal, choose "not_scam".
 Give a short reason based only on evidence in the message. Do not invent facts.
 Reply with exactly one valid JSON object and nothing else.
 
+The Sender line is only the name or number of whoever sent the message. It is not part of the message content, so never treat the sender name as an app, a link, or a request.
+
+If the Sender is shown as an international phone number (for example "+44 7700 900123" or "+234 ..."), treat that as an aggravating factor. Judge such senders more harshly than a saved contact name: when the message also contains any request, link, payment, or urgency, prefer a scam label over "not_scam". Plain small talk from an international number may still be "not_scam".
+
 Examples:
 
 App: Discord
+Sender: Alex
 Message: "look at this meme lol"
 {"label":"not_scam","confidence":0.99,"reason":"Normal social message with no request for money, credentials, or risky action."}
 
 App: Messages
+Sender: Mom
 Message: "Can you send me 20 dollars for dinner?"
 {"label":"not_scam","confidence":0.88,"reason":"A normal personal request for money with no clear evidence of fraud."}
 
 App: Messages
+Sender: +44 7700 900123
 Message: "Your parcel is held. Pay 2.99 at bit.ly/xyz within 24h or it is returned."
-{"label":"payment_request","confidence":0.96,"reason":"Requests urgent payment through a shortened link for a supposedly held parcel."}
+{"label":"payment_request","confidence":0.96,"reason":"Requests urgent payment through a shortened link for a supposedly held parcel, from an unsaved international number."}
+
+App: Messages
+Sender: +1 202 555 0143
+Message: "Hi, I got your number from a friend. Can you help me with a small transfer?"
+{"label":"payment_request","confidence":0.82,"reason":"Unsaved international number asks for a money transfer."}
 
 Required format:
 {"label":"<category>","confidence":<number between 0 and 1>,"reason":"<short reason>"}
 
 App: $appLabel
+Sender: $sender
 Message: "$message"
 JSON:
 ''';

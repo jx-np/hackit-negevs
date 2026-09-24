@@ -1,5 +1,4 @@
-import 'package:notification_listener_service/notification_event.dart';
-
+import '../services/notification_stream.dart';
 import 'scam_verdict.dart';
 
 class NotificationRecord {
@@ -12,19 +11,23 @@ class NotificationRecord {
     this.id = 0,
   });
 
-  factory NotificationRecord.fromServiceEvent(
-    ServiceNotificationEvent event,
+  factory NotificationRecord.fromIncoming(
+    IncomingNotification event,
     String appLabel,
   ) {
+    final title = event.title.trim();
+    final content = event.content.trim();
     return NotificationRecord(
       id: event.id,
       packageName: event.packageName,
       appLabel: appLabel,
-      title: event.title,
-      content: event.content,
-      postedAt: event.timestamp > 0
-          ? DateTime.fromMillisecondsSinceEpoch(event.timestamp)
-          : DateTime.now(),
+      title: title,
+      content: content.isNotEmpty
+          ? content
+          : (event.subText?.trim().isNotEmpty ?? false)
+              ? event.subText!.trim()
+              : title,
+      postedAt: event.postedAt,
     );
   }
 

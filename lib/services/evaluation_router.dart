@@ -28,7 +28,9 @@ class EvaluationRouter {
     final remoteVerdict = await remote.evaluate(record);
     if (remoteVerdict.label == ScamLabel.unsure &&
         remoteVerdict.confidence == 0) {
-      return verdict.copyWith(escalated: true);
+      // The cloud could not produce a verdict, so the local result stands and
+      // must not be labelled as cloud-checked.
+      return verdict;
     }
     return remoteVerdict.copyWith(escalated: true);
   }

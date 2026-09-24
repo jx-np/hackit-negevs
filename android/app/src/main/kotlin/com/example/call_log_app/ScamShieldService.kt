@@ -23,6 +23,7 @@ import androidx.core.app.NotificationCompat
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class ScamShieldService : Service() {
@@ -74,6 +75,19 @@ class ScamShieldService : Service() {
                 else -> result.notImplemented()
             }
         }
+
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "scamshield/notifications",
+        ).setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                NotificationRelay.attach(events)
+            }
+
+            override fun onCancel(arguments: Any?) {
+                NotificationRelay.attach(null)
+            }
+        })
 
         ScamShieldEngineHolder.engine = flutterEngine
         ScamShieldEngineHolder.nativeChannel = nativeChannel

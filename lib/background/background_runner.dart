@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:notification_listener_service/notification_event.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 
 import '../core/messaging_apps.dart';
@@ -13,6 +12,7 @@ import '../services/local_llm_evaluator.dart';
 import '../services/model_manager.dart';
 import '../services/model_store.dart';
 import '../services/notification_log.dart';
+import '../services/notification_stream.dart';
 import '../services/protection_settings.dart';
 import '../services/remote_api_evaluator.dart';
 import '../services/scamshield_channels.dart';
@@ -30,7 +30,7 @@ class BackgroundRunner {
   late final LocalLlmEvaluator _local = LocalLlmEvaluator(_models);
   EvaluationRouter? _router;
 
-  StreamSubscription<ServiceNotificationEvent>? _subscription;
+  StreamSubscription<IncomingNotification>? _subscription;
   final Set<String> _seen = <String>{};
 
   final List<Future<void> Function()> _queue = [];
@@ -114,18 +114,17 @@ class BackgroundRunner {
       _setStatus('Notification access not granted');
       return;
     }
-    _subscription = NotificationListenerService.notificationsStream.listen(
+    _subscription = NotificationStream.stream.listen(
       _onNotification,
       onError: (Object error) => _setStatus('Listener error: $error'),
     );
   }
 
-  Future<void> _onNotification(ServiceNotificationEvent event) async {
-    if (event.hasRemoved || event.onGoing) return;
+  Future<void> _onNotification(IncomingNotification event) async {
     if (!isMessagingApp(event.packageName)) return;
     if (event.title.trim().isEmpty && event.content.trim().isEmpty) return;
 
-    final record = NotificationRecord.fromServiceEvent(
+    final record = NotificationRecord.fromIncoming(
       event,
       appLabelFor(event.packageName),
     );

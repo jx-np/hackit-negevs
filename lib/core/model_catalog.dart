@@ -50,6 +50,17 @@ const List<ScamModelSpec> modelCatalog = [
     note: 'Bigger and more accurate than the bundled 0.5B. Downloads once, then runs offline.',
   ),
   ScamModelSpec(
+    id: 'qwen3-4b-2507',
+    displayName: 'Qwen3 4B Instruct 2507 (download, large)',
+    url:
+        'https://huggingface.co/litert-community/Qwen3-4B-Instruct-2507/resolve/main/qwen3_4b_instruct_2507_mixed_int4.litertlm',
+    fileName: 'qwen3_4b_instruct_2507_mixed_int4.litertlm',
+    modelType: ModelType.qwen3,
+    fileType: ModelFileType.litertlm,
+    approxSizeMb: 2536,
+    note: 'Most accurate but large (~2.5 GB, INT4). Needs a flagship phone. Downloads once, then runs offline.',
+  ),
+  ScamModelSpec(
     id: 'gemma3-1b-it',
     displayName: 'Gemma 3 1B (download, gated)',
     url:

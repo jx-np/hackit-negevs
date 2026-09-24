@@ -222,6 +222,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.0"
+  flutter_gemma_litertlm:
+    dependency: "direct main"
+    description:
+      name: flutter_gemma_litertlm
+      sha256: d8dd950d684d291e307732189a729753ab213fd9ad02e33d764fcc75c17400b4
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.8.0"
   flutter_gemma_mediapipe:
     dependency: "direct main"
     description:

@@ -1,4 +1,5 @@
 import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
 import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
 
 import '../core/model_catalog.dart';
@@ -14,7 +15,9 @@ class GemmaModelManager {
 
   Future<void> ensureInitialized() async {
     if (_initialized) return;
-    await FlutterGemma.initialize(inferenceEngines: [MediaPipeEngine()]);
+    await FlutterGemma.initialize(
+      inferenceEngines: [MediaPipeEngine(), const LiteRtLmEngine()],
+    );
     _initialized = true;
   }
 

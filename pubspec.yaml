@@ -44,6 +44,10 @@ dependencies:
   forui: ^0.27.0
   remixicon: ^4.9.3
   material_ui: ^1.4.0
+  notification_listener_service: ^1.0.0
+  flutter_gemma: ^1.9.0
+  flutter_gemma_mediapipe: ^1.0.6
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

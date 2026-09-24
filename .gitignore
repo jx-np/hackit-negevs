@@ -44,3 +44,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Bundled model weights (too large for git)
+assets/models/*.task
+model_dl.log
+model_dl.err

@@ -3,13 +3,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:call_log_app/background/background_runner.dart';
 import 'package:call_log_app/screens/call_history_screen.dart';
 import 'package:call_log_app/screens/contacts_screen.dart';
+import 'package:call_log_app/screens/notifications_screen.dart';
 import 'package:call_log_app/screens/protection_screen.dart';
+import 'package:call_log_app/screens/scam_shield_screen.dart';
 import 'package:call_log_app/theme/theme.dart';
 
 void main() {
   runApp(const MyApp());
+}
+
+@pragma('vm:entry-point')
+void backgroundMain() {
+  WidgetsFlutterBinding.ensureInitialized();
+  BackgroundRunner().start();
 }
 
 ThemeData _materialTheme(FColors colors) {
@@ -74,12 +83,16 @@ class _HomePageState extends State<HomePage> {
     const CallHistoryScreen(),
     const ContactsScreen(),
     const ProtectionScreen(),
+    const NotificationsScreen(),
+    const ScamShieldScreen(),
   ];
 
   final List<_NavigationItem> _items = [
     _NavigationItem(icon: Icons.history, label: 'Call History'),
     _NavigationItem(icon: Icons.contact_mail, label: 'Contacts'),
     _NavigationItem(icon: Icons.security, label: 'Protection'),
+    _NavigationItem(icon: Icons.notifications_active, label: 'Notifications'),
+    _NavigationItem(icon: Icons.smart_toy, label: 'Scam AI'),
   ];
 
   @override

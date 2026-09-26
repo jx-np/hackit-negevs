@@ -3,6 +3,7 @@ import { render, type RenderOptions } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppearanceProvider } from '../context/AppearanceContext';
+import { AuthProvider } from '../context/AuthContext';
 
 /** Create a QueryClient with retries off for deterministic tests. */
 export function makeQueryClient() {
@@ -23,7 +24,9 @@ function AllProviders({ children, route = '/' }: WrapperProps) {
   return (
     <QueryClientProvider client={client}>
       <AppearanceProvider>
-        <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+        <AuthProvider>
+          <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+        </AuthProvider>
       </AppearanceProvider>
     </QueryClientProvider>
   );

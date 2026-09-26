@@ -1,6 +1,8 @@
-import { motion } from 'framer-motion';
-import { ArrowUpRight, Heart, MessageCircle } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Heart, MessageCircle } from 'lucide-react';
+import { useState } from 'react';
 import type { Post } from '../../types';
+import { CommentBox } from './CommentBox';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -34,6 +36,8 @@ function avatarGradient(name: string): string {
 }
 
 export function PostCard({ post }: { post: Post }) {
+  const [showComments, setShowComments] = useState(false);
+
   return (
     <motion.article
       // Scroll-reveal: animate in when the card scrolls into view.
@@ -41,57 +45,74 @@ export function PostCard({ post }: { post: Post }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.45, ease: 'easeOut' }}
-      whileHover={{ y: -4 }}
-      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-brand-300 hover:shadow-glow dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700"
+      className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-brand-300 hover:shadow-glow dark:border-slate-800 dark:bg-slate-900 dark:hover:border-brand-700"
     >
       {/* Hover accent bar */}
       <span className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-brand-gradient transition-transform duration-300 group-hover:scale-x-100" />
 
       <div className="mb-3 flex items-center gap-3">
         <span
-          className={`grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br ${avatarGradient(
+          className={`grid h-11 w-11 place-items-center rounded-full bg-gradient-to-br ${avatarGradient(
             post.author.name,
-          )} text-sm font-semibold text-white shadow-sm`}
+          )} text-base font-semibold text-white shadow-sm`}
         >
           {initials(post.author.name)}
         </span>
-        <div className="text-sm">
+        <div className="text-base">
           <p className="font-medium">{post.author.name}</p>
           <p className="text-slate-400">{formatDate(post.createdAt)}</p>
         </div>
-        <ArrowUpRight
-          size={18}
-          className="ml-auto text-slate-300 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 dark:text-slate-600"
-        />
       </div>
 
-      <h3 className="mb-2 text-lg font-semibold leading-snug transition group-hover:text-brand-600 dark:group-hover:text-brand-300">
+      <h3 className="mb-2 text-2xl font-semibold leading-snug transition group-hover:text-brand-600 dark:group-hover:text-brand-300">
         {post.title}
       </h3>
-      <p className="mb-4 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+      <p className="mb-4 line-clamp-3 text-lg text-slate-500 dark:text-slate-400">
         {post.excerpt}
       </p>
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {post.tags.map((tag) => (
             <span
               key={tag.id}
-              className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
+              className="rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
             >
               #{tag.name}
             </span>
           ))}
         </div>
-        <div className="flex items-center gap-4 text-sm text-slate-400">
-          <span className="flex items-center gap-1 transition group-hover:text-brand-500">
-            <MessageCircle size={16} /> {post.replyCount}
-          </span>
-          <span className="flex items-center gap-1 transition group-hover:text-rose-500">
-            <Heart size={16} /> {post.likeCount}
+        <div className="flex items-center gap-4 text-base text-slate-400">
+          <button
+            type="button"
+            onClick={() => setShowComments((s) => !s)}
+            aria-expanded={showComments}
+            className="flex items-center gap-1.5 rounded-lg px-2 py-1 transition hover:bg-slate-100 hover:text-brand-500 dark:hover:bg-slate-800"
+          >
+            <MessageCircle size={18} /> {post.replyCount}
+          </button>
+          <span className="flex items-center gap-1.5">
+            <Heart size={18} /> {post.likeCount}
           </span>
         </div>
       </div>
+
+      {/* Expandable comment area (gated behind auth inside CommentBox) */}
+      <AnimatePresence initial={false}>
+        {showComments && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="mt-4 border-t border-slate-100 pt-4 dark:border-slate-800">
+              <CommentBox postId={post.id} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.article>
   );
 }

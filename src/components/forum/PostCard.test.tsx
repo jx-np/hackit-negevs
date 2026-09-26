@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { renderWithProviders } from '../../test/utils';
 import type { Post } from '../../types';
 import { PostCard } from './PostCard';
 
@@ -19,25 +20,25 @@ const post: Post = {
 
 describe('PostCard', () => {
   it('renders the title, excerpt, and author', () => {
-    render(<PostCard post={post} />);
+    renderWithProviders(<PostCard post={post} />);
     expect(screen.getByText('A test post title')).toBeInTheDocument();
     expect(screen.getByText('A short excerpt for the post.')).toBeInTheDocument();
     expect(screen.getByText('Ada Lovelace')).toBeInTheDocument();
   });
 
   it('renders the author initials in the avatar', () => {
-    render(<PostCard post={post} />);
+    renderWithProviders(<PostCard post={post} />);
     expect(screen.getByText('AL')).toBeInTheDocument();
   });
 
   it('renders each tag with a # prefix', () => {
-    render(<PostCard post={post} />);
+    renderWithProviders(<PostCard post={post} />);
     expect(screen.getByText('#React')).toBeInTheDocument();
     expect(screen.getByText('#CSS')).toBeInTheDocument();
   });
 
   it('renders reply and like counts', () => {
-    render(<PostCard post={post} />);
+    renderWithProviders(<PostCard post={post} />);
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('88')).toBeInTheDocument();
   });

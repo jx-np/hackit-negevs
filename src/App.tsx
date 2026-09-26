@@ -10,8 +10,10 @@ import {
 import { Footer } from './components/layout/Footer';
 import { Navbar } from './components/layout/Navbar';
 import { AppearanceProvider } from './context/AppearanceContext';
+import { AuthProvider } from './context/AuthContext';
 import { AuthPage } from './routes/AuthPage';
 import { ForumPage } from './routes/ForumPage';
+import { LandingPage } from './routes/LandingPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,7 +36,8 @@ function AnimatedRoutes() {
         transition={{ duration: 0.3, ease: 'easeOut' }}
       >
         <Routes location={location}>
-          <Route path="/" element={<ForumPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/forum" element={<ForumPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
@@ -46,17 +49,19 @@ function AnimatedRoutes() {
 export default function App() {
   return (
     <AppearanceProvider>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <div className="flex min-h-screen flex-col">
-            <Navbar />
-            <div className="flex-1">
-              <AnimatedRoutes />
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <div className="flex min-h-screen flex-col">
+              <Navbar />
+              <div className="flex-1">
+                <AnimatedRoutes />
+              </div>
+              <Footer />
             </div>
-            <Footer />
-          </div>
-        </BrowserRouter>
-      </QueryClientProvider>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </AuthProvider>
     </AppearanceProvider>
   );
 }

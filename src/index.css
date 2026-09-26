@@ -9,7 +9,9 @@
 }
 
 html {
-  font-size: calc(16px * var(--app-font-scale));
+  /* Larger base size for readability (older users / low vision).
+     The S/M/L toggle multiplies this via --app-font-scale. */
+  font-size: calc(17px * var(--app-font-scale));
   scroll-behavior: smooth;
 }
 

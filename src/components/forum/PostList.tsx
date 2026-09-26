@@ -57,7 +57,7 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4">
+      <div className="mx-auto grid max-w-4xl gap-5">
         {Array.from({ length: 4 }).map((_, i) => (
           <PostSkeleton key={i} />
         ))}
@@ -67,9 +67,9 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (isError) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-        <p className="font-medium">Something went wrong loading posts.</p>
-        <p className="mt-1 text-sm opacity-80">{(error as Error).message}</p>
+      <div className="mx-auto max-w-4xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+        <p className="text-lg font-medium">Something went wrong loading posts.</p>
+        <p className="mt-1 text-base opacity-80">{(error as Error).message}</p>
       </div>
     );
   }
@@ -79,20 +79,20 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (posts.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-500 dark:border-slate-700">
-        <p className="text-lg font-medium">No posts found</p>
-        <p className="mt-1 text-sm">Try a different search term or tag.</p>
+      <div className="mx-auto max-w-4xl rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-500 dark:border-slate-700">
+        <p className="text-xl font-medium">No posts found</p>
+        <p className="mt-1 text-base">Try a different search term or tag.</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <p className="mb-4 text-sm text-slate-400">
+    <div className="mx-auto max-w-4xl">
+      <p className="mb-4 text-base text-slate-400">
         {total} {total === 1 ? 'post' : 'posts'}
       </p>
 
-      <div className="grid gap-4">
+      <div className="grid gap-5">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
@@ -102,13 +102,13 @@ export function PostList({ query, tagId }: PostListProps) {
       <div ref={sentinelRef} className="h-10" />
 
       {isFetchingNextPage && (
-        <div className="py-6 text-center text-sm text-slate-400">
+        <div className="py-6 text-center text-base text-slate-400">
           Loading more…
         </div>
       )}
 
       {!hasNextPage && posts.length > 0 && (
-        <div className="py-6 text-center text-sm text-slate-400">
+        <div className="py-6 text-center text-base text-slate-400">
           You've reached the end.
         </div>
       )}

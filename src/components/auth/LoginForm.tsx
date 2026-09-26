@@ -1,19 +1,24 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { Field } from './Field';
 import { loginSchema, type LoginValues } from './schemas';
 
 export function LoginForm() {
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
 
-  // UI-only: simulate a submit. Wire to the real auth API later.
+  // Scaffolded: simulate a request, then flip the fake auth state.
   const onSubmit = async (values: LoginValues) => {
     await new Promise((r) => setTimeout(r, 700));
-    console.log('login submit', values);
+    login({ email: values.email, name: values.email.split('@')[0] });
+    navigate('/forum');
   };
 
   return (

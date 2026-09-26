@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 
@@ -40,6 +41,8 @@ class ModelStore {
   }
 
   static Future<String?> pathFor(ScamModelSpec spec) async {
+    final picked = spec.filePath;
+    if (picked != null) return picked;
     final dir = await directory();
     if (dir == null) return null;
     return '${dir.path}${Platform.pathSeparator}${spec.fileName}';
@@ -53,7 +56,10 @@ class ModelStore {
     return await file.length() > 1024 * 1024;
   }
 
+  /// A picked file belongs to the user, never to this app, so it is left on
+  /// disk. Clearing the pick happens in [ModelController.clearCustomModel].
   static Future<bool> remove(ScamModelSpec spec) async {
+    if (spec.filePath != null) return false;
     final path = await pathFor(spec);
     if (path == null) return false;
     try {
@@ -70,6 +76,7 @@ class ModelStore {
     void Function(int progress)? onProgress,
     String? token,
   }) async {
+    if (spec.filePath != null) return false;
     final path = await pathFor(spec);
     if (path == null) return false;
     final target = File('$path.part');
@@ -117,4 +124,89 @@ class ModelStore {
       client.close();
     }
   }
+
+  /// Looks for model files the user has put on the device. The manifest
+  /// already grants `MANAGE_EXTERNAL_STORAGE`, so the file can be handed to
+  /// `FlutterGemma.installModel(...).fromFile(path)` in place — no copy, no
+  /// content-URI shim (both would be fatal for a multi-gigabyte model).
+  static Future<List<FoundModelFile>> scanForModels({
+    int maxDepth = 3,
+    int limit = 60,
+  }) async {
+    if (!Platform.isAndroid) return const [];
+    await ensureAccess();
+    // Each root is scanned on its own: the shared storage root contains
+    // directories the app may not read (Android/data), and one rejection
+    // must not throw away files already found elsewhere.
+    final roots = <(String, int)>[
+      ('/storage/emulated/0/Download', maxDepth),
+      ('/storage/emulated/0/Documents', maxDepth),
+      ('/storage/emulated/0', 2),
+    ];
+    final found = <String, FoundModelFile>{};
+    for (final (path, depth) in roots) {
+      try {
+        await _scan(Directory(path), found, 1, depth, limit);
+      } catch (error) {
+        debugPrint('[ModelStore] scan of $path failed: $error');
+      }
+      if (found.length >= limit) break;
+    }
+    final list = found.values.toList()
+      ..sort((a, b) => b.sizeMb.compareTo(a.sizeMb));
+    debugPrint('[ModelStore] scan found ${list.length} model file(s)');
+    return list.take(limit).toList();
+  }
+
+  static Future<void> _scan(
+    Directory dir,
+    Map<String, FoundModelFile> found,
+    int depth,
+    int maxDepth,
+    int limit,
+  ) async {
+    if (found.length >= limit) return;
+    final Stream<FileSystemEntity> entries;
+    try {
+      entries = dir.list(followLinks: false);
+    } catch (error) {
+      debugPrint('[ModelStore] cannot list ${dir.path}: $error');
+      return;
+    }
+    try {
+      await for (final entry in entries) {
+        if (found.length >= limit) return;
+        if (entry is Directory) {
+          final name = entry.path.split(RegExp(r'[\\/]')).last;
+          if (name.startsWith('.')) continue;
+          if (depth < maxDepth) {
+            await _scan(entry, found, depth + 1, maxDepth, limit);
+          }
+          continue;
+        }
+        if (entry is! File) continue;
+        final path = entry.path;
+        if (path.toLowerCase().endsWith('.part')) continue;
+        final lower = path.toLowerCase();
+        final isModel = lower.endsWith('.litertlm') || lower.endsWith('.task');
+        if (!isModel) continue;
+        try {
+          final size = await entry.length();
+          if (size < 64 * 1024 * 1024) continue;
+          found[path] = FoundModelFile(path: path, sizeMb: size ~/ (1024 * 1024));
+        } catch (_) {}
+      }
+    } catch (error) {
+      debugPrint('[ModelStore] listing stopped in ${dir.path}: $error');
+    }
+  }
+}
+
+class FoundModelFile {
+  FoundModelFile({required this.path, required this.sizeMb});
+
+  final String path;
+  final int sizeMb;
+
+  String get fileName => path.split(RegExp(r'[\\/]')).last;
 }

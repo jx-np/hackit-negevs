@@ -49,3 +49,6 @@ app.*.map.json
 assets/models/*.task
 model_dl.log
 model_dl.err
+
+# Vendored upstream source checkouts
+flutter_gemma/

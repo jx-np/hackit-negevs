@@ -24,8 +24,17 @@ font and wide layout tuned for readability (including users with low vision).
   - Infinite scroll (loads more posts as you scroll)
   - Expandable comments per post — **you must be logged in to comment**
   - Scroll-reveal animations and skeleton loading states
+- **Post detail / thread** (`/forum/:id`)
+  - Full report view (image, tags, risk, author, body) with the comment thread
+  - Reached by clicking a post's title or image in the forum
+- **Report a scam** (`/report`) — **login-gated**
+  - Form to submit a new report (title, description, category, risk, optional
+    screenshot URL) with validation; redirects to the new post on submit
+  - Logged-out users see a prompt to sign in
 - **Number check** (`/check`)
   - Look up a phone number to see how many times it's been reported
+  - **Validates** the input and treats `+prefix` and non-`+` forms of the same
+    number as identical (canonical digits-only key)
   - Shows a status verdict — **trusted / scam / unknown** — with a scam vs.
     trusted report-count breakdown
   - **Report** the number as scam or trusted — **only available when logged in**

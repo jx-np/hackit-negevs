@@ -1,3 +1,4 @@
+import { parsePhone } from '../lib/phone';
 import type {
   NumberCheckResult,
   NumberReportKind,
@@ -5,11 +6,16 @@ import type {
 } from '../types';
 import { apiFetch, delay, USE_MOCK } from './client';
 
-/** Normalize a number for lookup: keep a leading + and digits only. */
+/**
+ * Normalize a number to its canonical DIGITS-ONLY key so that "+X" and "X"
+ * resolve to the same registry entry. Throws on invalid input.
+ */
 export function normalizeNumber(input: string): string {
-  const trimmed = input.trim();
-  const plus = trimmed.startsWith('+') ? '+' : '';
-  return plus + trimmed.replace(/[^\d]/g, '');
+  const parsed = parsePhone(input);
+  if (!parsed.valid) {
+    throw new Error(parsed.error);
+  }
+  return parsed.key;
 }
 
 /** Derive a status from the report counts. */
@@ -22,6 +28,7 @@ function deriveStatus(scam: number, trusted: number): NumberStatus {
 }
 
 // In-memory seed store so reports actually change counts during the demo.
+// Keyed by canonical digits-only form.
 interface Entry {
   scam: number;
   trusted: number;
@@ -32,16 +39,16 @@ function daysAgo(n: number): string {
 }
 
 const MOCK_NUMBERS: Record<string, Entry> = {
-  '+18005551234': { scam: 47, trusted: 2, lastReportedAt: daysAgo(1) },
-  '+441632960000': { scam: 0, trusted: 18, lastReportedAt: daysAgo(3) },
-  '+12025550142': { scam: 12, trusted: 11, lastReportedAt: daysAgo(5) },
-  '+61491570156': { scam: 3, trusted: 0, lastReportedAt: daysAgo(8) },
+  '18005551234': { scam: 47, trusted: 2, lastReportedAt: daysAgo(1) },
+  '441632960000': { scam: 0, trusted: 18, lastReportedAt: daysAgo(3) },
+  '12025550142': { scam: 12, trusted: 11, lastReportedAt: daysAgo(5) },
+  '61491570156': { scam: 3, trusted: 0, lastReportedAt: daysAgo(8) },
 };
 
-function toResult(number: string, entry: Entry): NumberCheckResult {
+function toResult(display: string, entry: Entry): NumberCheckResult {
   const total = entry.scam + entry.trusted;
   return {
-    number,
+    number: display,
     status: deriveStatus(entry.scam, entry.trusted),
     counts: { scam: entry.scam, trusted: entry.trusted, total },
     lastReportedAt: entry.lastReportedAt,
@@ -49,22 +56,28 @@ function toResult(number: string, entry: Entry): NumberCheckResult {
 }
 
 /**
- * Look up a phone number in the scam registry.
+ * Look up a phone number in the scam registry. Rejects invalid input.
  *
  * Real API integration: replace the mock branch, e.g.
- *   return apiFetch<NumberCheckResult>(`/numbers/${encodeURIComponent(n)}`);
+ *   return apiFetch<NumberCheckResult>(`/numbers/${key}`);
  */
 export async function lookupNumber(input: string): Promise<NumberCheckResult> {
-  const n = normalizeNumber(input);
+  const parsed = parsePhone(input);
+  if (!parsed.valid) {
+    return Promise.reject(new Error(parsed.error));
+  }
+
   if (USE_MOCK) {
-    const entry = MOCK_NUMBERS[n] ?? {
+    const entry = MOCK_NUMBERS[parsed.key] ?? {
       scam: 0,
       trusted: 0,
       lastReportedAt: null,
     };
-    return delay(toResult(n, entry), 500);
+    return delay(toResult(parsed.display, entry), 500);
   }
-  return apiFetch<NumberCheckResult>(`/numbers/${encodeURIComponent(n)}`);
+  return apiFetch<NumberCheckResult>(
+    `/numbers/${encodeURIComponent(parsed.key)}`,
+  );
 }
 
 /**
@@ -77,9 +90,13 @@ export async function reportNumber(
   input: string,
   kind: NumberReportKind,
 ): Promise<NumberCheckResult> {
-  const n = normalizeNumber(input);
+  const parsed = parsePhone(input);
+  if (!parsed.valid) {
+    return Promise.reject(new Error(parsed.error));
+  }
+
   if (USE_MOCK) {
-    const entry = MOCK_NUMBERS[n] ?? {
+    const entry = MOCK_NUMBERS[parsed.key] ?? {
       scam: 0,
       trusted: 0,
       lastReportedAt: null,
@@ -87,11 +104,14 @@ export async function reportNumber(
     if (kind === 'scam') entry.scam += 1;
     else entry.trusted += 1;
     entry.lastReportedAt = new Date().toISOString();
-    MOCK_NUMBERS[n] = entry;
-    return delay(toResult(n, entry), 400);
+    MOCK_NUMBERS[parsed.key] = entry;
+    return delay(toResult(parsed.display, entry), 400);
   }
-  return apiFetch<NumberCheckResult>(`/numbers/${encodeURIComponent(n)}/report`, {
-    method: 'POST',
-    body: JSON.stringify({ kind }),
-  });
+  return apiFetch<NumberCheckResult>(
+    `/numbers/${encodeURIComponent(parsed.key)}/report`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ kind }),
+    },
+  );
 }

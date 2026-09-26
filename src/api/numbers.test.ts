@@ -2,9 +2,33 @@ import { describe, expect, it } from 'vitest';
 import { lookupNumber, normalizeNumber, reportNumber } from './numbers';
 
 describe('normalizeNumber', () => {
-  it('keeps a leading + and strips non-digits', () => {
-    expect(normalizeNumber('+1 (800) 555-1234')).toBe('+18005551234');
-    expect(normalizeNumber('  800.555.1234 ')).toBe('8005551234');
+  it('returns the canonical digits-only key (ignoring + and formatting)', () => {
+    expect(normalizeNumber('+1 (800) 555-1234')).toBe('18005551234');
+    expect(normalizeNumber('  1.800.555.1234 ')).toBe('18005551234');
+  });
+
+  it('maps "+X" and "X" to the same key', () => {
+    expect(normalizeNumber('+441632960000')).toBe(
+      normalizeNumber('441632960000'),
+    );
+  });
+
+  it('throws on invalid input', () => {
+    expect(() => normalizeNumber('call-me')).toThrow();
+    expect(() => normalizeNumber('123')).toThrow();
+  });
+});
+
+describe('lookupNumber — + and non-+ consistency', () => {
+  it('returns the same registry entry with or without a leading +', async () => {
+    const withPlus = await lookupNumber('+18005551234');
+    const withoutPlus = await lookupNumber('18005551234');
+    expect(withPlus.status).toBe(withoutPlus.status);
+    expect(withPlus.counts.total).toBe(withoutPlus.counts.total);
+  });
+
+  it('rejects an invalid number', async () => {
+    await expect(lookupNumber('nope')).rejects.toThrow();
   });
 });
 

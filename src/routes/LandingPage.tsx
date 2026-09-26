@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   ArrowRight,
   BellRing,
@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
-import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { DeviceMockup, PopOutCard } from '../components/landing/DeviceMockup';
 
@@ -43,78 +42,62 @@ const STEPS = [
 ];
 
 export function LandingPage() {
-  const heroRef = useRef<HTMLDivElement>(null);
-
-  // Scroll progress across the hero drives the "pop out of device" animation.
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ['start start', 'end start'],
-  });
-
-  // The device scales up and drifts as you scroll through the hero.
-  const deviceScale = useTransform(scrollYProgress, [0, 0.6], [1, 1.35]);
-  const deviceY = useTransform(scrollYProgress, [0, 0.6], [0, -40]);
-  // The huge "ScamReg" title lifts and fades as the app takes over.
-  const titleY = useTransform(scrollYProgress, [0, 0.5], [0, -120]);
-  const titleOpacity = useTransform(scrollYProgress, [0, 0.4], [1, 0]);
-  // The app "pops out" of the screen: rises, scales, and fades in.
-  const popY = useTransform(scrollYProgress, [0.05, 0.55], [40, -150]);
-  const popScale = useTransform(scrollYProgress, [0.05, 0.55], [0.6, 1.1]);
-  const popOpacity = useTransform(scrollYProgress, [0.05, 0.25, 0.9], [0, 1, 1]);
-
   return (
     <div>
-      {/* ===== HERO with scroll-driven pop-out animation =====
-          Tall section so there is scroll distance to drive the animation. */}
-      <section ref={heroRef} className="relative h-[200vh]">
-        <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden">
-          {/* Background mesh + blobs */}
-          <div className="pointer-events-none absolute inset-0 bg-mesh-light dark:bg-mesh-dark" />
-          <div className="pointer-events-none absolute left-1/4 top-1/4 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-400/20 blur-3xl animate-float" />
-          <div
-            className="pointer-events-none absolute right-1/4 top-1/3 h-80 w-80 translate-x-1/2 rounded-full bg-accent-400/20 blur-3xl animate-float"
-            style={{ animationDelay: '2s' }}
-          />
+      {/* ===== HERO (static — no scroll animation) ===== */}
+      <section className="relative overflow-hidden">
+        {/* Background mesh + soft blobs */}
+        <div className="pointer-events-none absolute inset-0 bg-mesh-light dark:bg-mesh-dark" />
+        <div className="pointer-events-none absolute left-1/4 top-10 h-72 w-72 -translate-x-1/2 rounded-full bg-brand-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute right-1/4 top-24 h-80 w-80 translate-x-1/2 rounded-full bg-accent-400/20 blur-3xl" />
 
-          {/* Huge ScamReg title, in front */}
-          <motion.h1
-            style={{ y: titleY, opacity: titleOpacity }}
-            className="pointer-events-none relative z-20 select-none text-center text-6xl font-black tracking-tighter sm:text-8xl lg:text-[10rem]"
-          >
-            <span className="text-gradient">ScamReg</span>
-          </motion.h1>
-          <motion.p
-            style={{ opacity: titleOpacity }}
-            className="relative z-20 mt-2 max-w-xl px-4 text-center text-lg text-slate-600 dark:text-slate-300 sm:text-xl"
-          >
-            Spot scams with on-device AI. Report them to protect everyone.
-          </motion.p>
-
-          {/* Device (first frame sits under the title) */}
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:py-28">
+          {/* Left: title + copy + CTAs */}
           <motion.div
-            style={{ scale: deviceScale, y: deviceY }}
-            className="relative z-10 mt-10"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="text-center lg:text-left"
           >
-            <DeviceMockup />
+            <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/60 px-4 py-1.5 text-sm font-semibold text-brand-700 backdrop-blur dark:border-brand-800 dark:bg-slate-900/60 dark:text-brand-300">
+              <ShieldCheck size={15} /> On-device AI scam protection
+            </span>
 
-            {/* The app popping out of the device */}
-            <motion.div
-              style={{ y: popY, scale: popScale, opacity: popOpacity }}
-              className="absolute -right-8 top-16 z-30 sm:-right-24"
-            >
-              <PopOutCard />
-            </motion.div>
+            <h1 className="mt-6 text-6xl font-black tracking-tighter sm:text-7xl lg:text-8xl">
+              <span className="text-gradient">ScamReg</span>
+            </h1>
+            <p className="mx-auto mt-4 max-w-xl text-xl text-slate-600 dark:text-slate-300 lg:mx-0">
+              Spot scams with on-device AI. Report them to a shared registry and
+              protect everyone.
+            </p>
+
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
+              <Link
+                to="/forum"
+                className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-8 py-4 text-lg font-bold text-white shadow-soft transition hover:scale-[1.03] hover:bg-brand-700"
+              >
+                Enter the forum <ArrowRight size={20} />
+              </Link>
+              <Link
+                to="/auth"
+                className="inline-flex items-center gap-2 rounded-2xl border-2 border-slate-300 px-8 py-4 text-lg font-bold text-slate-700 transition hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-200 dark:hover:text-brand-300"
+              >
+                Sign in
+              </Link>
+            </div>
           </motion.div>
 
-          {/* Scroll hint */}
+          {/* Right: static device mockup with the detection card beside it */}
           <motion.div
-            style={{ opacity: titleOpacity }}
-            className="absolute bottom-8 flex flex-col items-center gap-2 text-sm text-slate-400"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
+            className="relative mx-auto"
           >
-            <span>Scroll to see it in action</span>
-            <span className="h-8 w-5 rounded-full border-2 border-slate-300 dark:border-slate-600">
-              <span className="mx-auto mt-1.5 block h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
-            </span>
+            <DeviceMockup />
+            <div className="absolute -right-6 top-16 z-10 hidden sm:block lg:-right-10">
+              <PopOutCard />
+            </div>
           </motion.div>
         </div>
       </section>

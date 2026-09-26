@@ -111,4 +111,7 @@ class ScamShieldController {
 
   static Future<void> syncSettings() =>
       ScamShieldChannels.ui.invokeMethod<void>('syncSettings');
+
+  static Future<void> setShieldEnabled(bool value) => ScamShieldChannels.ui
+      .invokeMethod<void>('setShieldEnabled', {'enabled': value});
 }

@@ -9,6 +9,8 @@ import 'package:call_log_app/screens/contacts_screen.dart';
 import 'package:call_log_app/screens/notifications_screen.dart';
 import 'package:call_log_app/screens/protection_screen.dart';
 import 'package:call_log_app/screens/scam_shield_screen.dart';
+import 'package:call_log_app/services/protection_settings.dart';
+import 'package:call_log_app/services/scamshield_channels.dart';
 import 'package:call_log_app/theme/theme.dart';
 
 void main() {
@@ -99,6 +101,18 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _ensureNotificationPermission();
+    _syncShieldFlag();
+  }
+
+  Future<void> _syncShieldFlag() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final enabled = await ProtectionSettings().protectionEnabled();
+      await ScamShieldController.setShieldEnabled(enabled);
+      if (enabled) {
+        await ScamShieldController.ensureServiceRunning();
+      }
+    } catch (_) {}
   }
 
   Future<void> _ensureNotificationPermission() async {

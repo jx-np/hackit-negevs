@@ -165,20 +165,20 @@ export function SettingsPanel() {
                     >
                       <Minus size={22} />
                     </button>
-                    <div className="flex flex-1 items-baseline justify-center gap-1 py-3">
+                    <div className="flex flex-1 items-baseline justify-center gap-1.5 py-3">
                       <span
                         aria-hidden="true"
                         className="font-display font-bold leading-none text-ink-900 dark:text-white"
-                        style={{ fontSize: '2rem' }}
+                        style={{ fontSize: '2.5rem' }}
                       >
                         A
                       </span>
                       <span
                         aria-hidden="true"
-                        className="font-display font-bold leading-none text-ink-500 dark:text-ink-400"
-                        style={{ fontSize: '1.1rem' }}
+                        className="font-display font-bold leading-none text-ink-400 dark:text-ink-500"
+                        style={{ fontSize: '0.95rem' }}
                       >
-                        a
+                        A
                       </span>
                     </div>
                     <button

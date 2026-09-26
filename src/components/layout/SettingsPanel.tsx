@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Moon, Settings, Sun, X } from 'lucide-react';
+import { Check, Minus, Moon, Plus, Settings, Sun, X } from 'lucide-react';
 import { useState } from 'react';
 import {
   useAppearance,
@@ -7,61 +7,71 @@ import {
   type FontSize,
 } from '../../context/AppearanceContext';
 
-const FONT_OPTIONS: { value: FontChoice; label: string }[] = [
-  { value: 'sans', label: 'Sans' },
-  { value: 'serif', label: 'Serif' },
-  { value: 'mono', label: 'Mono' },
-];
-
-const SIZE_OPTIONS: { value: FontSize; label: string }[] = [
-  { value: 'sm', label: 'A-' },
-  { value: 'md', label: 'A' },
-  { value: 'lg', label: 'A+' },
-];
-
-function SegmentedControl<T extends string>({
-  options,
-  value,
-  onChange,
-  label,
-}: {
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (v: T) => void;
+// Font options with a preview stack + a short "why" note. The readability
+// options are surfaced prominently for low-vision / dyslexic readers.
+const FONT_OPTIONS: {
+  value: FontChoice;
   label: string;
-}) {
-  return (
-    <div>
-      <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-        {label}
-      </p>
-      <div className="flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-        {options.map((opt) => {
-          const active = opt.value === value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(opt.value)}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                active
-                  ? 'bg-white text-brand-600 shadow-sm dark:bg-slate-700 dark:text-brand-300'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+  note: string;
+  css: string;
+}[] = [
+  {
+    value: 'atkinson',
+    label: 'Atkinson Hyperlegible',
+    note: 'High legibility · low vision',
+    css: "'Atkinson Hyperlegible', system-ui, sans-serif",
+  },
+  {
+    value: 'lexend',
+    label: 'Lexend',
+    note: 'Reduces reading stress',
+    css: "'Lexend', system-ui, sans-serif",
+  },
+  {
+    value: 'opensans',
+    label: 'Open Sans',
+    note: 'Clean & easy on the eye',
+    css: "'Open Sans', system-ui, sans-serif",
+  },
+  {
+    value: 'sans',
+    label: 'Inter (default)',
+    note: 'Modern sans-serif',
+    css: "'Inter', system-ui, sans-serif",
+  },
+  {
+    value: 'serif',
+    label: 'Serif',
+    note: 'Georgia',
+    css: "'Georgia', 'Times New Roman', serif",
+  },
+  {
+    value: 'mono',
+    label: 'Monospace',
+    note: 'JetBrains Mono',
+    css: "'JetBrains Mono', monospace",
+  },
+];
+
+const SIZE_ORDER: FontSize[] = ['sm', 'md', 'lg'];
+const SIZE_LABEL: Record<FontSize, string> = {
+  sm: 'Small',
+  md: 'Medium',
+  lg: 'Large',
+};
 
 export function SettingsPanel() {
   const [open, setOpen] = useState(false);
   const { theme, font, fontSize, toggleTheme, setFont, setFontSize } =
     useAppearance();
+
+  const sizeIndex = SIZE_ORDER.indexOf(fontSize);
+  const decreaseSize = () => {
+    if (sizeIndex > 0) setFontSize(SIZE_ORDER[sizeIndex - 1]);
+  };
+  const increaseSize = () => {
+    if (sizeIndex < SIZE_ORDER.length - 1) setFontSize(SIZE_ORDER[sizeIndex + 1]);
+  };
 
   return (
     <>
@@ -69,7 +79,7 @@ export function SettingsPanel() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Open appearance settings"
-        className="rounded-full p-2 text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+        className="grid h-10 w-10 place-items-center text-ink-600 transition hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
       >
         <Settings size={20} />
       </button>
@@ -78,69 +88,165 @@ export function SettingsPanel() {
         {open && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-40 bg-ink-950/50 backdrop-blur-sm"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
             />
             <motion.aside
-              className="fixed right-0 top-0 z-50 h-full w-80 max-w-[85vw] bg-white p-6 shadow-2xl dark:bg-slate-900"
+              className="fixed right-0 top-0 z-50 flex h-full w-96 max-w-[90vw] flex-col overflow-y-auto border-l border-ink-200 bg-paper text-ink-900 shadow-2xl dark:border-ink-800 dark:bg-ink-950 dark:text-ink-50"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 260 }}
             >
-              <div className="mb-6 flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Appearance</h2>
+              <div className="flex items-center justify-between border-b border-ink-200 px-6 py-4 dark:border-ink-800">
+                <div>
+                  <span className="ia-label text-safe-700 dark:text-safe-400">
+                    Settings
+                  </span>
+                  <h2 className="font-display text-xl font-bold">Appearance</h2>
+                </div>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close settings"
-                  className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="grid h-9 w-9 place-items-center text-ink-500 transition hover:bg-ink-100 hover:text-ink-900 dark:hover:bg-ink-800 dark:hover:text-white"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="space-y-6">
-                <div>
-                  <p className="mb-2 text-sm font-medium text-slate-500 dark:text-slate-400">
+              <div className="space-y-8 px-6 py-6">
+                {/* Theme */}
+                <section>
+                  <p className="ia-label mb-3 text-ink-500 dark:text-ink-400">
                     Theme
                   </p>
                   <button
                     type="button"
                     onClick={toggleTheme}
-                    className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left transition hover:border-brand-400 dark:border-slate-700"
+                    className="flex w-full items-center justify-between border border-ink-200 px-4 py-3.5 text-left transition hover:border-safe-500 dark:border-ink-700"
                   >
-                    <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="flex items-center gap-2.5 text-base font-medium">
                       {theme === 'dark' ? (
                         <>
-                          <Moon size={18} /> Dark
+                          <Moon size={20} /> Dark
                         </>
                       ) : (
                         <>
-                          <Sun size={18} /> Light
+                          <Sun size={20} /> Light
                         </>
                       )}
                     </span>
-                    <span className="text-xs text-slate-400">tap to toggle</span>
+                    <span className="font-mono text-xs uppercase tracking-wider text-ink-400">
+                      Tap to toggle
+                    </span>
                   </button>
-                </div>
+                </section>
 
-                <SegmentedControl
-                  label="Font"
-                  options={FONT_OPTIONS}
-                  value={font}
-                  onChange={setFont}
-                />
+                {/* Font size:  − A a +  */}
+                <section>
+                  <p className="ia-label mb-3 text-ink-500 dark:text-ink-400">
+                    Text size · {SIZE_LABEL[fontSize]}
+                  </p>
+                  <div className="flex items-stretch border border-ink-200 dark:border-ink-700">
+                    <button
+                      type="button"
+                      onClick={decreaseSize}
+                      disabled={sizeIndex === 0}
+                      aria-label="Decrease text size"
+                      className="grid w-16 place-items-center border-r border-ink-200 text-ink-700 transition hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-ink-700 dark:text-ink-200 dark:hover:bg-ink-800"
+                    >
+                      <Minus size={22} />
+                    </button>
+                    <div className="flex flex-1 items-baseline justify-center gap-1 py-3">
+                      <span
+                        aria-hidden="true"
+                        className="font-display font-bold leading-none text-ink-900 dark:text-white"
+                        style={{ fontSize: '2rem' }}
+                      >
+                        A
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="font-display font-bold leading-none text-ink-500 dark:text-ink-400"
+                        style={{ fontSize: '1.1rem' }}
+                      >
+                        a
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={increaseSize}
+                      disabled={sizeIndex === SIZE_ORDER.length - 1}
+                      aria-label="Increase text size"
+                      className="grid w-16 place-items-center border-l border-ink-200 text-ink-700 transition hover:bg-ink-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-ink-700 dark:text-ink-200 dark:hover:bg-ink-800"
+                    >
+                      <Plus size={22} />
+                    </button>
+                  </div>
+                  {/* Step indicator */}
+                  <div className="mt-2 flex gap-1.5">
+                    {SIZE_ORDER.map((s, i) => (
+                      <span
+                        key={s}
+                        className={`h-1 flex-1 transition-colors ${
+                          i <= sizeIndex
+                            ? 'bg-safe-500'
+                            : 'bg-ink-200 dark:bg-ink-700'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </section>
 
-                <SegmentedControl
-                  label="Font size"
-                  options={SIZE_OPTIONS}
-                  value={fontSize}
-                  onChange={setFontSize}
-                />
+                {/* Font family — bigger list with previews */}
+                <section>
+                  <p className="ia-label mb-3 text-ink-500 dark:text-ink-400">
+                    Font
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {FONT_OPTIONS.map((opt) => {
+                      const active = opt.value === font;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setFont(opt.value)}
+                          aria-pressed={active}
+                          className={`flex items-center justify-between border px-4 py-3 text-left transition ${
+                            active
+                              ? 'border-safe-500 bg-safe-50 dark:bg-safe-500/10'
+                              : 'border-ink-200 hover:border-ink-400 dark:border-ink-700 dark:hover:border-ink-500'
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span
+                              className="block truncate text-lg font-semibold text-ink-900 dark:text-white"
+                              style={{ fontFamily: opt.css }}
+                            >
+                              {opt.label}
+                            </span>
+                            <span
+                              className="block truncate text-sm text-ink-500 dark:text-ink-400"
+                              style={{ fontFamily: opt.css }}
+                            >
+                              The quick brown fox — {opt.note}
+                            </span>
+                          </span>
+                          {active && (
+                            <Check
+                              size={20}
+                              className="ml-3 shrink-0 text-safe-600 dark:text-safe-400"
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
               </div>
             </motion.aside>
           </>

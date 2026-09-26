@@ -41,6 +41,22 @@ describe('AppearanceContext', () => {
     ).toMatch(/mono/i);
   });
 
+  it('supports readability fonts (Atkinson Hyperlegible / Lexend)', () => {
+    const { result } = renderHook(() => useAppearance(), { wrapper });
+
+    act(() => result.current.setFont('atkinson'));
+    expect(result.current.font).toBe('atkinson');
+    expect(
+      document.documentElement.style.getPropertyValue('--app-font-family'),
+    ).toMatch(/atkinson/i);
+
+    act(() => result.current.setFont('lexend'));
+    expect(result.current.font).toBe('lexend');
+    expect(
+      document.documentElement.style.getPropertyValue('--app-font-family'),
+    ).toMatch(/lexend/i);
+  });
+
   it('updates the font size and sets the scale variable', () => {
     const { result } = renderHook(() => useAppearance(), { wrapper });
     act(() => result.current.setFontSize('lg'));

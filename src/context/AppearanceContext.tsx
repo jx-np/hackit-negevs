@@ -9,13 +9,23 @@ import {
 } from 'react';
 
 export type ThemeMode = 'light' | 'dark';
-export type FontChoice = 'sans' | 'serif' | 'mono';
+export type FontChoice =
+  | 'sans'
+  | 'serif'
+  | 'mono'
+  | 'atkinson'
+  | 'lexend'
+  | 'opensans';
 export type FontSize = 'sm' | 'md' | 'lg';
 
 const FONT_STACKS: Record<FontChoice, string> = {
   sans: "'Inter', system-ui, -apple-system, sans-serif",
   serif: "'Georgia', 'Times New Roman', serif",
   mono: "'JetBrains Mono', 'Courier New', monospace",
+  // Readability-focused options (easier on the eye / dyslexia-friendly)
+  atkinson: "'Atkinson Hyperlegible', system-ui, sans-serif",
+  lexend: "'Lexend', system-ui, sans-serif",
+  opensans: "'Open Sans', system-ui, sans-serif",
 };
 
 const FONT_SCALES: Record<FontSize, number> = {

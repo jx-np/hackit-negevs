@@ -15,9 +15,12 @@ font and wide layout tuned for readability (including users with low vision).
   "app pops out of the device" animation, feature sections (on-device AI detection,
   centralized reporting, privacy, real-time warnings), a "how it works" walkthrough,
   and a call-to-action into the forum. New visitors start here.
-- **Forum** (`/forum`)
+- **Forum** (`/forum`) — an image-forward media feed
   - Debounced text search across posts and authors
-  - Filter posts by a single tag (tags loaded from an API)
+  - Filter posts by a single tag via a **draggable tag panel** you can snap to
+    the left or right side of the screen (position persists in `localStorage`)
+  - **Sort** by newest / most comments / most likes
+  - Posts can include an **image** (screenshot/evidence) with a risk badge
   - Infinite scroll (loads more posts as you scroll)
   - Expandable comments per post — **you must be logged in to comment**
   - Scroll-reveal animations and skeleton loading states

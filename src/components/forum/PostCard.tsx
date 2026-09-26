@@ -21,11 +21,20 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-// Deterministic short record id from the post id (registry feel).
-function recordId(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + hash * 31;
-  return String(Math.abs(hash) % 10000).padStart(4, '0');
+function RiskBadge({ risk }: { risk: Post['risk'] }) {
+  if (!risk) return null;
+  const styles =
+    risk === 'high'
+      ? 'bg-risk-600 text-white'
+      : 'bg-caution-500 text-ink-900';
+  const label = risk === 'high' ? 'High risk' : 'Caution';
+  return (
+    <span
+      className={`absolute left-3 top-3 ia-label px-2 py-1 ${styles}`}
+    >
+      {label}
+    </span>
+  );
 }
 
 export function PostCard({ post }: { post: Post }) {
@@ -37,55 +46,72 @@ export function PostCard({ post }: { post: Post }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="group relative ia-panel shadow-ia transition-colors hover:border-ink-400 dark:hover:border-ink-600"
+      className="group relative mb-5 break-inside-avoid ia-panel overflow-hidden transition-transform transition-colors hover:-translate-y-0.5 hover:border-ink-400 dark:hover:border-ink-600"
     >
-      {/* Top hairline accent on hover */}
-      <span className="absolute inset-x-0 top-0 h-0.5 origin-left scale-x-0 bg-safe-500 transition-transform duration-300 group-hover:scale-x-100" />
+      {/* Image-forward header (with risk badge overlay) */}
+      {post.imageUrl && (
+        <div className="relative">
+          <img
+            src={post.imageUrl}
+            alt=""
+            loading="lazy"
+            className="block w-full bg-ink-100 object-cover dark:bg-ink-800"
+          />
+          <RiskBadge risk={post.risk} />
+        </div>
+      )}
 
-      {/* Record header: id + author + date */}
-      <div className="flex items-center gap-3 border-b border-ink-200 px-6 py-3 dark:border-ink-800">
-        <span className="grid h-9 w-9 place-items-center border border-ink-300 bg-ink-50 font-mono text-sm font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
+      <div className="px-5 pt-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {post.tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="border border-ink-200 px-2 py-0.5 font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:border-ink-700 dark:text-ink-300"
+            >
+              #{tag.name}
+            </span>
+          ))}
+          {/* If there's no image, show the risk inline instead of overlaid */}
+          {!post.imageUrl && post.risk && (
+            <span
+              className={`ia-label px-2 py-0.5 ${
+                post.risk === 'high'
+                  ? 'bg-risk-100 text-risk-700 dark:bg-risk-500/15 dark:text-risk-500'
+                  : 'bg-caution-100 text-caution-700 dark:bg-caution-500/15 dark:text-caution-500'
+              }`}
+            >
+              {post.risk === 'high' ? 'High risk' : 'Caution'}
+            </span>
+          )}
+        </div>
+
+        <h3 className="mt-3 font-display text-xl font-semibold leading-snug text-ink-900 transition group-hover:text-safe-700 dark:text-white dark:group-hover:text-safe-400">
+          {post.title}
+        </h3>
+        <p className="mt-2 line-clamp-3 text-base text-ink-600 dark:text-ink-400">
+          {post.excerpt}
+        </p>
+      </div>
+
+      {/* Footer: author + date + engagement */}
+      <div className="mt-4 flex items-center gap-3 border-t border-ink-200 px-5 py-3 dark:border-ink-800">
+        <span className="grid h-9 w-9 shrink-0 place-items-center border border-ink-300 bg-ink-50 font-mono text-xs font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
           {initials(post.author.name)}
         </span>
-        <div className="min-w-0 text-base">
-          <p className="truncate font-medium text-ink-900 dark:text-white">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-ink-900 dark:text-white">
             {post.author.name}
           </p>
           <p className="font-mono text-xs text-ink-400">
             {formatDate(post.createdAt)}
           </p>
         </div>
-        <span className="ia-label ml-auto text-ink-300 dark:text-ink-600">
-          #{recordId(post.id)}
-        </span>
-      </div>
-
-      <div className="px-6 py-5">
-        <h3 className="font-display text-2xl font-semibold leading-snug text-ink-900 transition group-hover:text-safe-700 dark:text-white dark:group-hover:text-safe-400">
-          {post.title}
-        </h3>
-        <p className="mt-2 line-clamp-3 text-lg text-ink-600 dark:text-ink-400">
-          {post.excerpt}
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between border-t border-ink-200 px-6 py-3 dark:border-ink-800">
-        <div className="flex flex-wrap gap-2">
-          {post.tags.map((tag) => (
-            <span
-              key={tag.id}
-              className="border border-ink-200 px-2.5 py-1 font-mono text-xs font-medium text-ink-600 dark:border-ink-700 dark:text-ink-300"
-            >
-              #{tag.name}
-            </span>
-          ))}
-        </div>
-        <div className="flex items-center gap-3 font-mono text-sm text-ink-400">
+        <div className="ml-auto flex items-center gap-3 font-mono text-sm text-ink-400">
           <button
             type="button"
             onClick={() => setShowComments((s) => !s)}
             aria-expanded={showComments}
-            className="flex items-center gap-1.5 px-2 py-1 transition hover:text-safe-600 dark:hover:text-safe-400"
+            className="flex items-center gap-1.5 px-1.5 py-1 transition hover:text-safe-600 dark:hover:text-safe-400"
           >
             <MessageCircle size={16} /> {post.replyCount}
           </button>
@@ -105,7 +131,7 @@ export function PostCard({ post }: { post: Post }) {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="overflow-hidden border-t border-ink-200 dark:border-ink-800"
           >
-            <div className="px-6 py-4">
+            <div className="px-5 py-4">
               <CommentBox postId={post.id} />
             </div>
           </motion.div>

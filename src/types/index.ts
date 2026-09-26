@@ -11,6 +11,9 @@ export interface Author {
   avatarUrl?: string;
 }
 
+/** Risk level a report has been assigned (semantic to ScamReg). */
+export type RiskLevel = 'high' | 'medium' | null;
+
 export interface Post {
   id: string;
   title: string;
@@ -21,7 +24,14 @@ export interface Post {
   createdAt: string; // ISO date
   replyCount: number;
   likeCount: number;
+  /** Optional screenshot/evidence image for the report. */
+  imageUrl?: string | null;
+  /** Optional risk classification, shown as a badge. */
+  risk?: RiskLevel;
 }
+
+/** How the posts list is ordered. */
+export type SortKey = 'new' | 'comments' | 'likes';
 
 /** Shape returned by a paginated posts request. */
 export interface PostsPage {
@@ -36,6 +46,7 @@ export interface PostsQuery {
   tagId?: string | null;
   page?: number;
   pageSize?: number;
+  sort?: SortKey;
 }
 
 export interface User {

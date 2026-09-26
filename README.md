@@ -24,6 +24,12 @@ font and wide layout tuned for readability (including users with low vision).
   - Infinite scroll (loads more posts as you scroll)
   - Expandable comments per post — **you must be logged in to comment**
   - Scroll-reveal animations and skeleton loading states
+- **Number check** (`/check`)
+  - Look up a phone number to see how many times it's been reported
+  - Shows a status verdict — **trusted / scam / unknown** — with a scam vs.
+    trusted report-count breakdown
+  - **Report** the number as scam or trusted — **only available when logged in**
+    (logged-out users see a prompt to sign in)
 - **Auth** (`/auth`)
   - Toggle between login and signup with client-side validation
   - On submit, the (scaffolded) auth state flips to logged-in and redirects to the forum

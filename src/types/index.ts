@@ -54,3 +54,27 @@ export interface User {
   email: string;
   name: string;
 }
+
+/** Community verdict for a looked-up phone number. */
+export type NumberStatus = 'trusted' | 'scam' | 'unknown';
+
+/** Breakdown of how the community has classified a number. */
+export interface NumberReportCounts {
+  scam: number;
+  trusted: number;
+  /** total = scam + trusted (+ any other categories) */
+  total: number;
+}
+
+/** Result of looking up a phone number in the registry. */
+export interface NumberCheckResult {
+  /** Normalized number that was looked up. */
+  number: string;
+  status: NumberStatus;
+  counts: NumberReportCounts;
+  /** ISO date of the most recent report, or null if never reported. */
+  lastReportedAt: string | null;
+}
+
+/** A report a user files against a number. */
+export type NumberReportKind = 'scam' | 'trusted';

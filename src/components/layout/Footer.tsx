@@ -21,6 +21,9 @@ export function Footer() {
           <Link to="/forum" className="transition hover:text-safe-700 dark:hover:text-safe-400">
             Forum
           </Link>
+          <Link to="/check" className="transition hover:text-safe-700 dark:hover:text-safe-400">
+            Number check
+          </Link>
           <Link to="/auth" className="transition hover:text-safe-700 dark:hover:text-safe-400">
             Sign in
           </Link>

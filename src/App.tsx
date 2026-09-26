@@ -14,6 +14,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AuthPage } from './routes/AuthPage';
 import { ForumPage } from './routes/ForumPage';
 import { LandingPage } from './routes/LandingPage';
+import { NumberCheckPage } from './routes/NumberCheckPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ function AnimatedRoutes() {
         <Routes location={location}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/forum" element={<ForumPage />} />
+          <Route path="/check" element={<NumberCheckPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

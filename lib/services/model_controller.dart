@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 import '../core/model_catalog.dart';
@@ -27,6 +29,7 @@ class ModelController extends ChangeNotifier {
   bool get isBundled => _spec.assetPath != null;
 
   Future<void> load() async {
+    await _settings.hydrateCustomModel();
     _spec = modelById(await _settings.selectedModelId());
     _manager.spec = _spec;
     await refreshInstalled();
@@ -35,6 +38,83 @@ class ModelController extends ChangeNotifier {
       if (!_installed) await installBundled();
     } else if (await ModelStore.exists(_spec)) {
       await _registerPersistent();
+    }
+  }
+
+  /// Registers a model file that already sits on the device and makes it the
+  /// active model. The file is referenced in place — never copied — because a
+  /// few gigabytes would not survive a copy through the app cache.
+  Future<void> loadFromDevice(
+    String path, {
+    String name = '',
+    int contextTokens = kDefaultCustomModelContext,
+    bool thinking = false,
+  }) async {
+    _busy = true;
+    _progress = 0;
+    _error = '';
+    notifyListeners();
+    try {
+      final file = File(path);
+      if (!await file.exists()) {
+        throw Exception('That file is no longer on the device. Pick it again.');
+      }
+      final sizeBytes = await file.length();
+      if (sizeBytes < 64 * 1024 * 1024) {
+        throw Exception('That file is too small to be a model file.');
+      }
+      final fileName = path.split(RegExp(r'[\\/]')).last;
+      final displayName = name.trim().isEmpty ? fileName : name.trim();
+      final spec = buildCustomModelSpec(
+        path: path,
+        name: displayName,
+        contextTokens: contextTokens.clamp(1024, kMaxCustomModelContext),
+        thinking: thinking,
+        sizeMb: sizeBytes ~/ (1024 * 1024),
+      );
+      _manager.spec = spec;
+      await _manager.registerFromFile(path);
+      customModelSpec = spec;
+      _spec = spec;
+      _installed = true;
+      _persistent = true;
+      _progress = 100;
+      await _settings.setCustomModelPath(path);
+      await _settings.setCustomModelName(displayName);
+      await _settings.setCustomModelContext(spec.contextTokens);
+      await _settings.setCustomModelThinking(thinking);
+      await _settings.setSelectedModelId(kCustomModelId);
+    } catch (error) {
+      _error = friendlyError(error);
+      _progress = -1;
+    } finally {
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
+  /// Forgets a picked model. The file itself is deliberately left on the
+  /// device: it was the user's download, and unbinding it must not cost them
+  /// a multi-gigabyte re-download.
+  Future<void> clearCustomModel() async {
+    _busy = true;
+    notifyListeners();
+    try {
+      final wasActive = _spec.id == kCustomModelId;
+      await _settings.clearCustomModel();
+      if (wasActive) {
+        _spec = modelCatalog.first;
+        _manager.spec = _spec;
+        await _settings.setSelectedModelId(_spec.id);
+        await refreshInstalled();
+      }
+      _installed = false;
+      _progress = -1;
+    } catch (error) {
+      _error = friendlyError(error);
+    } finally {
+      _busy = false;
+      notifyListeners();
     }
   }
 
@@ -155,6 +235,10 @@ class ModelController extends ChangeNotifier {
   }
 
   Future<void> delete() async {
+    if (_spec.id == kCustomModelId) {
+      await clearCustomModel();
+      return;
+    }
     _busy = true;
     notifyListeners();
     try {

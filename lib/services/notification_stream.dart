@@ -10,18 +10,25 @@ class IncomingNotification {
     required this.title,
     required this.content,
     required this.postedAt,
+    this.key = '',
     this.conversationTitle,
     this.subText,
   });
 
   factory IncomingNotification.fromMap(Map<dynamic, dynamic> map) {
     final postTime = (map['postTime'] as num?)?.toInt() ?? 0;
+    final title = (map['title'] as String? ?? '').trim();
+    final conversationTitle = (map['conversationTitle'] as String?)?.trim();
     return IncomingNotification(
       id: (map['id'] as num?)?.toInt() ?? 0,
+      key: map['key'] as String? ?? '',
       packageName: map['packageName'] as String? ?? '',
-      title: (map['title'] as String? ?? '').trim(),
-      content: (map['content'] as String? ?? '').trim(),
-      conversationTitle: (map['conversationTitle'] as String?)?.trim(),
+      title: title,
+      content: _stripRedundantSender(
+        (map['content'] as String? ?? '').trim(),
+        [title, conversationTitle],
+      ),
+      conversationTitle: conversationTitle,
       subText: (map['subText'] as String?)?.trim(),
       postedAt: postTime > 0
           ? DateTime.fromMillisecondsSinceEpoch(postTime)
@@ -29,7 +36,38 @@ class IncomingNotification {
     );
   }
 
+  /// The native listener prefixes each bundled message with its sender
+  /// (`"Ywx: hello"`). In a one-to-one chat the notification title is already
+  /// that same sender, so the name would reach the classifier twice (once as
+  /// the Sender line, once inside the Message). Drop the prefix only when it
+  /// matches the chat/sender name; distinct speakers in a group log are kept.
+  static String _stripRedundantSender(
+    String content,
+    Iterable<String?> names,
+  ) {
+    final senders = names
+        .map((name) => name?.trim().toLowerCase() ?? '')
+        .where((name) => name.isNotEmpty)
+        .toSet();
+    if (senders.isEmpty || content.isEmpty) return content;
+    final lines = content.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final colon = line.indexOf(':');
+      if (colon <= 0) continue;
+      final prefix = line.substring(0, colon).trim().toLowerCase();
+      if (senders.contains(prefix)) {
+        lines[i] = line.substring(colon + 1).trimLeft();
+      }
+    }
+    return lines.join('\n').trim();
+  }
+
   final int id;
+
+  /// Stable Android notification key (`package|tag|id`), unchanged when an app
+  /// updates the same notification (e.g. a Telegram thread gaining messages).
+  final String key;
   final String packageName;
   final String title;
   final String content;
@@ -61,10 +99,11 @@ class NotificationStream {
 
   static const EventChannel _channel = EventChannel('scamshield/notifications');
 
-  static Stream<IncomingNotification>? _stream;
-
+  /// A fresh stream per call. A cached broadcast stream cannot be re-listened
+  /// to after it completes, which would leave the background service deaf to
+  /// notifications after any listener hiccup.
   static Stream<IncomingNotification> get stream =>
-      _stream ??= _channel.receiveBroadcastStream().map(
+      _channel.receiveBroadcastStream().map(
             (event) => IncomingNotification.fromMap(event as Map),
           );
 }

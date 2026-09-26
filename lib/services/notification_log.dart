@@ -57,8 +57,10 @@ class NotificationLog {
 
   final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
 
-  static String idFor(NotificationRecord record) =>
-      '${record.packageName}|${record.title}|${record.content}';
+  static String idFor(NotificationRecord record) {
+    if (record.key.isNotEmpty) return record.key;
+    return '${record.packageName}|${record.title}|${record.content}';
+  }
 
   Future<List<LoggedNotification>> all() async {
     final raw = await _prefs.getStringList(_key) ?? const [];
@@ -77,7 +79,13 @@ class NotificationLog {
 
   Future<void> record(String id, NotificationRecord record) async {
     final raw = await _prefs.getStringList(_key) ?? <String>[];
-    if (raw.any((entry) => entry.contains('"id":"$id"'))) return;
+    raw.removeWhere((entry) {
+      try {
+        return (jsonDecode(entry) as Map<String, dynamic>)['id'] == id;
+      } catch (_) {
+        return false;
+      }
+    });
     final item = LoggedNotification(id: id, record: record, capturedAt: DateTime.now());
     raw.insert(0, jsonEncode(item.toJson()));
     while (raw.length > _maxEntries) {
@@ -86,9 +94,13 @@ class NotificationLog {
     await _prefs.setStringList(_key, raw);
   }
 
-  Future<void> attachVerdict(String id, ScamVerdict verdict) async {
+  Future<void> attachVerdict(
+    String id,
+    NotificationRecord record,
+    ScamVerdict verdict,
+  ) async {
     final raw = await _prefs.getStringList(_key) ?? <String>[];
-    var changed = false;
+    var found = false;
     for (var i = 0; i < raw.length; i++) {
       try {
         final decoded = jsonDecode(raw[i]) as Map<String, dynamic>;
@@ -96,14 +108,31 @@ class NotificationLog {
           raw[i] = jsonEncode(
             LoggedNotification.fromJson(decoded).withVerdict(verdict).toJson(),
           );
-          changed = true;
+          found = true;
           break;
         }
       } catch (_) {}
     }
-    if (changed) {
-      await _prefs.setStringList(_key, raw);
+    if (!found) {
+      // A large burst can evict the oldest entries, including one still queued
+      // for evaluation. Re-insert the record with its verdict instead of
+      // silently dropping the result and leaving the row "not checked".
+      raw.insert(
+        0,
+        jsonEncode(
+          LoggedNotification(
+            id: id,
+            record: record,
+            capturedAt: DateTime.now(),
+            verdict: verdict,
+          ).toJson(),
+        ),
+      );
+      while (raw.length > _maxEntries) {
+        raw.removeLast();
+      }
     }
+    await _prefs.setStringList(_key, raw);
   }
 
   Future<void> clear() => _prefs.remove(_key);

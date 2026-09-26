@@ -9,6 +9,7 @@ class NotificationRecord {
     required this.content,
     required this.postedAt,
     this.id = 0,
+    this.key = '',
   });
 
   factory NotificationRecord.fromIncoming(
@@ -19,6 +20,7 @@ class NotificationRecord {
     final content = event.content.trim();
     return NotificationRecord(
       id: event.id,
+      key: event.key,
       packageName: event.packageName,
       appLabel: appLabel,
       title: title,
@@ -34,6 +36,7 @@ class NotificationRecord {
   factory NotificationRecord.fromJson(Map<String, dynamic> json) {
     return NotificationRecord(
       id: json['id'] as int? ?? 0,
+      key: json['key'] as String? ?? '',
       packageName: json['packageName'] as String? ?? '',
       appLabel: json['appLabel'] as String? ?? '',
       title: json['title'] as String? ?? '',
@@ -45,6 +48,7 @@ class NotificationRecord {
   }
 
   final int id;
+  final String key;
   final String packageName;
   final String appLabel;
   final String title;
@@ -60,6 +64,7 @@ class NotificationRecord {
 
   Map<String, dynamic> toJson() => {
         'id': id,
+        'key': key,
         'packageName': packageName,
         'appLabel': appLabel,
         'title': title,

@@ -29,6 +29,11 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
   double _threshold = 0.6;
   String _endpoint = '';
   String _token = '';
+  String _apiKey = kDefaultRemoteApiKey;
+  String _remoteModel = kDefaultRemoteModel;
+  int _reasoningBudget = kDefaultReasoningBudget;
+  int _remoteMaxTokens = kDefaultRemoteMaxTokens;
+  bool _forceCloud = false;
   ServiceStatus _status = ServiceStatus.idle;
 
   @override
@@ -53,8 +58,9 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
 
   Future<void> _bootstrap() async {
     await _model.load();
-    if (await _settings.protectionEnabled() &&
-        !await ScamShieldController.isServiceRunning()) {
+    final enabled = await _settings.protectionEnabled();
+    await ScamShieldController.setShieldEnabled(enabled);
+    if (enabled && !await ScamShieldController.isServiceRunning()) {
       await ScamShieldController.startService();
       await ScamShieldController.syncSettings();
     }
@@ -71,6 +77,11 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
     final threshold = await _settings.confidenceThreshold();
     final endpoint = await _settings.remoteEndpoint();
     final token = await _settings.hfToken();
+    final apiKey = await _settings.remoteApiKey();
+    final remoteModel = await _settings.remoteModel();
+    final reasoningBudget = await _settings.reasoningBudget();
+    final remoteMaxTokens = await _settings.remoteMaxTokens();
+    final forceCloud = await _settings.forceCloud();
     final status = await ScamShieldController.status();
     if (!mounted) return;
     setState(() {
@@ -81,12 +92,26 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
       _threshold = threshold;
       _endpoint = endpoint;
       _token = token;
+      _apiKey = apiKey;
+      _remoteModel = remoteModel;
+      _reasoningBudget = reasoningBudget;
+      _remoteMaxTokens = remoteMaxTokens;
+      _forceCloud = forceCloud;
       _status = status;
     });
   }
 
+  /// Persists a setting and pushes it to the running background service so the
+  /// evaluator picks it up immediately.
+  Future<void> _saveAndSync(Future<void> Function() save) async {
+    await save();
+    await ScamShieldController.syncSettings();
+    await _refresh();
+  }
+
   Future<void> _toggleProtection(bool value) async {
     await _settings.setProtectionEnabled(value);
+    await ScamShieldController.setShieldEnabled(value);
     if (value) {
       await ScamShieldController.ensureServiceRunning();
     } else {
@@ -188,16 +213,38 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
               hfToken: _token,
               threshold: _threshold,
               endpoint: _endpoint,
+              apiKey: _apiKey,
+              remoteModel: _remoteModel,
+              reasoningBudget: _reasoningBudget,
+              remoteMaxTokens: _remoteMaxTokens,
+              forceCloud: _forceCloud,
               serviceRunning: _status.running,
               onSelectModel: (spec) async {
                 await _model.select(spec);
                 await ScamShieldController.syncSettings();
               },
+              onModelChanged: () async {
+                await ScamShieldController.syncSettings();
+                await _refresh();
+              },
               onHfToken: _settings.setHfToken,
-              onThreshold: _settings.setConfidenceThreshold,
-              onEndpoint: _settings.setRemoteEndpoint,
+              onThreshold: (value) =>
+                  _saveAndSync(() => _settings.setConfidenceThreshold(value)),
+              onEndpoint: (value) =>
+                  _saveAndSync(() => _settings.setRemoteEndpoint(value)),
+              onApiKey: (value) =>
+                  _saveAndSync(() => _settings.setRemoteApiKey(value)),
+              onRemoteModel: (value) =>
+                  _saveAndSync(() => _settings.setRemoteModel(value)),
+              onReasoningBudget: (value) =>
+                  _saveAndSync(() => _settings.setReasoningBudget(value)),
+              onRemoteMaxTokens: (value) =>
+                  _saveAndSync(() => _settings.setRemoteMaxTokens(value)),
+              onForceCloud: (value) =>
+                  _saveAndSync(() => _settings.setForceCloud(value)),
               onStopService: () async {
                 await _settings.setProtectionEnabled(false);
+                await ScamShieldController.setShieldEnabled(false);
                 await ScamShieldController.stopService();
                 await _refresh();
               },

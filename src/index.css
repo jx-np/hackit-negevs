@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Runtime-adjustable appearance tokens (set by AppearanceContext) */
+  --app-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --app-font-scale: 1;
+}
+
+html {
+  font-size: calc(16px * var(--app-font-scale));
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--app-font-family);
+  @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-300;
+}
+
+.dark body {
+  @apply bg-slate-950 text-slate-100;
+}
+
+/* Custom scrollbar for a more modern feel */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300 dark:bg-slate-700;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-slate-600;
+}

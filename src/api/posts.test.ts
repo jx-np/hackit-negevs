@@ -80,3 +80,34 @@ describe('getPosts (mock mode)', () => {
     expect(result.nextPage).toBeNull();
   });
 });
+
+
+describe('getPosts sorting (mock mode)', () => {
+  it('sorts by likes descending', async () => {
+    const result = await getPosts({ sort: 'likes', page: 1, pageSize: 100 });
+    const likes = result.posts.map((p) => p.likeCount);
+    const sorted = [...likes].sort((a, b) => b - a);
+    expect(likes).toEqual(sorted);
+  });
+
+  it('sorts by comment count descending', async () => {
+    const result = await getPosts({ sort: 'comments', page: 1, pageSize: 100 });
+    const replies = result.posts.map((p) => p.replyCount);
+    const sorted = [...replies].sort((a, b) => b - a);
+    expect(replies).toEqual(sorted);
+  });
+
+  it('sorts by newest first (default)', async () => {
+    const result = await getPosts({ sort: 'new', page: 1, pageSize: 100 });
+    const times = result.posts.map((p) => new Date(p.createdAt).getTime());
+    const sorted = [...times].sort((a, b) => b - a);
+    expect(times).toEqual(sorted);
+  });
+});
+
+describe('getPosts images (mock mode)', () => {
+  it('includes some posts with an imageUrl', async () => {
+    const result = await getPosts({ page: 1, pageSize: 100 });
+    expect(result.posts.some((p) => !!p.imageUrl)).toBe(true);
+  });
+});

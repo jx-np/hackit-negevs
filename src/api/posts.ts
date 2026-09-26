@@ -18,6 +18,7 @@ export async function getPosts({
   tagId = null,
   page = 1,
   pageSize = DEFAULT_PAGE_SIZE,
+  sort = 'new',
 }: PostsQuery): Promise<PostsPage> {
   if (USE_MOCK) {
     const q = query.trim().toLowerCase();
@@ -34,15 +35,24 @@ export async function getPosts({
       return matchesQuery && matchesTag;
     });
 
+    const sorted = [...filtered].sort((a, b) => {
+      if (sort === 'comments') return b.replyCount - a.replyCount;
+      if (sort === 'likes') return b.likeCount - a.likeCount;
+      // 'new' — most recent first
+      return (
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    });
+
     const start = (page - 1) * pageSize;
-    const slice = filtered.slice(start, start + pageSize);
-    const hasMore = start + pageSize < filtered.length;
+    const slice = sorted.slice(start, start + pageSize);
+    const hasMore = start + pageSize < sorted.length;
 
     return delay(
       {
         posts: slice,
         nextPage: hasMore ? page + 1 : null,
-        total: filtered.length,
+        total: sorted.length,
       },
       500,
     );
@@ -51,6 +61,7 @@ export async function getPosts({
   const params = new URLSearchParams();
   if (query) params.set('search', query);
   if (tagId) params.set('tag', tagId);
+  params.set('sort', sort);
   params.set('page', String(page));
   params.set('pageSize', String(pageSize));
 

@@ -41,6 +41,14 @@ function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length];
 }
 
+const RISK_CYCLE: Array<'high' | 'medium' | null> = [
+  'high',
+  'medium',
+  null,
+  'high',
+  null,
+];
+
 /** Deterministically generate a large set of mock posts. */
 export const MOCK_POSTS: Post[] = Array.from({ length: 60 }, (_, i) => {
   const author = pick(AUTHORS, i);
@@ -49,6 +57,10 @@ export const MOCK_POSTS: Post[] = Array.from({ length: 60 }, (_, i) => {
   const tagA = MOCK_TAGS[i % MOCK_TAGS.length];
   const tagB = MOCK_TAGS[(i * 3 + 1) % MOCK_TAGS.length];
   const tags = tagA.id === tagB.id ? [tagA] : [tagA, tagB];
+
+  // Most (but not all) reports include a screenshot. Seeded placeholder
+  // images stay stable; real images come from the API later.
+  const hasImage = i % 4 !== 2;
 
   return {
     id: `post-${i + 1}`,
@@ -61,5 +73,9 @@ export const MOCK_POSTS: Post[] = Array.from({ length: 60 }, (_, i) => {
     createdAt: new Date(Date.now() - i * 1000 * 60 * 60 * 7).toISOString(),
     replyCount: (i * 7) % 34,
     likeCount: (i * 13) % 120,
+    imageUrl: hasImage
+      ? `https://picsum.photos/seed/scamreg${i + 1}/640/400`
+      : null,
+    risk: RISK_CYCLE[i % RISK_CYCLE.length],
   };
 });

@@ -1,23 +1,20 @@
 import { useEffect, useRef } from 'react';
 import { usePosts } from '../../hooks/usePosts';
+import type { SortKey } from '../../types';
 import { PostCard } from './PostCard';
 
 interface PostListProps {
   query: string;
   tagId: string | null;
+  sort: SortKey;
 }
 
 function PostSkeleton() {
   return (
-    <div className="ia-panel">
-      <div className="flex items-center gap-3 border-b border-ink-200 px-6 py-3 dark:border-ink-800">
-        <div className="h-9 w-9 animate-pulse bg-ink-200 dark:bg-ink-800" />
-        <div className="space-y-1.5">
-          <div className="h-3 w-24 animate-pulse bg-ink-200 dark:bg-ink-800" />
-          <div className="h-3 w-16 animate-pulse bg-ink-200 dark:bg-ink-800" />
-        </div>
-      </div>
-      <div className="space-y-3 px-6 py-5">
+    <div className="mb-5 break-inside-avoid ia-panel overflow-hidden">
+      <div className="aspect-[16/10] w-full animate-pulse bg-ink-100 dark:bg-ink-800" />
+      <div className="space-y-3 px-5 py-4">
+        <div className="h-4 w-20 animate-pulse bg-ink-200 dark:bg-ink-800" />
         <div className="h-6 w-3/4 animate-pulse bg-ink-200 dark:bg-ink-800" />
         <div className="h-4 w-full animate-pulse bg-ink-200 dark:bg-ink-800" />
       </div>
@@ -25,7 +22,7 @@ function PostSkeleton() {
   );
 }
 
-export function PostList({ query, tagId }: PostListProps) {
+export function PostList({ query, tagId, sort }: PostListProps) {
   const {
     data,
     isLoading,
@@ -34,7 +31,7 @@ export function PostList({ query, tagId }: PostListProps) {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = usePosts({ query, tagId });
+  } = usePosts({ query, tagId, sort });
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -56,10 +53,13 @@ export function PostList({ query, tagId }: PostListProps) {
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
+  // Media feed: masonry-style via CSS columns.
+  const feedClass = 'columns-1 gap-5 sm:columns-2';
+
   if (isLoading) {
     return (
-      <div className="mx-auto grid max-w-4xl gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
+      <div className={feedClass}>
+        {Array.from({ length: 6 }).map((_, i) => (
           <PostSkeleton key={i} />
         ))}
       </div>
@@ -68,10 +68,14 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (isError) {
     return (
-      <div className="mx-auto max-w-4xl border border-risk-500 bg-risk-50 p-6 text-center text-risk-700 dark:border-risk-500/50 dark:bg-risk-500/10 dark:text-risk-500">
+      <div className="border border-risk-500 bg-risk-50 p-6 text-center text-risk-700 dark:border-risk-500/50 dark:bg-risk-500/10 dark:text-risk-500">
         <p className="ia-label">Error</p>
-        <p className="mt-2 text-lg font-medium">Something went wrong loading records.</p>
-        <p className="mt-1 font-mono text-sm opacity-80">{(error as Error).message}</p>
+        <p className="mt-2 text-lg font-medium">
+          Something went wrong loading records.
+        </p>
+        <p className="mt-1 font-mono text-sm opacity-80">
+          {(error as Error).message}
+        </p>
       </div>
     );
   }
@@ -81,7 +85,7 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (posts.length === 0) {
     return (
-      <div className="mx-auto max-w-4xl border border-dashed border-ink-300 p-12 text-center text-ink-500 dark:border-ink-700">
+      <div className="border border-dashed border-ink-300 p-12 text-center text-ink-500 dark:border-ink-700">
         <p className="font-display text-xl font-medium text-ink-800 dark:text-ink-200">
           No records found
         </p>
@@ -91,12 +95,12 @@ export function PostList({ query, tagId }: PostListProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div>
       <p className="ia-label mb-4 text-ink-400">
         {total} {total === 1 ? 'record' : 'records'}
       </p>
 
-      <div className="grid gap-4">
+      <div className={feedClass}>
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}

@@ -62,9 +62,13 @@ function loadInitial(): Persisted {
     const prefersDark = window.matchMedia(
       '(prefers-color-scheme: dark)',
     ).matches;
-    return { theme: prefersDark ? 'dark' : 'light', font: 'sans', fontSize: 'md' };
+    return {
+      theme: prefersDark ? 'dark' : 'light',
+      font: 'atkinson',
+      fontSize: 'md',
+    };
   }
-  return { theme: 'light', font: 'sans', fontSize: 'md' };
+  return { theme: 'light', font: 'atkinson', fontSize: 'md' };
 }
 
 const AppearanceContext = createContext<AppearanceState | undefined>(undefined);

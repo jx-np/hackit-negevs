@@ -18,7 +18,7 @@ const FONT_OPTIONS: {
   {
     value: 'atkinson',
     label: 'Atkinson Hyperlegible',
-    note: 'High legibility · low vision',
+    note: 'Default · high legibility, low vision',
     css: "'Atkinson Hyperlegible', system-ui, sans-serif",
   },
   {
@@ -35,7 +35,7 @@ const FONT_OPTIONS: {
   },
   {
     value: 'sans',
-    label: 'Inter (default)',
+    label: 'Inter',
     note: 'Modern sans-serif',
     css: "'Inter', system-ui, sans-serif",
   },

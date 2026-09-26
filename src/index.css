@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 :root {
-  /* Runtime-adjustable appearance tokens (set by AppearanceContext) */
-  --app-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Runtime-adjustable appearance tokens (set by AppearanceContext).
+     Default is Atkinson Hyperlegible for accessibility (low-vision friendly). */
+  --app-font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
   --app-font-scale: 1;
 }
 

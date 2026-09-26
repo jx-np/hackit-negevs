@@ -22,7 +22,7 @@
                 theme: window.matchMedia('(prefers-color-scheme: dark)').matches
                   ? 'dark'
                   : 'light',
-                font: 'sans',
+                font: 'atkinson',
                 fontSize: 'md',
               };
           var fonts = {
@@ -36,7 +36,7 @@
           var scales = { sm: 0.9, md: 1, lg: 1.15 };
           var root = document.documentElement;
           if (prefs.theme === 'dark') root.classList.add('dark');
-          root.style.setProperty('--app-font-family', fonts[prefs.font] || fonts.sans);
+          root.style.setProperty('--app-font-family', fonts[prefs.font] || fonts.atkinson);
           root.style.setProperty('--app-font-scale', String(scales[prefs.fontSize] || 1));
         } catch (e) {}
       })();

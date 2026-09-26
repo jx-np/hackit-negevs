@@ -16,7 +16,7 @@ describe('AppearanceContext', () => {
 
   it('provides default appearance values', () => {
     const { result } = renderHook(() => useAppearance(), { wrapper });
-    expect(result.current.font).toBe('sans');
+    expect(result.current.font).toBe('atkinson');
     expect(result.current.fontSize).toBe('md');
     expect(['light', 'dark']).toContain(result.current.theme);
   });

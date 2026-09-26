@@ -9,17 +9,18 @@ interface PostListProps {
 
 function PostSkeleton() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <div className="mb-3 flex items-center gap-3">
-        <div className="h-9 w-9 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800" />
+    <div className="ia-panel">
+      <div className="flex items-center gap-3 border-b border-ink-200 px-6 py-3 dark:border-ink-800">
+        <div className="h-9 w-9 animate-pulse bg-ink-200 dark:bg-ink-800" />
         <div className="space-y-1.5">
-          <div className="h-3 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-          <div className="h-3 w-16 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+          <div className="h-3 w-24 animate-pulse bg-ink-200 dark:bg-ink-800" />
+          <div className="h-3 w-16 animate-pulse bg-ink-200 dark:bg-ink-800" />
         </div>
       </div>
-      <div className="mb-2 h-5 w-3/4 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-      <div className="mb-4 h-4 w-full animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-      <div className="h-4 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+      <div className="space-y-3 px-6 py-5">
+        <div className="h-6 w-3/4 animate-pulse bg-ink-200 dark:bg-ink-800" />
+        <div className="h-4 w-full animate-pulse bg-ink-200 dark:bg-ink-800" />
+      </div>
     </div>
   );
 }
@@ -57,7 +58,7 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (isLoading) {
     return (
-      <div className="mx-auto grid max-w-4xl gap-5">
+      <div className="mx-auto grid max-w-4xl gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <PostSkeleton key={i} />
         ))}
@@ -67,9 +68,10 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (isError) {
     return (
-      <div className="mx-auto max-w-4xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-600 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-        <p className="text-lg font-medium">Something went wrong loading posts.</p>
-        <p className="mt-1 text-base opacity-80">{(error as Error).message}</p>
+      <div className="mx-auto max-w-4xl border border-risk-500 bg-risk-50 p-6 text-center text-risk-700 dark:border-risk-500/50 dark:bg-risk-500/10 dark:text-risk-500">
+        <p className="ia-label">Error</p>
+        <p className="mt-2 text-lg font-medium">Something went wrong loading records.</p>
+        <p className="mt-1 font-mono text-sm opacity-80">{(error as Error).message}</p>
       </div>
     );
   }
@@ -79,8 +81,10 @@ export function PostList({ query, tagId }: PostListProps) {
 
   if (posts.length === 0) {
     return (
-      <div className="mx-auto max-w-4xl rounded-2xl border border-dashed border-slate-300 p-12 text-center text-slate-500 dark:border-slate-700">
-        <p className="text-xl font-medium">No posts found</p>
+      <div className="mx-auto max-w-4xl border border-dashed border-ink-300 p-12 text-center text-ink-500 dark:border-ink-700">
+        <p className="font-display text-xl font-medium text-ink-800 dark:text-ink-200">
+          No records found
+        </p>
         <p className="mt-1 text-base">Try a different search term or tag.</p>
       </div>
     );
@@ -88,11 +92,11 @@ export function PostList({ query, tagId }: PostListProps) {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <p className="mb-4 text-base text-slate-400">
-        {total} {total === 1 ? 'post' : 'posts'}
+      <p className="ia-label mb-4 text-ink-400">
+        {total} {total === 1 ? 'record' : 'records'}
       </p>
 
-      <div className="grid gap-5">
+      <div className="grid gap-4">
         {posts.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}
@@ -102,14 +106,14 @@ export function PostList({ query, tagId }: PostListProps) {
       <div ref={sentinelRef} className="h-10" />
 
       {isFetchingNextPage && (
-        <div className="py-6 text-center text-base text-slate-400">
+        <div className="py-6 text-center font-mono text-sm text-ink-400">
           Loading more…
         </div>
       )}
 
       {!hasNextPage && posts.length > 0 && (
-        <div className="py-6 text-center text-base text-slate-400">
-          You've reached the end.
+        <div className="py-6 text-center font-mono text-sm text-ink-400">
+          End of records.
         </div>
       )}
     </div>

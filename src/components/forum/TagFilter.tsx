@@ -11,7 +11,9 @@ export function TagFilter({ selected, onSelect }: TagFilterProps) {
 
   if (isError) {
     return (
-      <p className="text-sm text-red-500">Couldn't load tags. Try again later.</p>
+      <p className="font-mono text-sm text-risk-600">
+        Couldn't load tags. Try again later.
+      </p>
     );
   }
 
@@ -27,7 +29,7 @@ export function TagFilter({ selected, onSelect }: TagFilterProps) {
         ? Array.from({ length: 6 }).map((_, i) => (
             <span
               key={i}
-              className="h-8 w-20 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800"
+              className="h-8 w-20 animate-pulse bg-ink-200 dark:bg-ink-800"
             />
           ))
         : tags?.map((tag) => (
@@ -60,17 +62,15 @@ function TagChip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+      className={`inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wider transition ${
         active
-          ? 'bg-brand-600 text-white shadow-sm'
-          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
+          ? 'border-safe-600 bg-safe-600 text-white'
+          : 'border-ink-300 text-ink-700 hover:border-ink-900 hover:text-ink-900 dark:border-ink-700 dark:text-ink-300 dark:hover:border-white dark:hover:text-white'
       }`}
     >
       {label}
       {typeof count === 'number' && (
-        <span
-          className={`text-xs ${active ? 'text-brand-100' : 'text-slate-400'}`}
-        >
+        <span className={active ? 'text-safe-100' : 'text-ink-400'}>
           {count}
         </span>
       )}

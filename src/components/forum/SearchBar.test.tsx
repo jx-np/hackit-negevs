@@ -7,7 +7,7 @@ describe('SearchBar', () => {
   it('renders the search input', () => {
     render(<SearchBar value="" onChange={vi.fn()} />);
     expect(
-      screen.getByPlaceholderText(/search posts/i),
+      screen.getByPlaceholderText(/authors/i),
     ).toBeInTheDocument();
   });
 
@@ -16,7 +16,7 @@ describe('SearchBar', () => {
     const onChange = vi.fn();
     render(<SearchBar value="" onChange={onChange} />);
 
-    await user.type(screen.getByPlaceholderText(/search posts/i), 'hi');
+    await user.type(screen.getByPlaceholderText(/authors/i), 'hi');
     expect(onChange).toHaveBeenCalled();
   });
 

@@ -1,5 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
+import { Footer } from './components/layout/Footer';
 import { Navbar } from './components/layout/Navbar';
 import { AppearanceProvider } from './context/AppearanceContext';
 import { AuthPage } from './routes/AuthPage';
@@ -14,20 +22,38 @@ const queryClient = new QueryClient({
   },
 });
 
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.main
+        key={location.pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+      >
+        <Routes location={location}>
+          <Route path="/" element={<ForumPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </motion.main>
+    </AnimatePresence>
+  );
+}
+
 export default function App() {
   return (
     <AppearanceProvider>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <div className="min-h-screen">
+          <div className="flex min-h-screen flex-col">
             <Navbar />
-            <main>
-              <Routes>
-                <Route path="/" element={<ForumPage />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </main>
+            <div className="flex-1">
+              <AnimatedRoutes />
+            </div>
+            <Footer />
           </div>
         </BrowserRouter>
       </QueryClientProvider>

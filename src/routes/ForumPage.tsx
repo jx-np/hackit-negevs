@@ -1,5 +1,5 @@
-import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { ForumHero } from '../components/forum/ForumHero';
 import { PostList } from '../components/forum/PostList';
 import { SearchBar } from '../components/forum/SearchBar';
 import { TagFilter } from '../components/forum/TagFilter';
@@ -13,27 +13,22 @@ export function ForumPage() {
   const debouncedSearch = useDebounce(search, 350);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Community Forum
-        </h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
-          Search discussions, filter by topic, and dive into the conversation.
-        </p>
-      </motion.div>
+    <div>
+      <ForumHero />
 
-      <div className="sticky top-[68px] z-20 -mx-4 mb-6 space-y-4 bg-slate-50/80 px-4 py-4 backdrop-blur-lg dark:bg-slate-950/80">
-        <SearchBar value={search} onChange={setSearch} />
-        <TagFilter selected={tagId} onSelect={setTagId} />
+      <div className="mx-auto max-w-3xl px-4 pb-16">
+        {/* Sticky search + tag filter bar */}
+        <div className="sticky top-[68px] z-20 -mx-4 mb-8 space-y-4 border-b border-slate-200/0 px-4 py-4 transition-all">
+          <div className="glass rounded-3xl p-4 shadow-soft">
+            <SearchBar value={search} onChange={setSearch} />
+            <div className="mt-4">
+              <TagFilter selected={tagId} onSelect={setTagId} />
+            </div>
+          </div>
+        </div>
+
+        <PostList query={debouncedSearch} tagId={tagId} />
       </div>
-
-      <PostList query={debouncedSearch} tagId={tagId} />
     </div>
   );
 }

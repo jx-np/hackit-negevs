@@ -73,6 +73,23 @@ node --version
 | `npm run build`   | Type-check and build for production into `dist/`       |
 | `npm run preview` | Preview the production build locally                   |
 | `npm run lint`    | Run the linter                                         |
+| `npm test`        | Run the test suite once                                |
+| `npm run test:watch` | Run tests in watch mode                             |
+| `npm run coverage`   | Run tests and generate a coverage report            |
+
+## Testing
+
+Tests are written with [Vitest](https://vitest.dev/) and
+[React Testing Library](https://testing-library.com/docs/react-testing-library/intro/).
+Run them with:
+
+```bash
+npm test
+```
+
+Coverage includes the debounce hook, the mock API layer (search, tag filtering,
+pagination), the form validation schemas, the appearance/theme context, and the
+key UI components (`SearchBar`, `TagFilter`, `PostCard`).
 
 ## Connecting a Real API
 

@@ -11,7 +11,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
       <div>
         <label
           htmlFor={id}
-          className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300"
+          className="mb-1.5 block font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400"
         >
           {label}
         </label>
@@ -19,14 +19,18 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
           id={id}
           ref={ref}
           aria-invalid={!!error}
-          className={`w-full rounded-xl border bg-white px-4 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-4 dark:bg-slate-900 dark:text-slate-100 ${
+          className={`w-full border bg-white px-4 py-2.5 text-ink-900 outline-none transition placeholder:text-ink-400 focus:ring-2 dark:bg-ink-900 dark:text-white ${
             error
-              ? 'border-red-400 focus:ring-red-100 dark:focus:ring-red-900/30'
-              : 'border-slate-200 focus:border-brand-400 focus:ring-brand-100 dark:border-slate-700 dark:focus:ring-brand-900/40'
+              ? 'border-risk-500 focus:ring-risk-500/30'
+              : 'border-ink-300 focus:border-safe-500 focus:ring-safe-500/30 dark:border-ink-700'
           }`}
           {...props}
         />
-        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+        {error && (
+          <p className="mt-1 font-mono text-xs text-risk-600 dark:text-risk-500">
+            {error}
+          </p>
+        )}
       </div>
     );
   },

@@ -18,11 +18,11 @@ html {
 body {
   margin: 0;
   font-family: var(--app-font-family);
-  @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-300;
+  @apply bg-paper text-ink-900 antialiased transition-colors duration-300;
 }
 
 .dark body {
-  @apply bg-slate-950 text-slate-100;
+  @apply bg-ink-950 text-ink-50;
 }
 
 /* Custom scrollbar for a more modern feel */

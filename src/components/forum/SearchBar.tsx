@@ -10,21 +10,21 @@ export function SearchBar({ value, onChange }: SearchBarProps) {
     <div className="relative">
       <Search
         size={20}
-        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-400"
       />
       <input
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Search posts, authors…"
-        className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-12 pr-11 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:focus:ring-brand-900/40"
+        placeholder="Search records, authors…"
+        className="w-full border border-ink-300 bg-white py-3.5 pl-12 pr-11 text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-safe-500 focus:ring-2 focus:ring-safe-500/30 dark:border-ink-700 dark:bg-ink-900 dark:text-white"
       />
       {value && (
         <button
           type="button"
           onClick={() => onChange('')}
           aria-label="Clear search"
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-ink-400 transition hover:text-ink-800 dark:hover:text-white"
         >
           <X size={18} />
         </button>

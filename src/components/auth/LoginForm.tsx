@@ -43,7 +43,7 @@ export function LoginForm() {
       />
 
       {isSubmitSuccessful && (
-        <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-600 dark:bg-green-950/30 dark:text-green-400">
+        <p className="border border-safe-500 bg-safe-50 px-3 py-2 font-mono text-xs text-safe-700 dark:bg-safe-500/10 dark:text-safe-400">
           Signed in (demo). Hook up the real API to continue.
         </p>
       )}
@@ -51,7 +51,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-xl bg-brand-600 py-3 font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+        className="w-full border border-ink-900 bg-ink-900 py-3 font-semibold text-white transition hover:bg-ink-800 disabled:opacity-60 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
       >
         {isSubmitting ? 'Signing in…' : 'Sign in'}
       </button>

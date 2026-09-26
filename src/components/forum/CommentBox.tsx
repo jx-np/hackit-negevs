@@ -22,14 +22,16 @@ export function CommentBox({ postId }: CommentBoxProps) {
   // Logged-out state: prompt the user to sign in.
   if (!isLoggedIn) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center dark:border-slate-700 dark:bg-slate-800/40 sm:flex-row sm:justify-between sm:text-left">
-        <p className="text-base text-slate-600 dark:text-slate-300">
-          <span className="font-semibold">Log in to comment</span> and join the
-          discussion.
+      <div className="flex flex-col items-center gap-3 border border-dashed border-ink-300 bg-ink-50 p-5 text-center dark:border-ink-700 dark:bg-ink-900/50 sm:flex-row sm:justify-between sm:text-left">
+        <p className="text-base text-ink-600 dark:text-ink-300">
+          <span className="font-semibold text-ink-900 dark:text-white">
+            Log in to comment
+          </span>{' '}
+          and join the discussion.
         </p>
         <Link
           to="/auth"
-          className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-base font-semibold text-white transition hover:bg-brand-700"
+          className="inline-flex shrink-0 items-center gap-2 border border-ink-900 bg-ink-900 px-5 py-2.5 text-base font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
         >
           <LogIn size={18} /> Log in
         </Link>
@@ -53,7 +55,7 @@ export function CommentBox({ postId }: CommentBoxProps) {
         Add a comment
       </label>
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
+        <span className="grid h-10 w-10 shrink-0 place-items-center border border-ink-300 bg-ink-50 font-mono text-sm font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
           {user?.name?.slice(0, 2).toUpperCase() ?? 'ME'}
         </span>
         <textarea
@@ -62,23 +64,23 @@ export function CommentBox({ postId }: CommentBoxProps) {
           onChange={(e) => setValue(e.target.value)}
           rows={2}
           placeholder="Share your thoughts…"
-          className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base outline-none transition placeholder:text-slate-400 focus:border-brand-400 focus:ring-4 focus:ring-brand-100 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-brand-900/40"
+          className="w-full resize-none border border-ink-300 bg-white px-4 py-3 text-base outline-none transition placeholder:text-ink-400 focus:border-safe-500 focus:ring-2 focus:ring-safe-500/30 dark:border-ink-700 dark:bg-ink-900 dark:text-white"
         />
       </div>
       <div className="flex items-center justify-between pl-13">
         {submitted ? (
-          <span className="text-sm font-medium text-green-600 dark:text-green-400">
+          <span className="font-mono text-xs font-medium text-safe-700 dark:text-safe-400">
             Comment posted (demo).
           </span>
         ) : (
-          <span className="text-sm text-slate-400">
+          <span className="font-mono text-xs text-ink-400">
             Commenting as {user?.name}
           </span>
         )}
         <button
           type="submit"
           disabled={!value.trim()}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-base font-semibold text-white transition hover:bg-brand-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-5 py-2.5 text-base font-semibold text-white transition hover:bg-ink-800 disabled:opacity-50 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
         >
           <Send size={16} /> Comment
         </button>

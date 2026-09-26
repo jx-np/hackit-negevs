@@ -97,12 +97,12 @@ export function SettingsPanel() {
                 exit={{ opacity: 0 }}
                 onClick={() => setOpen(false)}
               />
-              {/* Drawer slides in from the LEFT */}
+              {/* Drawer slides in from the RIGHT */}
               <motion.aside
-                className="fixed left-0 top-0 z-[101] flex h-full w-96 max-w-[90vw] flex-col overflow-y-auto border-r border-ink-200 bg-paper text-ink-900 shadow-2xl dark:border-ink-800 dark:bg-ink-950 dark:text-ink-50"
-                initial={{ x: '-100%' }}
+                className="fixed right-0 top-0 z-[101] flex h-full w-96 max-w-[90vw] flex-col overflow-y-auto border-l border-ink-200 bg-paper text-ink-900 shadow-2xl dark:border-ink-800 dark:bg-ink-950 dark:text-ink-50"
+                initial={{ x: '100%' }}
                 animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
+                exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 28, stiffness: 260 }}
               >
               <div className="flex items-center justify-between border-b border-ink-200 px-6 py-4 dark:border-ink-800">

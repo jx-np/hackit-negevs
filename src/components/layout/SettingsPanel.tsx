@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Minus, Moon, Plus, Settings, Sun, X } from 'lucide-react';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   useAppearance,
   type FontChoice,
@@ -84,23 +85,26 @@ export function SettingsPanel() {
         <Settings size={20} />
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              className="fixed inset-0 z-40 bg-ink-950/50 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
-            />
-            <motion.aside
-              className="fixed right-0 top-0 z-50 flex h-full w-96 max-w-[90vw] flex-col overflow-y-auto border-l border-ink-200 bg-paper text-ink-900 shadow-2xl dark:border-ink-800 dark:bg-ink-950 dark:text-ink-50"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            >
+      {createPortal(
+        <AnimatePresence>
+          {open && (
+            <>
+              {/* Dim the entire screen behind the drawer */}
+              <motion.div
+                className="fixed inset-0 z-[100] bg-ink-950/60 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setOpen(false)}
+              />
+              {/* Drawer slides in from the LEFT */}
+              <motion.aside
+                className="fixed left-0 top-0 z-[101] flex h-full w-96 max-w-[90vw] flex-col overflow-y-auto border-r border-ink-200 bg-paper text-ink-900 shadow-2xl dark:border-ink-800 dark:bg-ink-950 dark:text-ink-50"
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+              >
               <div className="flex items-center justify-between border-b border-ink-200 px-6 py-4 dark:border-ink-800">
                 <div>
                   <span className="ia-label text-safe-700 dark:text-safe-400">
@@ -249,9 +253,11 @@ export function SettingsPanel() {
                 </section>
               </div>
             </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </>
   );
 }

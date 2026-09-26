@@ -7,6 +7,7 @@ import { SettingsPanel } from './SettingsPanel';
 const LINKS = [
   { to: '/', label: 'Home', end: true },
   { to: '/forum', label: 'Forum', end: false },
+  { to: '/check', label: 'Check', end: false },
 ];
 
 export function Navbar() {

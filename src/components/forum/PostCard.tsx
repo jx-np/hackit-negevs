@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Heart, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import { CommentBox } from './CommentBox';
 
@@ -48,9 +49,9 @@ export function PostCard({ post }: { post: Post }) {
       transition={{ duration: 0.35, ease: 'easeOut' }}
       className="group relative mb-5 break-inside-avoid ia-panel overflow-hidden transition-transform transition-colors hover:-translate-y-0.5 hover:border-ink-400 dark:hover:border-ink-600"
     >
-      {/* Image-forward header (with risk badge overlay) */}
+      {/* Image-forward header (with risk badge overlay) — links to detail */}
       {post.imageUrl && (
-        <div className="relative">
+        <Link to={`/forum/${post.id}`} className="relative block">
           <img
             src={post.imageUrl}
             alt=""
@@ -58,7 +59,7 @@ export function PostCard({ post }: { post: Post }) {
             className="block w-full bg-ink-100 object-cover dark:bg-ink-800"
           />
           <RiskBadge risk={post.risk} />
-        </div>
+        </Link>
       )}
 
       <div className="px-5 pt-4">
@@ -86,7 +87,9 @@ export function PostCard({ post }: { post: Post }) {
         </div>
 
         <h3 className="mt-3 font-display text-xl font-semibold leading-snug text-ink-900 transition group-hover:text-safe-700 dark:text-white dark:group-hover:text-safe-400">
-          {post.title}
+          <Link to={`/forum/${post.id}`} className="hover:underline">
+            {post.title}
+          </Link>
         </h3>
         <p className="mt-2 line-clamp-3 text-base text-ink-600 dark:text-ink-400">
           {post.excerpt}

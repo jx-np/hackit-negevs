@@ -24,6 +24,9 @@ export function Footer() {
           <Link to="/check" className="transition hover:text-safe-700 dark:hover:text-safe-400">
             Number check
           </Link>
+          <Link to="/report" className="transition hover:text-safe-700 dark:hover:text-safe-400">
+            Report a scam
+          </Link>
           <Link to="/auth" className="transition hover:text-safe-700 dark:hover:text-safe-400">
             Sign in
           </Link>

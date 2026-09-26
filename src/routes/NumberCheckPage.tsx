@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useNumberCheck } from '../hooks/useNumberCheck';
+import { parsePhone } from '../lib/phone';
 import type { NumberCheckResult, NumberStatus } from '../types';
 
 const STATUS_META: Record<
@@ -53,9 +54,12 @@ export function NumberCheckPage() {
     reportedKind,
   } = useNumberCheck();
 
+  const parsed = parsePhone(input);
+  const showValidationError = input.trim().length > 0 && !parsed.valid;
+
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim()) check(input);
+    if (parsed.valid) check(input);
   };
 
   return (
@@ -98,24 +102,36 @@ export function NumberCheckPage() {
               inputMode="tel"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="e.g. +1 800 555 1234"
+              placeholder="e.g. +1 800 555 1234 or 8005551234"
               aria-label="Phone number"
-              className="w-full border border-ink-300 bg-white py-3.5 pl-12 pr-4 text-lg text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-safe-500 focus:ring-2 focus:ring-safe-500/30 dark:border-ink-700 dark:bg-ink-900 dark:text-white"
+              aria-invalid={showValidationError}
+              className={`w-full border bg-white py-3.5 pl-12 pr-4 text-lg text-ink-900 outline-none transition placeholder:text-ink-400 focus:ring-2 dark:bg-ink-900 dark:text-white ${
+                showValidationError
+                  ? 'border-risk-500 focus:border-risk-500 focus:ring-risk-500/30'
+                  : 'border-ink-300 focus:border-safe-500 focus:ring-safe-500/30 dark:border-ink-700'
+              }`}
             />
           </div>
           <button
             type="submit"
-            disabled={!input.trim() || isChecking}
+            disabled={!parsed.valid || isChecking}
             className="border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 disabled:opacity-50 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
           >
             {isChecking ? 'Checking…' : 'Check number'}
           </button>
         </form>
 
-        {/* Try-these hint */}
+        {/* Inline validation message */}
+        {showValidationError && (
+          <p className="mt-2 font-mono text-sm text-risk-600 dark:text-risk-500">
+            {parsed.error}
+          </p>
+        )}
+
+        {/* Try-these hint (+ prefix optional — both forms match the same number) */}
         <p className="mt-3 font-mono text-xs text-ink-400">
-          Try: +18005551234 (scam) · +441632960000 (trusted) · any other
-          (unknown)
+          Try: +18005551234 or 18005551234 (scam) · +441632960000 (trusted) ·
+          the + prefix is optional
         </p>
 
         {/* Error */}

@@ -33,6 +33,17 @@ export interface Post {
 /** How the posts list is ordered. */
 export type SortKey = 'new' | 'comments' | 'likes';
 
+/** Payload for creating a new report (post). */
+export interface NewPostInput {
+  title: string;
+  excerpt: string;
+  body?: string;
+  tagId: string;
+  imageUrl?: string | null;
+  risk?: RiskLevel;
+  authorName: string;
+}
+
 /** Shape returned by a paginated posts request. */
 export interface PostsPage {
   posts: Post[];

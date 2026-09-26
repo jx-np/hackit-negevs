@@ -4,20 +4,26 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.service.notification.NotificationListenerService
+import android.util.Log
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.PowerManager
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import io.flutter.FlutterInjector
@@ -29,6 +35,7 @@ import io.flutter.plugin.common.MethodChannel
 class ScamShieldService : Service() {
     private var engine: FlutterEngine? = null
     private var notificationManager: NotificationManager? = null
+    private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): android.os.IBinder? = null
 
@@ -37,6 +44,7 @@ class ScamShieldService : Service() {
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
         startForegroundInternal("ScamShield is starting")
+        requestListenerRebind()
 
         val flutterEngine = FlutterEngine(this)
         val loader = FlutterInjector.instance().flutterLoader()
@@ -60,6 +68,14 @@ class ScamShieldService : Service() {
                 }
                 "updateStatus" -> {
                     updateStatus(call.argument<String>("message").orEmpty())
+                    result.success(null)
+                }
+                "acquireWakeLock" -> {
+                    acquireWakeLock()
+                    result.success(null)
+                }
+                "releaseWakeLock" -> {
+                    releaseWakeLock()
                     result.success(null)
                 }
                 else -> result.notImplemented()
@@ -102,10 +118,41 @@ class ScamShieldService : Service() {
 
     override fun onDestroy() {
         ScamOverlayController.hide()
+        // Drop the Dart sink before the engine dies, otherwise a stale sink
+        // would keep reporting "delivered to Dart" into a dead engine.
+        NotificationRelay.attach(null)
+        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock = null
         engine?.destroy()
         ScamShieldEngineHolder.clear()
         engine = null
         super.onDestroy()
+    }
+
+    private fun requestListenerRebind() {
+        ScamNotificationListener.rebind(this)
+    }
+
+    /**
+     * Held only while a native generation is running. Without it the CPU can
+     * suspend with the screen off, so an evaluation started for a notification
+     * that briefly woke the device never finishes.
+     */
+    private fun acquireWakeLock() {
+        val manager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val lock = wakeLock ?: manager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "ScamShield:model",
+        ).also {
+            it.setReferenceCounted(true)
+            wakeLock = it
+        }
+        if (!lock.isHeld) lock.acquire(WAKE_LOCK_TIMEOUT_MS)
+    }
+
+    private fun releaseWakeLock() {
+        val lock = wakeLock ?: return
+        if (lock.isHeld) lock.release()
     }
 
     private fun createNotificationChannel() {
@@ -167,6 +214,21 @@ class ScamShieldService : Service() {
     companion object {
         private const val CHANNEL_ID = "scamshield_service"
         private const val NOTIFICATION_ID = 4201
+        private const val WAKE_LOCK_TIMEOUT_MS = 3 * 60 * 1000L
+        private const val TAG = "ScamShieldService"
+
+        fun start(context: Context) {
+            val intent = Intent(context, ScamShieldService::class.java)
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+            } catch (error: Exception) {
+                Log.w(TAG, "could not start service", error)
+            }
+        }
     }
 }
 
@@ -196,6 +258,11 @@ object ScamOverlayController {
             gravity = Gravity.CENTER
             setBackgroundColor(Color.parseColor("#E6000000"))
         }
+
+        val screenHeight = context.resources.displayMetrics.heightPixels
+        val maxBodyHeight = (screenHeight - dp(260))
+            .coerceAtMost((screenHeight * 0.7).toInt())
+            .coerceAtLeast(dp(96))
 
         val card = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -228,8 +295,12 @@ object ScamOverlayController {
             setPadding(0, dp(4), 0, 0)
         })
 
+        val scrollBody = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
         if (message.isNotEmpty()) {
-            card.addView(TextView(context).apply {
+            scrollBody.addView(TextView(context).apply {
                 text = message
                 textSize = 15f
                 setTextColor(Color.parseColor("#333333"))
@@ -238,13 +309,29 @@ object ScamOverlayController {
         }
 
         if (reason.isNotEmpty()) {
-            card.addView(TextView(context).apply {
+            scrollBody.addView(TextView(context).apply {
                 text = "Why: $reason"
                 textSize = 14f
                 setTextColor(Color.parseColor("#555555"))
                 setPadding(0, dp(12), 0, 0)
             })
         }
+
+        card.addView(
+            MaxHeightScrollView(context, maxBodyHeight).apply {
+                addView(
+                    scrollBody,
+                    FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+            },
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
 
         card.addView(Button(context).apply {
             text = "Dismiss"
@@ -298,5 +385,15 @@ object ScamOverlayController {
         } catch (_: Exception) {
         }
         rootView = null
+    }
+}
+
+private class MaxHeightScrollView(
+    context: Context,
+    private val maxHeightPx: Int,
+) : ScrollView(context) {
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val capped = MeasureSpec.makeMeasureSpec(maxHeightPx, MeasureSpec.AT_MOST)
+        super.onMeasure(widthMeasureSpec, capped)
     }
 }

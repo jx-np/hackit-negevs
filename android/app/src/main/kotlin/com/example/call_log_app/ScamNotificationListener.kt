@@ -1,9 +1,13 @@
 package com.example.call_log_app
 
 import android.app.Notification
+import android.content.ComponentName
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
+import android.util.Log
 import android.service.notification.StatusBarNotification
 import io.flutter.plugin.common.EventChannel
 
@@ -17,10 +21,15 @@ class ScamNotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         instance = this
+        Log.i(TAG, "listener connected")
+        if (!ScamShieldEngineHolder.isRunning && SpamStore.isShieldEnabled(this)) {
+            ScamShieldService.start(this)
+        }
     }
 
     override fun onListenerDisconnected() {
         if (instance === this) instance = null
+        Log.i(TAG, "listener disconnected")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -41,9 +50,11 @@ class ScamNotificationListener : NotificationListenerService() {
         val content = extractContent(extras)
         if (title.isEmpty() && content.isEmpty()) return
 
+        Log.i(TAG, "posted pkg=${sbn.packageName} title='$title' contentLen=${content.length}")
         NotificationRelay.emit(
             mapOf(
                 "id" to sbn.id,
+                "key" to sbn.key,
                 "packageName" to sbn.packageName,
                 "title" to title,
                 "conversationTitle" to conversation,
@@ -66,9 +77,10 @@ class ScamNotificationListener : NotificationListenerService() {
                     val text = bundle.getCharSequence("text")?.toString()?.trim().orEmpty()
                     if (text.isEmpty()) return@mapNotNull null
                     val sender = bundle.getCharSequence("sender")?.toString()?.trim().orEmpty()
-                    if (sender.isEmpty()) text else "$sender: $text"
+                    val body = clip(text)
+                    if (sender.isEmpty()) body else "$sender: $body"
                 }
-                if (lines.isNotEmpty()) return lines.joinToString("\n")
+                if (lines.isNotEmpty()) return recent(lines).joinToString("\n")
             }
         }
 
@@ -76,21 +88,62 @@ class ScamNotificationListener : NotificationListenerService() {
         if (textLines != null) {
             val lines = textLines.mapNotNull { it?.toString()?.trim() }
                 .filter { it.isNotEmpty() }
-            if (lines.isNotEmpty()) return lines.joinToString("\n")
+            if (lines.isNotEmpty()) return recent(lines).joinToString("\n")
         }
 
         val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim()
-        if (!bigText.isNullOrEmpty()) return bigText
+        if (!bigText.isNullOrEmpty()) return clip(bigText)
 
-        return extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+        return clip(extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty())
     }
 
+    private fun clip(text: String): String =
+        if (text.length <= MAX_MESSAGE_CHARS) text else text.take(MAX_MESSAGE_CHARS) + "…"
+
+    /** Telegram/WhatsApp bundle a whole chat into one notification; keep only
+     *  the most recent messages so a long thread does not overwhelm the model. */
+    private fun recent(lines: List<String>): List<String> =
+        if (lines.size <= MAX_BUNDLED_MESSAGES) lines
+        else lines.subList(lines.size - MAX_BUNDLED_MESSAGES, lines.size)
+
     companion object {
+        private const val TAG = "ScamNotification"
+        private const val MAX_BUNDLED_MESSAGES = 8
+        private const val MAX_MESSAGE_CHARS = 400
+
         @Volatile
         var instance: ScamNotificationListener? = null
             private set
 
         fun isConnected(): Boolean = instance != null
+
+        /**
+         * After an APK update the system keeps the listener enabled but stops
+         * delivering to it, and [NotificationListenerService.requestRebind]
+         * alone is ignored on some ROMs. Toggling the component's enabled
+         * state forces the system to re-evaluate and bind it again.
+         */
+        fun rebind(context: Context) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
+            val component = ComponentName(context, ScamNotificationListener::class.java)
+            try {
+                val pm = context.packageManager
+                pm.setComponentEnabledSetting(
+                    component,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP,
+                )
+                pm.setComponentEnabledSetting(
+                    component,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP,
+                )
+                NotificationListenerService.requestRebind(component)
+                Log.i(TAG, "rebind requested for $component")
+            } catch (e: Exception) {
+                Log.w(TAG, "rebind failed for $component", e)
+            }
+        }
     }
 }
 
@@ -101,6 +154,7 @@ class ScamNotificationListener : NotificationListenerService() {
  */
 object NotificationRelay {
     private const val MAX_BUFFERED = 50
+    private const val TAG = "ScamNotification"
 
     private var sink: EventChannel.EventSink? = null
     private val pending = ArrayDeque<Map<String, Any?>>()
@@ -108,6 +162,10 @@ object NotificationRelay {
     @Synchronized
     fun attach(newSink: EventChannel.EventSink?) {
         sink = newSink
+        Log.i(
+            TAG,
+            if (newSink != null) "Dart listener attached" else "Dart listener detached",
+        )
         if (newSink != null) {
             while (pending.isNotEmpty()) {
                 newSink.success(pending.removeFirst())
@@ -120,9 +178,11 @@ object NotificationRelay {
         val current = sink
         if (current != null) {
             current.success(payload)
+            Log.i(TAG, "delivered to Dart")
         } else {
             if (pending.size >= MAX_BUFFERED) pending.removeFirst()
             pending.addLast(payload)
+            Log.i(TAG, "buffered: no Dart listener attached")
         }
     }
 }

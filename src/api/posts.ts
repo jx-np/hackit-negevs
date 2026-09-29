@@ -107,6 +107,7 @@ export async function createPost(input: NewPostInput): Promise<Post> {
       likeCount: 0,
       imageUrl: input.imageUrl ?? null,
       risk: input.risk ?? null,
+      incidentDate: input.incidentDate ?? null,
     };
     // Prepend so it appears first under the default "newest" sort.
     MOCK_POSTS.unshift(post);

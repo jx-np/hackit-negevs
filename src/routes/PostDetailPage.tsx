@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, Heart, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Heart, MessageCircle } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { CommentBox } from '../components/forum/CommentBox';
 import { usePost } from '../hooks/usePost';
@@ -137,6 +137,19 @@ export function PostDetailPage() {
                   </span>
                 </div>
               </div>
+
+              {/* Incident date */}
+              {post.incidentDate && (
+                <div className="mt-5 flex items-center gap-2 border border-ink-200 bg-ink-50 px-4 py-3 dark:border-ink-800 dark:bg-ink-900/50">
+                  <CalendarDays size={18} className="text-safe-600 dark:text-safe-400" />
+                  <span className="ia-label text-ink-500 dark:text-ink-400">
+                    Incident date
+                  </span>
+                  <span className="ml-auto font-mono text-sm text-ink-900 dark:text-white">
+                    {formatDate(post.incidentDate)}
+                  </span>
+                </div>
+              )}
 
               {/* Body */}
               <div className="mt-5 space-y-4 text-lg leading-relaxed text-ink-700 dark:text-ink-300">

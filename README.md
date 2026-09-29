@@ -28,9 +28,15 @@ font and wide layout tuned for readability (including users with low vision).
   - Full report view (image, tags, risk, author, body) with the comment thread
   - Reached by clicking a post's title or image in the forum
 - **Report a scam** (`/report`) — **login-gated**
-  - Form to submit a new report (title, description, category, risk, optional
-    screenshot URL) with validation; redirects to the new post on submit
-  - Logged-out users see a prompt to sign in
+  - Fleshed-out form: title, **incident date** (date picker, no future dates),
+    description, single **category** picker, **risk** level, and an image
+    **media picker** (click or drag-and-drop, with preview)
+  - Validation throughout; redirects to the new post on submit
+  - Logged-out users see a prompt to sign in — or use **"Continue as demo
+    user"** on the auth page to try reporting without an account
+  - Media uploads are **scaffolded** (`src/api/media.ts`): the picked image
+    previews via a local object URL but isn't persisted; a real upload endpoint
+    is stubbed for later
 - **Number check** (`/check`)
   - Look up a phone number to see how many times it's been reported
   - **Validates** the input and treats `+prefix` and non-`+` forms of the same

@@ -44,6 +44,8 @@ export interface NewPostInput {
   imageUrl?: string | null;
   risk?: RiskLevel;
   authorName: string;
+  /** Id of the logged-in author; required — reporting needs an account. */
+  authorId: string;
   /** When the scam happened (YYYY-MM-DD). */
   incidentDate?: string | null;
 }

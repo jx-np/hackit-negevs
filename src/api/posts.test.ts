@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getPosts } from './posts';
+import { createPost, getPosts } from './posts';
 
 describe('getPosts (mock mode)', () => {
   it('returns the first page with the default page size', async () => {
@@ -109,5 +109,28 @@ describe('getPosts images (mock mode)', () => {
   it('includes some posts with an imageUrl', async () => {
     const result = await getPosts({ page: 1, pageSize: 100 });
     expect(result.posts.some((p) => !!p.imageUrl)).toBe(true);
+  });
+});
+
+
+describe('createPost — requires a logged-in author', () => {
+  const base = {
+    title: 'A new scam report',
+    excerpt: 'A description of the scam that is long enough.',
+    tagId: 't-react',
+    authorName: 'Alice',
+  };
+
+  it('rejects when authorId is missing', async () => {
+    await expect(
+      createPost({ ...base, authorId: '' }),
+    ).rejects.toThrow(/logged in/i);
+  });
+
+  it('creates a post when an authorId is provided', async () => {
+    const post = await createPost({ ...base, authorId: 'user-1' });
+    expect(post.id).toBeTruthy();
+    expect(post.author.id).toBe('user-1');
+    expect(post.title).toBe(base.title);
   });
 });

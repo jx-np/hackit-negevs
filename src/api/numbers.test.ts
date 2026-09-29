@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { lookupNumber, normalizeNumber, reportNumber } from './numbers';
+import {
+  hasReported,
+  lookupNumber,
+  normalizeNumber,
+  reportNumber,
+} from './numbers';
 
 describe('normalizeNumber', () => {
   it('returns the canonical digits-only key (ignoring + and formatting)', () => {
@@ -61,7 +66,7 @@ describe('reportNumber (mock mode)', () => {
     const before = await lookupNumber(number);
     expect(before.status).toBe('unknown');
 
-    const after = await reportNumber(number, 'scam');
+    const after = await reportNumber(number, 'scam', 'user-a');
     expect(after.counts.scam).toBe(before.counts.scam + 1);
     expect(after.status).toBe('scam');
     expect(after.lastReportedAt).not.toBeNull();
@@ -70,8 +75,48 @@ describe('reportNumber (mock mode)', () => {
   it('increments the trusted count', async () => {
     const number = '+15550002222';
     const before = await lookupNumber(number);
-    const after = await reportNumber(number, 'trusted');
+    const after = await reportNumber(number, 'trusted', 'user-a');
     expect(after.counts.trusted).toBe(before.counts.trusted + 1);
     expect(after.status).toBe('trusted');
+  });
+});
+
+describe('reportNumber — auth + one-report-per-account', () => {
+  it('rejects a report with no logged-in user', async () => {
+    await expect(reportNumber('+15550003333', 'scam', null)).rejects.toThrow(
+      /logged in/i,
+    );
+  });
+
+  it('rejects a second report of the same number by the same account', async () => {
+    const number = '+15550004444';
+    await reportNumber(number, 'scam', 'user-dup');
+    await expect(
+      reportNumber(number, 'scam', 'user-dup'),
+    ).rejects.toThrow(/already reported/i);
+  });
+
+  it('treats + and non-+ as the same number for the per-account limit', async () => {
+    await reportNumber('+15550005555', 'scam', 'user-plus');
+    await expect(
+      reportNumber('15550005555', 'trusted', 'user-plus'),
+    ).rejects.toThrow(/already reported/i);
+  });
+
+  it('allows a different account to report the same number', async () => {
+    const number = '+15550006666';
+    await reportNumber(number, 'scam', 'user-1');
+    const second = await reportNumber(number, 'scam', 'user-2');
+    // Two distinct accounts -> two scam reports counted.
+    expect(second.counts.scam).toBe(2);
+  });
+
+  it('hasReported reflects whether an account reported a number', async () => {
+    const number = '+15550007777';
+    expect(hasReported('user-hr', number)).toBe(false);
+    await reportNumber(number, 'scam', 'user-hr');
+    expect(hasReported('user-hr', number)).toBe(true);
+    // + / non-+ equivalence
+    expect(hasReported('user-hr', '15550007777')).toBe(true);
   });
 });

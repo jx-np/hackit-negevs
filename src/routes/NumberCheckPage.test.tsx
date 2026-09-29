@@ -80,3 +80,32 @@ describe('NumberCheckPage', () => {
     expect(screen.queryByText(/log in to report/i)).not.toBeInTheDocument();
   });
 });
+
+
+describe('NumberCheckPage — one report per account', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('replaces the report buttons with a confirmation after reporting', async () => {
+    localStorage.setItem(
+      'scamreg-auth',
+      JSON.stringify({ id: 'ui-user-1', email: 'a@b.com', name: 'Alice' }),
+    );
+    const user = await lookup('+441632960099');
+
+    // Report buttons appear while logged in and not yet reported.
+    const scamBtn = await screen.findByRole('button', {
+      name: /report as scam/i,
+    });
+    await user.click(scamBtn);
+
+    // After reporting, the buttons are gone and a confirmation shows.
+    await waitFor(() =>
+      expect(
+        screen.getByText(/each account can report a number once/i),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole('button', { name: /report as scam/i }),
+    ).not.toBeInTheDocument();
+  });
+});

@@ -41,6 +41,7 @@ export function ReportPage() {
         imageUrl,
         incidentDate: values.incidentDate,
         authorName: user?.name ?? 'Anonymous',
+        authorId: user?.id ?? '',
       });
     },
     onSuccess: (post) => navigate(`/forum/${post.id}`),

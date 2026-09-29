@@ -52,6 +52,8 @@ export function NumberCheckPage() {
     submitReport,
     isReporting,
     reportedKind,
+    reportError,
+    alreadyReported,
   } = useNumberCheck();
 
   const parsed = parsePhone(input);
@@ -150,6 +152,8 @@ export function NumberCheckPage() {
             onReport={submitReport}
             isReporting={isReporting}
             reportedKind={reportedKind}
+            reportError={reportError}
+            alreadyReported={alreadyReported}
           />
         )}
       </div>
@@ -171,12 +175,16 @@ function ResultCard({
   onReport,
   isReporting,
   reportedKind,
+  reportError,
+  alreadyReported,
 }: {
   result: NumberCheckResult;
   queried: string | null;
   onReport: (input: string, kind: 'scam' | 'trusted') => void;
   isReporting: boolean;
   reportedKind: 'scam' | 'trusted' | null;
+  reportError: Error | null;
+  alreadyReported: boolean;
 }) {
   const { isLoggedIn } = useAuth();
   const meta = STATUS_META[result.status];
@@ -229,29 +237,7 @@ function ResultCard({
             Add your report
           </p>
 
-          {isLoggedIn ? (
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={() => onReport(lookupInput, 'scam')}
-                disabled={isReporting}
-                className="flex flex-1 items-center justify-center gap-2 border border-risk-600 bg-risk-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-risk-700 disabled:opacity-50"
-              >
-                <ShieldAlert size={18} />
-                {isReporting && reportedKind === 'scam'
-                  ? 'Reporting…'
-                  : 'Report as scam'}
-              </button>
-              <button
-                type="button"
-                onClick={() => onReport(lookupInput, 'trusted')}
-                disabled={isReporting}
-                className="flex flex-1 items-center justify-center gap-2 border border-safe-600 px-5 py-3 text-base font-semibold text-safe-700 transition hover:bg-safe-50 disabled:opacity-50 dark:text-safe-400 dark:hover:bg-safe-500/10"
-              >
-                <CheckCircle2 size={18} /> Mark as trusted
-              </button>
-            </div>
-          ) : (
+          {!isLoggedIn ? (
             <div className="flex flex-col items-center gap-3 border border-dashed border-ink-300 bg-ink-50 p-5 text-center dark:border-ink-700 dark:bg-ink-900/50 sm:flex-row sm:justify-between sm:text-left">
               <p className="text-base text-ink-600 dark:text-ink-300">
                 <span className="font-semibold text-ink-900 dark:text-white">
@@ -266,6 +252,46 @@ function ResultCard({
                 <LogIn size={18} /> Log in
               </Link>
             </div>
+          ) : alreadyReported ? (
+            <div className="flex items-center gap-3 border border-safe-500 bg-safe-50 p-5 dark:bg-safe-500/10">
+              <CheckCircle2
+                size={22}
+                className="shrink-0 text-safe-700 dark:text-safe-400"
+              />
+              <p className="text-base font-medium text-safe-700 dark:text-safe-400">
+                You've reported this number. Each account can report a number
+                once.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => onReport(lookupInput, 'scam')}
+                  disabled={isReporting}
+                  className="flex flex-1 items-center justify-center gap-2 border border-risk-600 bg-risk-600 px-5 py-3 text-base font-semibold text-white transition hover:bg-risk-700 disabled:opacity-50"
+                >
+                  <ShieldAlert size={18} />
+                  {isReporting && reportedKind === 'scam'
+                    ? 'Reporting…'
+                    : 'Report as scam'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onReport(lookupInput, 'trusted')}
+                  disabled={isReporting}
+                  className="flex flex-1 items-center justify-center gap-2 border border-safe-600 px-5 py-3 text-base font-semibold text-safe-700 transition hover:bg-safe-50 disabled:opacity-50 dark:text-safe-400 dark:hover:bg-safe-500/10"
+                >
+                  <CheckCircle2 size={18} /> Mark as trusted
+                </button>
+              </div>
+              {reportError && (
+                <p className="mt-3 font-mono text-sm text-risk-600 dark:text-risk-500">
+                  {reportError.message}
+                </p>
+              )}
+            </>
           )}
         </div>
       </div>

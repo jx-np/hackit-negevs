@@ -43,8 +43,10 @@ font and wide layout tuned for readability (including users with low vision).
     number as identical (canonical digits-only key)
   - Shows a status verdict — **trusted / scam / unknown** — with a scam vs.
     trusted report-count breakdown
-  - **Report** the number as scam or trusted — **only available when logged in**
-    (logged-out users see a prompt to sign in)
+  - **Report** the number as scam or trusted — **requires a logged-in account**
+    (enforced in the data layer, not just the UI), and **each account can
+    report a given number only once** (a second attempt is rejected and the
+    UI shows an "already reported" confirmation)
 - **Auth** (`/auth`)
   - Toggle between login and signup with client-side validation
   - On submit, the (scaffolded) auth state flips to logged-in and redirects to the forum

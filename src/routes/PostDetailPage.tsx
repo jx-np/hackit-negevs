@@ -41,7 +41,7 @@ export function PostDetailPage() {
 
   return (
     <div className="min-h-screen bg-paper dark:bg-ink-950">
-      <div className="mx-auto w-full max-w-3xl px-6 py-10">
+      <div className="mx-auto w-full max-w-6xl px-6 py-10">
         <Link
           to="/forum"
           className="mb-6 inline-flex items-center gap-2 font-mono text-sm uppercase tracking-wider text-ink-500 transition hover:text-safe-700 dark:text-ink-400 dark:hover:text-safe-400"
@@ -76,6 +76,7 @@ export function PostDetailPage() {
         )}
 
         {post && (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
           <motion.article
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -156,16 +157,22 @@ export function PostDetailPage() {
                 <p>{post.excerpt}</p>
                 {post.body && <p>{post.body}</p>}
               </div>
-
-              {/* Comment thread */}
-              <div className="mt-8 border-t border-ink-200 pt-6 dark:border-ink-800">
-                <h2 className="ia-label mb-4 text-ink-500 dark:text-ink-400">
-                  Discussion · {post.replyCount} comments
-                </h2>
-                <CommentBox postId={post.id} />
-              </div>
             </div>
           </motion.article>
+
+          {/* Comment thread — side column on large screens */}
+          <motion.aside
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+            className="ia-panel p-6 lg:sticky lg:top-24"
+          >
+            <h2 className="ia-label mb-4 border-b border-ink-200 pb-4 text-ink-500 dark:border-ink-800 dark:text-ink-400">
+              Discussion · {post.replyCount} comments
+            </h2>
+            <CommentBox postId={post.id} />
+          </motion.aside>
+          </div>
         )}
       </div>
     </div>

@@ -93,6 +93,11 @@ export async function getPosts({
  *   return apiFetch<Post>('/posts', { method: 'POST', body: JSON.stringify(input) });
  */
 export async function createPost(input: NewPostInput): Promise<Post> {
+  // Reporting requires a logged-in account.
+  if (!input.authorId) {
+    return Promise.reject(new Error('You must be logged in to report.'));
+  }
+
   if (USE_MOCK) {
     const tag = MOCK_TAGS.find((t) => t.id === input.tagId);
     const post: Post = {
@@ -100,7 +105,7 @@ export async function createPost(input: NewPostInput): Promise<Post> {
       title: input.title,
       excerpt: input.excerpt,
       body: input.body,
-      author: { id: 'me', name: input.authorName },
+      author: { id: input.authorId, name: input.authorName },
       tags: tag ? [tag] : [],
       createdAt: new Date().toISOString(),
       replyCount: 0,

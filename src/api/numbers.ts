@@ -34,6 +34,20 @@ interface Entry {
   trusted: number;
   lastReportedAt: string | null;
 }
+
+// Tracks which accounts have already reported which numbers, to enforce
+// "one report per number per account". Key: `${userId}::${numberKey}`.
+// A real backend would enforce this with a unique constraint.
+const REPORTED_BY = new Set<string>();
+const reportKey = (userId: string, numberKey: string) =>
+  `${userId}::${numberKey}`;
+
+/** Has this account already reported this number? */
+export function hasReported(userId: string, input: string): boolean {
+  const parsed = parsePhone(input);
+  if (!parsed.valid) return false;
+  return REPORTED_BY.has(reportKey(userId, parsed.key));
+}
 function daysAgo(n: number): string {
   return new Date(Date.now() - n * 24 * 3600 * 1000).toISOString();
 }
@@ -89,10 +103,24 @@ export async function lookupNumber(input: string): Promise<NumberCheckResult> {
 export async function reportNumber(
   input: string,
   kind: NumberReportKind,
+  userId: string | null | undefined,
 ): Promise<NumberCheckResult> {
+  // Reporting requires a logged-in account.
+  if (!userId) {
+    return Promise.reject(new Error('You must be logged in to report.'));
+  }
+
   const parsed = parsePhone(input);
   if (!parsed.valid) {
     return Promise.reject(new Error(parsed.error));
+  }
+
+  // One report per number per account.
+  const key = reportKey(userId, parsed.key);
+  if (REPORTED_BY.has(key)) {
+    return Promise.reject(
+      new Error('You have already reported this number.'),
+    );
   }
 
   if (USE_MOCK) {
@@ -105,13 +133,17 @@ export async function reportNumber(
     else entry.trusted += 1;
     entry.lastReportedAt = new Date().toISOString();
     MOCK_NUMBERS[parsed.key] = entry;
+    REPORTED_BY.add(key);
     return delay(toResult(parsed.display, entry), 400);
   }
-  return apiFetch<NumberCheckResult>(
+
+  const result = await apiFetch<NumberCheckResult>(
     `/numbers/${encodeURIComponent(parsed.key)}/report`,
     {
       method: 'POST',
       body: JSON.stringify({ kind }),
     },
   );
+  REPORTED_BY.add(key);
+  return result;
 }

@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Database, ShieldCheck, Users } from 'lucide-react';
+import { Database, ShieldCheck, UserRound, Users } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
 import { SignupForm } from '../components/auth/SignupForm';
+import { useAuth } from '../context/AuthContext';
 
 type Mode = 'login' | 'signup';
 
@@ -14,6 +16,15 @@ const PERKS = [
 
 export function AuthPage() {
   const [mode, setMode] = useState<Mode>('login');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const continueAsDemo = () => {
+    // Scaffolded: sign in as a pre-seeded demo user so the app is usable
+    // without a real backend. The default login() creates a demo user.
+    login({ name: 'Demo User', email: 'demo@scamreg.app' });
+    navigate('/report');
+  };
 
   return (
     <div className="min-h-screen bg-paper dark:bg-ink-950">
@@ -105,6 +116,20 @@ export function AuthPage() {
               {mode === 'login' ? <LoginForm /> : <SignupForm />}
             </motion.div>
           </AnimatePresence>
+
+          {/* Demo access — no real backend needed */}
+          <div className="mt-6 border-t border-ink-200 pt-6 dark:border-ink-800">
+            <button
+              type="button"
+              onClick={continueAsDemo}
+              className="flex w-full items-center justify-center gap-2 border border-ink-300 py-3 text-base font-semibold text-ink-800 transition hover:border-safe-500 hover:text-safe-700 dark:border-ink-700 dark:text-ink-100 dark:hover:text-safe-400"
+            >
+              <UserRound size={18} /> Continue as demo user
+            </button>
+            <p className="mt-2 text-center font-mono text-xs text-ink-400">
+              Explore reporting without an account
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>

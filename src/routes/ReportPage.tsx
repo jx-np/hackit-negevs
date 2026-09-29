@@ -2,18 +2,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { LogIn, ShieldPlus } from 'lucide-react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPost } from '../api/posts';
+import { MediaPicker } from '../components/report/MediaPicker';
 import { useAuth } from '../context/AuthContext';
 import { useTags } from '../hooks/useTags';
 import type { RiskLevel } from '../types';
-import { reportSchema, type ReportValues } from './reportSchema';
+import { reportSchema, todayISO, type ReportValues } from './reportSchema';
 
 export function ReportPage() {
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
   const { data: tags } = useTags();
+
+  // Media is handled outside RHF (it's an async upload → URL).
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const {
     register,
@@ -21,7 +26,7 @@ export function ReportPage() {
     formState: { errors, isSubmitting },
   } = useForm<ReportValues>({
     resolver: zodResolver(reportSchema),
-    defaultValues: { risk: 'high', imageUrl: '' },
+    defaultValues: { risk: 'high', incidentDate: todayISO() },
   });
 
   const create = useMutation({
@@ -33,14 +38,16 @@ export function ReportPage() {
         excerpt: values.excerpt,
         tagId: values.tagId,
         risk,
-        imageUrl: values.imageUrl || null,
+        imageUrl,
+        incidentDate: values.incidentDate,
         authorName: user?.name ?? 'Anonymous',
       });
     },
     onSuccess: (post) => navigate(`/forum/${post.id}`),
   });
 
-  // Login gate — mirrors the comment / number-report gating.
+  // Login gate — mirrors the comment / number-report gating. Reachable only
+  // if someone hits /report directly without signing in (incl. demo user).
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-paper dark:bg-ink-950">
@@ -52,7 +59,8 @@ export function ReportPage() {
             Log in to report a scam
           </h1>
           <p className="mx-auto mt-3 max-w-md text-lg text-ink-600 dark:text-ink-400">
-            You need an account to add a report to the community registry.
+            You need an account to add a report to the community registry — or
+            continue as a demo user.
           </p>
           <Link
             to="/auth"
@@ -107,20 +115,19 @@ export function ReportPage() {
             />
           </Field>
 
-          {/* Summary */}
-          <Field label="What happened?" error={errors.excerpt?.message}>
-            <textarea
-              {...register('excerpt')}
-              rows={5}
-              placeholder="Describe the scam, the red flags you noticed, and any details that help others recognize it."
-              className={`${inputCls} resize-none ${
-                errors.excerpt ? errBorder : okBorder
-              }`}
-            />
-          </Field>
-
-          {/* Category + Risk */}
+          {/* Incident date + Category */}
           <div className="grid gap-6 sm:grid-cols-2">
+            <Field label="When did it happen?" error={errors.incidentDate?.message}>
+              <input
+                type="date"
+                max={todayISO()}
+                {...register('incidentDate')}
+                className={`${inputCls} ${
+                  errors.incidentDate ? errBorder : okBorder
+                }`}
+              />
+            </Field>
+
             <Field label="Category" error={errors.tagId?.message}>
               <select
                 {...register('tagId')}
@@ -137,31 +144,32 @@ export function ReportPage() {
                 ))}
               </select>
             </Field>
-
-            <Field label="Risk level" error={errors.risk?.message}>
-              <select
-                {...register('risk')}
-                className={`${inputCls} ${okBorder}`}
-              >
-                <option value="high">High risk</option>
-                <option value="medium">Caution</option>
-                <option value="none">Not sure</option>
-              </select>
-            </Field>
           </div>
 
-          {/* Image URL (optional) */}
-          <Field
-            label="Screenshot URL (optional)"
-            error={errors.imageUrl?.message}
-          >
-            <input
-              {...register('imageUrl')}
-              placeholder="https://…"
-              className={`${inputCls} ${
-                errors.imageUrl ? errBorder : okBorder
+          {/* Description */}
+          <Field label="What happened?" error={errors.excerpt?.message}>
+            <textarea
+              {...register('excerpt')}
+              rows={5}
+              placeholder="Describe the scam, the red flags you noticed, and any details that help others recognize it."
+              className={`${inputCls} resize-none ${
+                errors.excerpt ? errBorder : okBorder
               }`}
             />
+          </Field>
+
+          {/* Risk */}
+          <Field label="Risk level" error={errors.risk?.message}>
+            <select {...register('risk')} className={`${inputCls} ${okBorder}`}>
+              <option value="high">High risk</option>
+              <option value="medium">Caution</option>
+              <option value="none">Not sure</option>
+            </select>
+          </Field>
+
+          {/* Media picker */}
+          <Field label="Evidence (optional)">
+            <MediaPicker value={imageUrl} onChange={setImageUrl} />
           </Field>
 
           {create.isError && (

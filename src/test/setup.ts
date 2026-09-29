@@ -33,3 +33,8 @@ class MockIntersectionObserver {
 }
 globalThis.IntersectionObserver =
   MockIntersectionObserver as unknown as typeof IntersectionObserver;
+
+// jsdom's object-URL support is unreliable with File/Blob internals; stub it
+// deterministically for the media upload scaffold.
+URL.createObjectURL = vi.fn(() => 'blob:mock-object-url');
+URL.revokeObjectURL = vi.fn();

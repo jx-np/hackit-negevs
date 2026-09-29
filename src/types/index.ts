@@ -21,13 +21,15 @@ export interface Post {
   body?: string;
   author: Author;
   tags: Tag[];
-  createdAt: string; // ISO date
+  createdAt: string; // ISO date (when the report was posted)
   replyCount: number;
   likeCount: number;
   /** Optional screenshot/evidence image for the report. */
   imageUrl?: string | null;
   /** Optional risk classification, shown as a badge. */
   risk?: RiskLevel;
+  /** When the scam actually happened (YYYY-MM-DD), if provided. */
+  incidentDate?: string | null;
 }
 
 /** How the posts list is ordered. */
@@ -42,6 +44,15 @@ export interface NewPostInput {
   imageUrl?: string | null;
   risk?: RiskLevel;
   authorName: string;
+  /** When the scam happened (YYYY-MM-DD). */
+  incidentDate?: string | null;
+}
+
+/** Result of uploading a media file. */
+export interface UploadedMedia {
+  url: string;
+  /** Original file name, for display. */
+  name: string;
 }
 
 /** Shape returned by a paginated posts request. */

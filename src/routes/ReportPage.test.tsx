@@ -18,7 +18,7 @@ describe('ReportPage (auth gating)', () => {
     ).toHaveAttribute('href', '/auth');
   });
 
-  it('shows the report form when logged in', async () => {
+  it('shows the full report form when logged in', async () => {
     localStorage.setItem(
       'scamreg-auth',
       JSON.stringify({ id: 'u1', email: 'a@b.com', name: 'Alice' }),
@@ -28,7 +28,11 @@ describe('ReportPage (auth gating)', () => {
     expect(
       screen.getByRole('button', { name: /submit report/i }),
     ).toBeInTheDocument();
-    // Category options load from the tags API.
+    // Incident date picker, media picker, and category are all present.
+    expect(screen.getByText(/when did it happen/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/click to choose an image/i),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByText(/choose a category/i)).toBeInTheDocument(),
     );

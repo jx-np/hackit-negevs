@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BrowserRouter,
-  Navigate,
   Route,
   Routes,
   useLocation,
@@ -14,6 +13,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AuthPage } from './routes/AuthPage';
 import { ForumPage } from './routes/ForumPage';
 import { LandingPage } from './routes/LandingPage';
+import { NotFoundPage } from './routes/NotFoundPage';
 import { NumberCheckPage } from './routes/NumberCheckPage';
 import { PostDetailPage } from './routes/PostDetailPage';
 import { ReportPage } from './routes/ReportPage';
@@ -45,7 +45,7 @@ function AnimatedRoutes() {
           <Route path="/report" element={<ReportPage />} />
           <Route path="/check" element={<NumberCheckPage />} />
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </motion.main>
     </AnimatePresence>

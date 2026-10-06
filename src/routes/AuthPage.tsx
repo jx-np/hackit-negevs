@@ -16,13 +16,11 @@ const PERKS = [
 
 export function AuthPage() {
   const [mode, setMode] = useState<Mode>('login');
-  const { login } = useAuth();
+  const { loginDemo } = useAuth();
   const navigate = useNavigate();
 
   const continueAsDemo = () => {
-    // Scaffolded: sign in as a pre-seeded demo user so the app is usable
-    // without a real backend. The default login() creates a demo user.
-    login({ name: 'Demo User', email: 'demo@scamreg.app' });
+    loginDemo({ name: 'Demo User', email: 'demo@scamreg.app' });
     navigate('/report');
   };
 
@@ -94,7 +92,7 @@ export function AuthPage() {
                 key={m}
                 type="button"
                 onClick={() => setMode(m)}
-                className={`relative flex-1 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider transition ${
+                className={`relative flex-1 py-2.5 font-display text-xs font-semibold uppercase tracking-wider transition ${
                   mode === m
                     ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900'
                     : 'text-ink-500 hover:text-ink-900 dark:text-ink-400 dark:hover:text-white'
@@ -126,7 +124,7 @@ export function AuthPage() {
             >
               <UserRound size={18} /> Continue as demo user
             </button>
-            <p className="mt-2 text-center font-mono text-xs text-ink-400">
+            <p className="mt-2 text-center text-xs text-ink-400">
               Explore reporting without an account
             </p>
           </div>

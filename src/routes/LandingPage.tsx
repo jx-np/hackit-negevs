@@ -100,7 +100,7 @@ export function LandingPage() {
             <dl className="mt-12 grid max-w-lg grid-cols-3 divide-x divide-ink-200 border-y border-ink-200 dark:divide-ink-800 dark:border-ink-800">
               {STATS.map((s) => (
                 <div key={s.label} className="px-4 py-4 first:pl-0">
-                  <dt className="font-mono text-2xl font-semibold text-ink-900 dark:text-white">
+                  <dt className="font-display text-2xl font-semibold text-ink-900 dark:text-white">
                     {s.value}
                   </dt>
                   <dd className="ia-label mt-1 text-ink-400">{s.label}</dd>
@@ -212,7 +212,7 @@ export function LandingPage() {
                 className="border-t-2 border-ink-900 pt-5 dark:border-white"
               >
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-3xl font-semibold text-ink-900 dark:text-white">
+                  <span className="font-display text-3xl font-semibold text-ink-900 dark:text-white">
                     0{i + 1}
                   </span>
                   <Icon size={22} className="text-safe-600 dark:text-safe-400" />

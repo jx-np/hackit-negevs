@@ -1,8 +1,25 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/utils';
+import { mockFetch } from '../../test/mockFetch';
 import { TagPanel } from './TagPanel';
+
+beforeEach(() => {
+  mockFetch([
+    {
+      match: '/community/scam-types',
+      json: {
+        items: [
+          { slug: 'phishing', name_key: 'category.phishing' },
+          { slug: 'blackmail', name_key: 'category.blackmail' },
+        ],
+      },
+    },
+  ]);
+});
+
+afterEach(() => vi.unstubAllGlobals());
 
 describe('TagPanel', () => {
   it('renders an "All records" row and loads tags', async () => {
@@ -25,11 +42,11 @@ describe('TagPanel', () => {
     );
     const phishingTag = await screen.findByRole('button', { name: /Phishing/ });
     await user.click(phishingTag);
-    expect(onSelect).toHaveBeenCalledWith('t-phishing');
+    expect(onSelect).toHaveBeenCalledWith('phishing');
 
     rerender(
       <TagPanel
-        selected="t-phishing"
+        selected="phishing"
         onSelect={onSelect}
         side="right"
         onMove={vi.fn()}

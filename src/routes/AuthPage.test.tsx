@@ -22,7 +22,7 @@ describe('AuthPage — continue as demo user', () => {
       screen.getByRole('button', { name: /continue as demo user/i }),
     );
     await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem('scamreg-auth') ?? 'null');
+      const stored = JSON.parse(localStorage.getItem('scamreg-user') ?? 'null');
       expect(stored).not.toBeNull();
       expect(stored.name).toBe('Demo User');
     });

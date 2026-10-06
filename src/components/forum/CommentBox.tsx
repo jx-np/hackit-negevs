@@ -1,6 +1,8 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LogIn, Send } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { createComment } from '../../api/comments';
 import { useAuth } from '../../context/AuthContext';
 
 interface CommentBoxProps {
@@ -9,15 +11,23 @@ interface CommentBoxProps {
 
 /**
  * Comment input, gated behind authentication.
- *
- * SCAFFOLDED: when logged in, submitting just clears the field and shows a
- * confirmation. Wire this to a real "create comment" API later, e.g.
- * postComment({ postId, body }).
+ * Posts comments via the real backend API.
  */
 export function CommentBox({ postId }: CommentBoxProps) {
   const { isLoggedIn, user } = useAuth();
   const [value, setValue] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (body: string) => createComment(postId, body),
+    onSuccess: () => {
+      setValue('');
+      // Invalidate queries that might show comment counts or comment lists.
+      queryClient.invalidateQueries({ queryKey: ['post', postId] });
+      queryClient.invalidateQueries({ queryKey: ['comments', postId] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+  });
 
   // Logged-out state: prompt the user to sign in.
   if (!isLoggedIn) {
@@ -41,12 +51,8 @@ export function CommentBox({ postId }: CommentBoxProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!value.trim()) return;
-    // Scaffold: pretend to submit. Replace with a real API call.
-    console.log('new comment', { postId, body: value });
-    setValue('');
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 2500);
+    if (!value.trim() || mutation.isPending) return;
+    mutation.mutate(value.trim());
   };
 
   return (
@@ -55,7 +61,7 @@ export function CommentBox({ postId }: CommentBoxProps) {
         Add a comment
       </label>
       <div className="flex items-start gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center border border-ink-300 bg-ink-50 font-mono text-sm font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
+        <span className="grid h-10 w-10 shrink-0 place-items-center border border-ink-300 bg-ink-50 font-display text-sm font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
           {user?.name?.slice(0, 2).toUpperCase() ?? 'ME'}
         </span>
         <textarea
@@ -68,21 +74,25 @@ export function CommentBox({ postId }: CommentBoxProps) {
         />
       </div>
       <div className="flex items-center justify-between pl-13">
-        {submitted ? (
-          <span className="font-mono text-xs font-medium text-safe-700 dark:text-safe-400">
-            Comment posted (demo).
+        {mutation.isSuccess ? (
+          <span className="text-xs font-medium text-safe-700 dark:text-safe-400">
+            Comment posted.
+          </span>
+        ) : mutation.isError ? (
+          <span className="text-xs text-risk-600 dark:text-risk-500">
+            {(mutation.error as Error).message}
           </span>
         ) : (
-          <span className="font-mono text-xs text-ink-400">
+          <span className="text-xs text-ink-400">
             Commenting as {user?.name}
           </span>
         )}
         <button
           type="submit"
-          disabled={!value.trim()}
+          disabled={!value.trim() || mutation.isPending}
           className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-5 py-2.5 text-base font-semibold text-white transition hover:bg-ink-800 disabled:opacity-50 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
         >
-          <Send size={16} /> Comment
+          <Send size={16} /> {mutation.isPending ? 'Posting…' : 'Comment'}
         </button>
       </div>
     </form>

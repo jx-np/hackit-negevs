@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { Field } from './Field';
 import { loginSchema, type LoginValues } from './schemas';
@@ -11,14 +12,30 @@ export function LoginForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isSubmitSuccessful },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
 
-  // Scaffolded: simulate a request, then flip the fake auth state.
   const onSubmit = async (values: LoginValues) => {
-    await new Promise((r) => setTimeout(r, 700));
-    login({ email: values.email, name: values.email.split('@')[0] });
-    navigate('/forum');
+    try {
+      await login(values.email, values.password);
+      navigate('/forum');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        // 401 → generic invalid credentials; 422 → field errors.
+        if (err.fields.email) setError('email', { message: err.fields.email });
+        if (err.fields.password)
+          setError('password', { message: err.fields.password });
+        setError('root', {
+          message:
+            err.status === 401
+              ? 'Incorrect email or password.'
+              : err.message,
+        });
+      } else {
+        setError('root', { message: 'Something went wrong. Please try again.' });
+      }
+    }
   };
 
   return (
@@ -42,9 +59,9 @@ export function LoginForm() {
         {...register('password')}
       />
 
-      {isSubmitSuccessful && (
-        <p className="border border-safe-500 bg-safe-50 px-3 py-2 font-mono text-xs text-safe-700 dark:bg-safe-500/10 dark:text-safe-400">
-          Signed in (demo). Hook up the real API to continue.
+      {errors.root && (
+        <p className="border border-risk-500 bg-risk-50 px-3 py-2 text-xs text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
+          {errors.root.message}
         </p>
       )}
 

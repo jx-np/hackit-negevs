@@ -11,7 +11,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
       <div>
         <label
           htmlFor={id}
-          className="mb-1.5 block font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400"
+          className="mb-1.5 block font-display text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400"
         >
           {label}
         </label>
@@ -27,7 +27,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
           {...props}
         />
         {error && (
-          <p className="mt-1 font-mono text-xs text-risk-600 dark:text-risk-500">
+          <p className="mt-1 text-xs text-risk-600 dark:text-risk-500">
             {error}
           </p>
         )}

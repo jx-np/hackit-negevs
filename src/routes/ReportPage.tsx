@@ -174,13 +174,13 @@ export function ReportPage() {
           </Field>
 
           {create.isError && (
-            <p className="border border-risk-500 bg-risk-50 px-4 py-3 font-mono text-sm text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
+            <p className="border border-risk-500 bg-risk-50 px-4 py-3 text-sm text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
               {(create.error as Error).message}
             </p>
           )}
 
           <div className="flex items-center justify-between border-t border-ink-200 pt-6 dark:border-ink-800">
-            <span className="font-mono text-xs text-ink-400">
+            <span className="text-xs text-ink-400">
               Posting as {user?.name}
             </span>
             <button
@@ -209,12 +209,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400">
+      <label className="mb-1.5 block font-display text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400">
         {label}
       </label>
       {children}
       {error && (
-        <p className="mt-1 font-mono text-xs text-risk-600 dark:text-risk-500">
+        <p className="mt-1 text-xs text-risk-600 dark:text-risk-500">
           {error}
         </p>
       )}

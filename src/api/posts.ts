@@ -1,125 +1,156 @@
-import type { NewPostInput, Post, PostsPage, PostsQuery } from '../types';
-import { apiFetch, delay, USE_MOCK } from './client';
-import { MOCK_POSTS, MOCK_TAGS } from './mockData';
-
-const DEFAULT_PAGE_SIZE = 8;
-
 /**
- * Fetch a single post by id (for the detail / thread view).
+ * Posts / feed API.
  *
- * Real API integration: replace the mock branch, e.g.
- *   return apiFetch<Post>(`/posts/${id}`);
+ * Maps the backend's community feed + post shapes onto the UI `Post` type.
+ * The backend has no author / risk / incident-date / image fields on posts,
+ * so those are derived or left empty:
+ *   - author        → a neutral label derived from review_status
+ *   - risk          → null (not modelled server-side)
+ *   - incidentDate  → null
+ *   - imageUrl      → null
+ *   - replyCount    → comment_count
+ *   - likeCount     → reactions.up (detail only; 0 on feed items)
  */
-export async function getPost(id: string): Promise<Post> {
-  if (USE_MOCK) {
-    const post = MOCK_POSTS.find((p) => p.id === id);
-    if (!post) {
-      return Promise.reject(new Error('Post not found'));
-    }
-    return delay(post, 300);
-  }
-  return apiFetch<Post>(`/posts/${encodeURIComponent(id)}`);
+import type {
+  ApiCategory,
+  ApiFeedItem,
+  ApiListResponse,
+  ApiPostDetail,
+  NewPostInput,
+  Post,
+  PostsPage,
+  PostsQuery,
+  ReviewStatus,
+  Tag,
+} from '../types';
+import { apiFetch } from './client';
+
+const DEFAULT_LIMIT = 12;
+
+/** Humanize an i18n name_key, e.g. "tag.bank_impersonation" → "Bank Impersonation". */
+function humanizeKey(key: string, slug: string): string {
+  const tail = key.includes('.') ? key.slice(key.indexOf('.') + 1) : key;
+  const base = tail || slug;
+  return base
+    .replace(/^(category|tag)\./, '')
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
 }
 
-/**
- * Fetch a page of posts, filtered by free-text query and/or a single tag.
- *
- * Real API integration: replace the mock branch with a request that maps
- * these params to your backend's query string, e.g.
- *   return apiFetch<PostsPage>(
- *     `/posts?search=${query}&tag=${tagId}&page=${page}`
- *   );
- */
+function mapTag(c: ApiCategory): Tag {
+  return { id: c.slug, name: humanizeKey(c.name_key, c.slug) };
+}
+
+/** A neutral author label derived from moderation status. */
+function authorFor(reviewStatus: ReviewStatus): { id: string; name: string } {
+  if (reviewStatus === 'reviewed') {
+    return { id: 'official', name: 'Verified report' };
+  }
+  return { id: 'community', name: 'Community member' };
+}
+
+function mapFeedItem(item: ApiFeedItem): Post {
+  const tags = (item.tags ?? []).map(mapTag);
+  if (item.category) tags.unshift(mapTag(item.category));
+  return {
+    id: item.post_id,
+    title: item.title,
+    excerpt: item.redacted_excerpt,
+    author: authorFor(item.review_status),
+    tags,
+    createdAt: item.created_at,
+    replyCount: item.comment_count,
+    likeCount: 0,
+    imageUrl: null,
+    risk: null,
+    incidentDate: null,
+    reviewStatus: item.review_status,
+  };
+}
+
+function mapPostDetail(p: ApiPostDetail): Post {
+  const tags = (p.tags ?? []).map(mapTag);
+  if (p.category) tags.unshift(mapTag(p.category));
+  return {
+    id: p.post_id,
+    title: p.title,
+    excerpt: p.redacted_text,
+    body: undefined,
+    author: authorFor(p.review_status),
+    tags,
+    createdAt: p.created_at,
+    replyCount: p.comment_count,
+    likeCount: p.reactions?.up ?? 0,
+    imageUrl: null,
+    risk: null,
+    incidentDate: null,
+    reviewStatus: p.review_status,
+  };
+}
+
+export async function getPost(id: string): Promise<Post> {
+  const p = await apiFetch<ApiPostDetail>(
+    `/community/posts/${encodeURIComponent(id)}`,
+  );
+  return mapPostDetail(p);
+}
+
 export async function getPosts({
   query = '',
   tagId = null,
-  page = 1,
-  pageSize = DEFAULT_PAGE_SIZE,
-  sort = 'new',
+  cursor = null,
+  limit = DEFAULT_LIMIT,
 }: PostsQuery): Promise<PostsPage> {
-  if (USE_MOCK) {
-    const q = query.trim().toLowerCase();
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  if (cursor) params.set('cursor', cursor);
 
-    const filtered = MOCK_POSTS.filter((post) => {
-      const matchesQuery =
-        !q ||
-        post.title.toLowerCase().includes(q) ||
-        post.excerpt.toLowerCase().includes(q) ||
-        post.author.name.toLowerCase().includes(q);
-
-      const matchesTag = !tagId || post.tags.some((t) => t.id === tagId);
-
-      return matchesQuery && matchesTag;
-    });
-
-    const sorted = [...filtered].sort((a, b) => {
-      if (sort === 'comments') return b.replyCount - a.replyCount;
-      if (sort === 'likes') return b.likeCount - a.likeCount;
-      // 'new' — most recent first
-      return (
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    });
-
-    const start = (page - 1) * pageSize;
-    const slice = sorted.slice(start, start + pageSize);
-    const hasMore = start + pageSize < sorted.length;
-
-    return delay(
-      {
-        posts: slice,
-        nextPage: hasMore ? page + 1 : null,
-        total: sorted.length,
-      },
-      500,
-    );
+  const q = query.trim();
+  let path: string;
+  if (q) {
+    // Full-text search endpoint.
+    params.set('q', q);
+    if (tagId) params.set('scam_type', tagId);
+    path = `/community/feed/search?${params.toString()}`;
+  } else {
+    // Standard feed. Filter by category (scam_type) when a tag is selected.
+    if (tagId) {
+      params.set('scam_type', tagId);
+    }
+    path = `/community/feed?${params.toString()}`;
   }
 
-  const params = new URLSearchParams();
-  if (query) params.set('search', query);
-  if (tagId) params.set('tag', tagId);
-  params.set('sort', sort);
-  params.set('page', String(page));
-  params.set('pageSize', String(pageSize));
-
-  return apiFetch<PostsPage>(`/posts?${params.toString()}`);
+  const res = await apiFetch<ApiListResponse<ApiFeedItem>>(path);
+  const posts = (res.items ?? []).map(mapFeedItem);
+  return {
+    posts,
+    nextCursor: res.next_cursor ?? null,
+    total: posts.length,
+  };
 }
 
-/**
- * Create a new report (post). The UI only calls this for logged-in users;
- * the real backend must also enforce authentication.
- *
- * Real API integration: replace the mock branch, e.g.
- *   return apiFetch<Post>('/posts', { method: 'POST', body: JSON.stringify(input) });
- */
 export async function createPost(input: NewPostInput): Promise<Post> {
-  // Reporting requires a logged-in account.
   if (!input.authorId) {
     return Promise.reject(new Error('You must be logged in to report.'));
   }
 
-  if (USE_MOCK) {
-    const tag = MOCK_TAGS.find((t) => t.id === input.tagId);
-    const post: Post = {
-      id: `post-new-${Date.now()}`,
-      title: input.title,
-      excerpt: input.excerpt,
-      body: input.body,
-      author: { id: input.authorId, name: input.authorName },
-      tags: tag ? [tag] : [],
-      createdAt: new Date().toISOString(),
-      replyCount: 0,
-      likeCount: 0,
-      imageUrl: input.imageUrl ?? null,
-      risk: input.risk ?? null,
-      incidentDate: input.incidentDate ?? null,
-    };
-    // Prepend so it appears first under the default "newest" sort.
-    MOCK_POSTS.unshift(post);
-    return delay(post, 400);
-  }
-  return apiFetch<Post>('/posts', {
+  // Backend posts require explicit publication confirmation and use slugs for
+  // scam_type / tags. The `tagId` field carries the chosen category slug.
+  const extraTags = (input.tags ?? []).filter((t) => t && t !== input.tagId);
+
+  const body = {
+    title: input.title,
+    redacted_text: input.excerpt,
+    scam_type: input.tagId,
+    tags: extraTags,
+    confirm_publication: true,
+    locale: 'en-SG',
+  };
+
+  const p = await apiFetch<ApiPostDetail>('/community/posts', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify(body),
   });
+  return mapPostDetail(p);
 }

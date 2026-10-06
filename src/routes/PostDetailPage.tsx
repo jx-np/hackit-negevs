@@ -44,7 +44,7 @@ export function PostDetailPage() {
       <div className="mx-auto w-full max-w-6xl px-6 py-10">
         <Link
           to="/forum"
-          className="mb-6 inline-flex items-center gap-2 font-mono text-sm uppercase tracking-wider text-ink-500 transition hover:text-safe-700 dark:text-ink-400 dark:hover:text-safe-400"
+          className="mb-6 inline-flex items-center gap-2 font-display text-sm uppercase tracking-wider text-ink-500 transition hover:text-safe-700 dark:text-ink-400 dark:hover:text-safe-400"
         >
           <ArrowLeft size={16} /> Back to forum
         </Link>
@@ -68,7 +68,7 @@ export function PostDetailPage() {
             </p>
             <Link
               to="/forum"
-              className="mt-4 inline-block font-mono text-sm underline"
+              className="mt-4 inline-block text-sm underline"
             >
               Return to the forum
             </Link>
@@ -104,7 +104,7 @@ export function PostDetailPage() {
                 {post.tags.map((tag) => (
                   <span
                     key={tag.id}
-                    className="border border-ink-200 px-2.5 py-1 font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:border-ink-700 dark:text-ink-300"
+                    className="border border-ink-200 px-2.5 py-1 font-display text-xs font-medium uppercase tracking-wider text-ink-600 dark:border-ink-700 dark:text-ink-300"
                   >
                     #{tag.name}
                   </span>
@@ -118,18 +118,18 @@ export function PostDetailPage() {
 
               {/* Author row */}
               <div className="mt-5 flex items-center gap-3 border-b border-ink-200 pb-5 dark:border-ink-800">
-                <span className="grid h-11 w-11 place-items-center border border-ink-300 bg-ink-50 font-mono text-sm font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
+                <span className="grid h-11 w-11 place-items-center border border-ink-300 bg-ink-50 font-display text-sm font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
                   {initials(post.author.name)}
                 </span>
                 <div>
                   <p className="font-medium text-ink-900 dark:text-white">
                     {post.author.name}
                   </p>
-                  <p className="font-mono text-xs text-ink-400">
+                  <p className="text-xs text-ink-400">
                     {formatDate(post.createdAt)}
                   </p>
                 </div>
-                <div className="ml-auto flex items-center gap-4 font-mono text-sm text-ink-400">
+                <div className="ml-auto flex items-center gap-4 font-display text-sm text-ink-400">
                   <span className="flex items-center gap-1.5">
                     <MessageCircle size={16} /> {post.replyCount}
                   </span>
@@ -146,7 +146,7 @@ export function PostDetailPage() {
                   <span className="ia-label text-ink-500 dark:text-ink-400">
                     Incident date
                   </span>
-                  <span className="ml-auto font-mono text-sm text-ink-900 dark:text-white">
+                  <span className="ml-auto text-sm text-ink-900 dark:text-white">
                     {formatDate(post.incidentDate)}
                   </span>
                 </div>

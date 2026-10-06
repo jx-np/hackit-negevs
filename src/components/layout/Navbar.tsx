@@ -29,7 +29,7 @@ export function Navbar() {
           <span className="grid h-10 w-10 place-items-center bg-ink-900 text-white transition group-hover:bg-safe-600 dark:bg-white dark:text-ink-900 dark:group-hover:bg-safe-500">
             <ShieldCheck size={22} />
           </span>
-          <span className="font-display text-xl font-bold tracking-tight text-ink-900 dark:text-white">
+          <span className="font-display text-xl font-bold tracking-tight text-ink-900 transition group-hover:text-safe-600 dark:text-white dark:group-hover:text-safe-500">
             ScamReg
           </span>
         </NavLink>
@@ -41,7 +41,7 @@ export function Navbar() {
                 key={link.to}
                 to={link.to}
                 end={link.end}
-                className="relative px-3 py-2 font-mono text-sm font-medium uppercase tracking-wider transition"
+                className="relative px-3 py-2 font-display text-sm font-medium uppercase tracking-wider transition"
               >
                 {({ isActive }) => (
                   <>
@@ -69,7 +69,7 @@ export function Navbar() {
 
           {isLoggedIn ? (
             <div className="flex items-center gap-3">
-              <span className="hidden font-mono text-xs text-ink-400 sm:inline">
+              <span className="hidden text-xs text-ink-400 sm:inline">
                 {user?.name}
               </span>
               <button

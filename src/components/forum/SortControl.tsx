@@ -27,7 +27,7 @@ export function SortControl({ value, onChange }: SortControlProps) {
             type="button"
             onClick={() => onChange(opt.value)}
             aria-pressed={active}
-            className={`px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider transition ${
+            className={`px-4 py-2.5 font-display text-xs font-semibold uppercase tracking-wider transition ${
               i > 0 ? 'border-l border-ink-200 dark:border-ink-800' : ''
             } ${
               active

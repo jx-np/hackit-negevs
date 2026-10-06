@@ -319,7 +319,7 @@ export function PostCard({ post }: { post: Post }) {
             {post.tags.map((tag) => (
               <span
                 key={tag.id}
-                className="border border-ink-200 px-2 py-0.5 font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:border-ink-700 dark:text-ink-300"
+                className="border border-ink-200 px-2 py-0.5 font-display text-xs font-medium uppercase tracking-wider text-ink-600 dark:border-ink-700 dark:text-ink-300"
               >
                 #{tag.name}
               </span>
@@ -352,18 +352,18 @@ export function PostCard({ post }: { post: Post }) {
 
       {/* Footer: author + date + engagement */}
       <div className="mt-4 flex items-center gap-3 border-t border-ink-200 px-5 py-3 dark:border-ink-800">
-        <span className="grid h-9 w-9 shrink-0 place-items-center border border-ink-300 bg-ink-50 font-mono text-xs font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
+        <span className="grid h-9 w-9 shrink-0 place-items-center border border-ink-300 bg-ink-50 font-display text-xs font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
           {initials(post.author.name)}
         </span>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-ink-900 dark:text-white">
             {post.author.name}
           </p>
-          <p className="font-mono text-xs text-ink-400">
+          <p className="text-xs text-ink-400">
             {formatDate(post.createdAt)}
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-3 font-mono text-sm text-ink-400">
+        <div className="ml-auto flex items-center gap-3 font-display text-sm text-ink-400">
           <button
             type="button"
             onClick={() => setShowComments((s) => !s)}

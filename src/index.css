@@ -56,9 +56,9 @@ body {
 @layer utilities {
   /* ===== IA "security-grade" utilities ===== */
 
-  /* Monospaced label — registry IDs, tags, risk levels, section eyebrows */
+  /* Small-caps label — registry IDs, tags, risk levels, section eyebrows */
   .ia-label {
-    @apply font-mono text-xs font-medium uppercase tracking-[0.18em];
+    @apply font-display text-xs font-medium uppercase tracking-[0.18em];
   }
 
   /* Structural bordered surface (replaces floaty shadow cards) */

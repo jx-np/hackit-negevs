@@ -1,3 +1,10 @@
+/**
+ * Auth context — real JWT auth backed by the Go backend.
+ *
+ * Token storage is managed via the tokenStore module (shared with the HTTP
+ * client). On mount, if tokens exist, we validate them by fetching `/me`.
+ * Login and registration save tokens immediately.
+ */
 import {
   createContext,
   useCallback,
@@ -7,67 +14,118 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import * as authApi from '../api/auth';
+import { clearTokens, getTokens, setTokens } from '../api/tokenStore';
 import type { User } from '../types';
 
-/**
- * SCAFFOLDED AUTH.
- *
- * This is a placeholder auth layer with no real backend. It stores a fake
- * "logged in" user in localStorage so the login-to-comment flow works in the
- * UI. When the real API is ready, replace `login`/`logout` with calls to it
- * and validate the session on load.
- */
 interface AuthState {
   user: User | null;
   isLoggedIn: boolean;
-  /** Scaffolded sign-in: records a fake user. */
-  login: (user?: Partial<User>) => void;
-  logout: () => void;
+  /** True while the initial session restore is in progress. */
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string) => Promise<void>;
+  /** Scaffolded demo login — creates a fake local session. */
+  loginDemo: (partial?: Partial<User>) => void;
+  logout: () => Promise<void>;
 }
 
-const STORAGE_KEY = 'scamreg-auth';
+// Persist user alongside tokens so we can render immediately while validating.
+const USER_KEY = 'scamreg-user';
 
-const AuthContext = createContext<AuthState | undefined>(undefined);
-
-function loadUser(): User | null {
-  if (typeof window === 'undefined') return null;
+function loadPersistedUser(): User | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(USER_KEY);
     return raw ? (JSON.parse(raw) as User) : null;
   } catch {
     return null;
   }
 }
 
+function persistUser(u: User | null): void {
+  try {
+    if (u) window.localStorage.setItem(USER_KEY, JSON.stringify(u));
+    else window.localStorage.removeItem(USER_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+const AuthContext = createContext<AuthState | undefined>(undefined);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(loadUser);
+  const [user, setUser] = useState<User | null>(loadPersistedUser);
+  const [isLoading, setIsLoading] = useState(() => !!getTokens());
 
+  // On mount, validate persisted tokens with /me.
   useEffect(() => {
-    try {
-      if (user) {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-      } else {
-        window.localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch {
-      /* ignore storage errors */
+    const tokens = getTokens();
+    if (!tokens) {
+      setIsLoading(false);
+      return;
     }
-  }, [user]);
+    authApi
+      .getMe()
+      .then((u) => {
+        setUser(u);
+        persistUser(u);
+      })
+      .catch(() => {
+        // Token invalid or expired — clear everything.
+        clearTokens();
+        setUser(null);
+        persistUser(null);
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
 
-  const login = useCallback((partial?: Partial<User>) => {
-    // Scaffold: fabricate a user. Swap for real API response later.
-    setUser({
+  const login = useCallback(async (email: string, password: string) => {
+    const result = await authApi.login({ email, password });
+    setTokens(result.tokens);
+    setUser(result.user);
+    persistUser(result.user);
+  }, []);
+
+  const register = useCallback(
+    async (email: string, password: string, displayName: string) => {
+      const result = await authApi.register({ email, password, displayName });
+      setTokens(result.tokens);
+      setUser(result.user);
+      persistUser(result.user);
+    },
+    [],
+  );
+
+  /** Demo login for the "Continue as demo user" button on /auth. */
+  const loginDemo = useCallback((partial?: Partial<User>) => {
+    const demo: User = {
       id: partial?.id ?? 'demo-user',
       email: partial?.email ?? 'demo@scamreg.app',
       name: partial?.name ?? 'Demo User',
-    });
+    };
+    setUser(demo);
+    persistUser(demo);
+    // No real tokens — pages will degrade gracefully.
   }, []);
 
-  const logout = useCallback(() => setUser(null), []);
+  const logout = useCallback(async () => {
+    await authApi.logout();
+    clearTokens();
+    setUser(null);
+    persistUser(null);
+  }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ user, isLoggedIn: user !== null, login, logout }),
-    [user, login, logout],
+    () => ({
+      user,
+      isLoggedIn: user !== null,
+      isLoading,
+      login,
+      register,
+      loginDemo,
+      logout,
+    }),
+    [user, isLoading, login, register, loginDemo, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -75,8 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthState {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 }

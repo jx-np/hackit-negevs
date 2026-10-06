@@ -73,7 +73,7 @@ export function PostList({ query, tagId, sort }: PostListProps) {
         <p className="mt-2 text-lg font-medium">
           Something went wrong loading records.
         </p>
-        <p className="mt-1 font-mono text-sm opacity-80">
+        <p className="mt-1 text-sm opacity-80">
           {(error as Error).message}
         </p>
       </div>
@@ -110,13 +110,13 @@ export function PostList({ query, tagId, sort }: PostListProps) {
       <div ref={sentinelRef} className="h-10" />
 
       {isFetchingNextPage && (
-        <div className="py-6 text-center font-mono text-sm text-ink-400">
+        <div className="py-6 text-center text-sm text-ink-400">
           Loading more…
         </div>
       )}
 
       {!hasNextPage && posts.length > 0 && (
-        <div className="py-6 text-center font-mono text-sm text-ink-400">
+        <div className="py-6 text-center text-sm text-ink-400">
           End of records.
         </div>
       )}

@@ -9,7 +9,7 @@ export default {
         app: 'var(--app-font-family)',
         // IA "security-grade" type system
         display: ["'Space Grotesk'", 'system-ui', 'sans-serif'],
-        mono: ["'JetBrains Mono'", "'Courier New'", 'monospace'],
+        mono: ['ui-monospace', "'SF Mono'", "'Cascadia Code'", 'Menlo', 'Consolas', 'monospace'],
       },
       fontSize: {
         // Scales relative to the root --app-font-scale variable

@@ -50,7 +50,7 @@ export function PopOutCard() {
 /** Placeholder in-app UI so the mockup looks real until assets arrive. */
 function PlaceholderScreen() {
   return (
-    <div className="flex h-full flex-col p-4">
+    <div className="flex h-full flex-col px-4 pb-4 pt-10">
       <div className="mb-4 flex items-center gap-2">
         <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-gradient text-white">
           <ShieldCheck size={16} />

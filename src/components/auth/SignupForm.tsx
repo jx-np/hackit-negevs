@@ -1,24 +1,41 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
+import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { Field } from './Field';
 import { signupSchema, type SignupValues } from './schemas';
 
 export function SignupForm() {
-  const { login } = useAuth();
+  const { register: registerUser } = useAuth();
   const navigate = useNavigate();
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isSubmitSuccessful },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<SignupValues>({ resolver: zodResolver(signupSchema) });
 
-  // Scaffolded: simulate a request, then flip the fake auth state.
   const onSubmit = async (values: SignupValues) => {
-    await new Promise((r) => setTimeout(r, 700));
-    login({ email: values.email, name: values.name });
-    navigate('/forum');
+    try {
+      await registerUser(values.email, values.password, values.name);
+      navigate('/forum');
+    } catch (err) {
+      if (err instanceof ApiError) {
+        // 409 → email taken; 422 → field validation errors.
+        if (err.code === 'conflict') {
+          setError('email', { message: 'This email is already registered.' });
+        }
+        if (err.fields.email) setError('email', { message: err.fields.email });
+        if (err.fields.password)
+          setError('password', { message: err.fields.password });
+        if (err.fields.display_name)
+          setError('name', { message: err.fields.display_name });
+        setError('root', { message: err.message });
+      } else {
+        setError('root', { message: 'Something went wrong. Please try again.' });
+      }
+    }
   };
 
   return (
@@ -59,9 +76,9 @@ export function SignupForm() {
         {...register('confirmPassword')}
       />
 
-      {isSubmitSuccessful && (
-        <p className="border border-safe-500 bg-safe-50 px-3 py-2 font-mono text-xs text-safe-700 dark:bg-safe-500/10 dark:text-safe-400">
-          Account created (demo). Hook up the real API to continue.
+      {errors.root && (
+        <p className="border border-risk-500 bg-risk-50 px-3 py-2 text-xs text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
+          {errors.root.message}
         </p>
       )}
 

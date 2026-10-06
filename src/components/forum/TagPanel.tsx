@@ -33,7 +33,7 @@ export function TagPanel({ selected, onSelect, side, onMove }: TagPanelProps) {
 
   return (
     <aside
-      className={`ia-panel w-full overflow-hidden lg:w-64 lg:shrink-0 ${
+      className={`ia-panel w-full overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto ${
         dragging ? 'opacity-60' : ''
       }`}
       aria-label="Filter by tag"

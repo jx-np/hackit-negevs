@@ -1,14 +1,14 @@
 import type { Post, Tag } from '../types';
 
 export const MOCK_TAGS: Tag[] = [
-  { id: 't-react', name: 'React', count: 42 },
-  { id: 't-typescript', name: 'TypeScript', count: 31 },
-  { id: 't-css', name: 'CSS', count: 27 },
-  { id: 't-design', name: 'Design', count: 19 },
-  { id: 't-performance', name: 'Performance', count: 15 },
-  { id: 't-accessibility', name: 'Accessibility', count: 12 },
-  { id: 't-tooling', name: 'Tooling', count: 9 },
-  { id: 't-career', name: 'Career', count: 8 },
+  { id: 't-phishing', name: 'Phishing', count: 42 },
+  { id: 't-investment', name: 'Investment', count: 31 },
+  { id: 't-romance', name: 'Romance', count: 27 },
+  { id: 't-impersonation', name: 'Impersonation', count: 19 },
+  { id: 't-blackmail', name: 'Blackmail', count: 15 },
+  { id: 't-tech-support', name: 'Tech Support', count: 12 },
+  { id: 't-lottery', name: 'Lottery & Prize', count: 9 },
+  { id: 't-job', name: 'Job Offer', count: 8 },
 ];
 
 const AUTHORS = [
@@ -20,21 +20,21 @@ const AUTHORS = [
 ];
 
 const TITLES = [
-  'How do you structure large React apps?',
-  'Tailwind vs CSS Modules in 2026',
-  'Debouncing search inputs the right way',
-  'Infinite scroll: pitfalls and best practices',
-  'Making dark mode flicker-free on first paint',
-  'Accessible tag filters with keyboard support',
-  'Type-safe API layers with Zod',
-  'When to reach for React Query',
-  'Beautiful scroll animations without jank',
-  'Designing a font-size toggle that actually works',
-  'State management in 2026: what changed?',
-  'Reducing bundle size in Vite projects',
-  'Building a design system from scratch',
-  'Framer Motion recipes for page transitions',
-  'Optimistic UI updates explained',
+  'Fake bank SMS asking to verify my account',
+  'WhatsApp "investment mentor" promising 300% returns',
+  'Romance scammer asked for gift cards after two weeks',
+  'Caller impersonating the tax authority demanding payment',
+  'Sextortion email threatening to leak my photos',
+  'Fake Microsoft "tech support" pop-up locked my browser',
+  'You\'ve won a lottery you never entered — pay the fee',
+  'Work-from-home job offer that asked for a deposit',
+  'Phishing link disguised as a parcel delivery notice',
+  'Crypto "trading platform" that won\'t let me withdraw',
+  'Fake landlord asking for a deposit before viewing',
+  'Cloned social media account messaging my friends',
+  'Fake charity collecting donations after a disaster',
+  'QR code sticker over a real parking meter payment',
+  'Bank "fraud team" call spoofing the official number',
 ];
 
 function pick<T>(arr: T[], i: number): T {
@@ -66,7 +66,7 @@ export const MOCK_POSTS: Post[] = Array.from({ length: 60 }, (_, i) => {
     id: `post-${i + 1}`,
     title: `${title}`,
     excerpt:
-      'A thoughtful discussion covering practical patterns, trade-offs, and real-world examples the community has found useful.',
+      'A firsthand account of how the scam unfolded, the red flags that gave it away, and what to watch for so the community can avoid it.',
     body: 'Full post body would appear here in a detail view.',
     author,
     tags,

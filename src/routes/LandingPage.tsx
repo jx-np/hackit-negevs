@@ -72,13 +72,6 @@ export function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <div className="flex items-center gap-3">
-              <span className="ia-label flex items-center gap-2 text-safe-700 dark:text-safe-400">
-                <span className="h-2 w-2 rounded-full bg-safe-500" />
-                Scam registry · live
-              </span>
-            </div>
-
             <h1 className="mt-6 font-display text-6xl font-bold leading-[0.95] tracking-tight text-ink-900 dark:text-white sm:text-7xl lg:text-8xl">
               ScamReg
             </h1>

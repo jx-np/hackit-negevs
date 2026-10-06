@@ -26,12 +26,12 @@ describe('getPosts (mock mode)', () => {
   });
 
   it('filters by a text query (case-insensitive)', async () => {
-    const result = await getPosts({ query: 'react', page: 1, pageSize: 100 });
+    const result = await getPosts({ query: 'bank', page: 1, pageSize: 100 });
     expect(result.posts.length).toBeGreaterThan(0);
     for (const post of result.posts) {
       const haystack =
         `${post.title} ${post.excerpt} ${post.author.name}`.toLowerCase();
-      expect(haystack).toContain('react');
+      expect(haystack).toContain('bank');
     }
   });
 
@@ -45,28 +45,28 @@ describe('getPosts (mock mode)', () => {
 
   it('filters by a single tag id', async () => {
     const result = await getPosts({
-      tagId: 't-react',
+      tagId: 't-phishing',
       page: 1,
       pageSize: 100,
     });
     expect(result.posts.length).toBeGreaterThan(0);
     expect(
-      result.posts.every((p) => p.tags.some((t) => t.id === 't-react')),
+      result.posts.every((p) => p.tags.some((t) => t.id === 't-phishing')),
     ).toBe(true);
   });
 
   it('combines text query and tag filter', async () => {
     const result = await getPosts({
-      query: 'react',
-      tagId: 't-react',
+      query: 'bank',
+      tagId: 't-phishing',
       page: 1,
       pageSize: 100,
     });
     for (const post of result.posts) {
-      expect(post.tags.some((t) => t.id === 't-react')).toBe(true);
+      expect(post.tags.some((t) => t.id === 't-phishing')).toBe(true);
       const haystack =
         `${post.title} ${post.excerpt} ${post.author.name}`.toLowerCase();
-      expect(haystack).toContain('react');
+      expect(haystack).toContain('bank');
     }
   });
 
@@ -117,7 +117,7 @@ describe('createPost — requires a logged-in author', () => {
   const base = {
     title: 'A new scam report',
     excerpt: 'A description of the scam that is long enough.',
-    tagId: 't-react',
+    tagId: 't-phishing',
     authorName: 'Alice',
   };
 

@@ -13,7 +13,7 @@ describe('TagPanel', () => {
       screen.getByRole('button', { name: /all records/i }),
     ).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /React/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Phishing/ })).toBeInTheDocument();
     });
   });
 
@@ -23,19 +23,19 @@ describe('TagPanel', () => {
     const { rerender } = renderWithProviders(
       <TagPanel selected={null} onSelect={onSelect} side="right" onMove={vi.fn()} />,
     );
-    const reactTag = await screen.findByRole('button', { name: /React/ });
-    await user.click(reactTag);
-    expect(onSelect).toHaveBeenCalledWith('t-react');
+    const phishingTag = await screen.findByRole('button', { name: /Phishing/ });
+    await user.click(phishingTag);
+    expect(onSelect).toHaveBeenCalledWith('t-phishing');
 
     rerender(
       <TagPanel
-        selected="t-react"
+        selected="t-phishing"
         onSelect={onSelect}
         side="right"
         onMove={vi.fn()}
       />,
     );
-    await user.click(await screen.findByRole('button', { name: /React/ }));
+    await user.click(await screen.findByRole('button', { name: /Phishing/ }));
     expect(onSelect).toHaveBeenCalledWith(null);
   });
 

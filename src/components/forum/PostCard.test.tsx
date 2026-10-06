@@ -10,8 +10,8 @@ const post: Post = {
   excerpt: 'A short excerpt for the post.',
   author: { id: 'u1', name: 'Ada Lovelace' },
   tags: [
-    { id: 't-react', name: 'React' },
-    { id: 't-css', name: 'CSS' },
+    { id: 't-phishing', name: 'Phishing' },
+    { id: 't-blackmail', name: 'Blackmail' },
   ],
   createdAt: '2026-01-15T12:00:00.000Z',
   replyCount: 12,
@@ -33,8 +33,8 @@ describe('PostCard', () => {
 
   it('renders each tag with a # prefix', () => {
     renderWithProviders(<PostCard post={post} />);
-    expect(screen.getByText('#React')).toBeInTheDocument();
-    expect(screen.getByText('#CSS')).toBeInTheDocument();
+    expect(screen.getByText('#Phishing')).toBeInTheDocument();
+    expect(screen.getByText('#Blackmail')).toBeInTheDocument();
   });
 
   it('renders reply and like counts', () => {

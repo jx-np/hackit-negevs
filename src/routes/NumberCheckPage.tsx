@@ -25,7 +25,7 @@ const STATUS_META: Record<
     label: 'Trusted',
     icon: ShieldCheck,
     classes:
-      'border-safe-500 bg-safe-50 text-safe-700 dark:bg-safe-500/10 dark:text-safe-400',
+      'border-verified-500 bg-verified-50 text-verified-700 dark:bg-verified-500/10 dark:text-verified-400',
     blurb: 'This number has a high trust score.',
   },
   unknown: {
@@ -152,7 +152,7 @@ function ResultCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="mt-8 ia-panel shadow-ia"
+      className="mt-8 ia-panel overflow-hidden rounded-lg shadow-ia transition hover:shadow-soft"
     >
       {/* Status header */}
       <div className={`flex items-center gap-4 border-b p-5 ${meta.classes}`}>
@@ -177,7 +177,7 @@ function ResultCard({
               result.status === 'scam'
                 ? 'text-risk-600 dark:text-risk-500'
                 : result.status === 'trusted'
-                  ? 'text-safe-700 dark:text-safe-400'
+                  ? 'text-verified-700 dark:text-verified-400'
                   : undefined
             }
           />

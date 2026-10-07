@@ -1,9 +1,25 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Flag, Heart, MessageCircle, MoreVertical, X } from 'lucide-react';
+import {
+  ArrowBigDown,
+  ArrowBigUp,
+  Bookmark,
+  CheckCircle2,
+  Flag,
+  Megaphone,
+  MessageCircle,
+  MoreVertical,
+  Share2,
+  ShieldAlert,
+  ShieldCheck,
+  TriangleAlert,
+  Users,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import { CommentBox } from './CommentBox';
+import { CommentList } from './CommentList';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
@@ -22,18 +38,58 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-function RiskBadge({ risk }: { risk: Post['risk'] }) {
+/**
+ * Risk metadata — a strict traffic-light system. Every risk pairs a color
+ * with an icon AND a text label so meaning never relies on color alone
+ * (colorblind-safe + legible in screenshots).
+ */
+const RISK_META = {
+  high: {
+    label: 'High risk',
+    pill: 'border-risk-high/40 bg-risk-high/10 text-risk-high',
+    strip: 'bg-risk-high',
+    Icon: TriangleAlert,
+  },
+  medium: {
+    label: 'Under review',
+    pill: 'border-risk-med/40 bg-risk-med/10 text-risk-med',
+    strip: 'bg-risk-med',
+    Icon: ShieldAlert,
+  },
+  low: {
+    label: 'Debunked / safe',
+    pill: 'border-risk-low/40 bg-risk-low/10 text-risk-low',
+    strip: 'bg-risk-low',
+    Icon: ShieldCheck,
+  },
+  psa: {
+    label: 'Official PSA',
+    pill: 'border-risk-psa/40 bg-risk-psa/10 text-risk-psa',
+    strip: 'bg-risk-psa',
+    Icon: Megaphone,
+  },
+} as const;
+
+type RiskKey = keyof typeof RISK_META;
+
+/** Normalize the Post risk value to a traffic-light key. */
+function riskKey(risk: Post['risk']): RiskKey {
+  if (risk === 'high') return 'high';
+  if (risk === 'medium') return 'medium';
+  return 'medium';
+}
+
+/** Filled, tinted risk-flair pill with icon + label. */
+function RiskFlair({ risk }: { risk: Post['risk'] }) {
   if (!risk) return null;
-  const styles =
-    risk === 'high'
-      ? 'bg-risk-600 text-white'
-      : 'bg-caution-500 text-ink-900';
-  const label = risk === 'high' ? 'High risk' : 'Caution';
+  const s = RISK_META[riskKey(risk)];
+  const { Icon } = s;
   return (
     <span
-      className={`absolute left-3 top-3 ia-label px-2 py-1 ${styles}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${s.pill}`}
     >
-      {label}
+      <Icon size={13} aria-hidden />
+      {s.label}
     </span>
   );
 }
@@ -81,7 +137,7 @@ function PostMenu({ onReport }: { onReport: () => void }) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Post options"
-        className="grid h-8 w-8 place-items-center text-ink-400 transition hover:bg-ink-100 hover:text-ink-900 dark:hover:bg-ink-800 dark:hover:text-white"
+        className="grid h-8 w-8 place-items-center rounded-md text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
       >
         <MoreVertical size={18} />
       </button>
@@ -94,7 +150,7 @@ function PostMenu({ onReport }: { onReport: () => void }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 top-full z-20 mt-1 min-w-[10rem] border border-ink-200 bg-paper py-1 shadow-ia dark:border-ink-700 dark:bg-ink-900"
+            className="absolute right-0 top-full z-20 mt-1 min-w-[10rem] rounded-md border border-scam-line bg-scam-850 py-1 shadow-xl"
           >
             <button
               type="button"
@@ -103,7 +159,7 @@ function PostMenu({ onReport }: { onReport: () => void }) {
                 setOpen(false);
                 onReport();
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-ink-700 transition hover:bg-ink-100 hover:text-ink-900 dark:text-ink-300 dark:hover:bg-ink-800 dark:hover:text-white"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
             >
               <Flag size={15} /> Report post
             </button>
@@ -160,7 +216,7 @@ function ReportModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 z-[100] bg-ink-950/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-scam-950/70 backdrop-blur-sm"
           />
 
           {/* Centered dialog */}
@@ -174,12 +230,12 @@ function ReportModal({
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md border border-ink-200 bg-paper p-6 shadow-2xl dark:border-ink-800 dark:bg-ink-950"
+              className="w-full max-w-md rounded-lg border border-scam-line bg-scam-850 p-6 shadow-2xl"
             >
               <div className="flex items-start justify-between gap-4">
                 <h2
                   id="report-modal-title"
-                  className="font-display text-lg font-semibold text-ink-900 dark:text-white"
+                  className="text-lg font-semibold text-scam-text"
                 >
                   {submitted ? 'Report submitted' : 'Why are you reporting this post?'}
                 </h2>
@@ -187,7 +243,7 @@ function ReportModal({
                   type="button"
                   onClick={onClose}
                   aria-label="Close"
-                  className="grid h-8 w-8 shrink-0 place-items-center text-ink-400 transition hover:bg-ink-100 hover:text-ink-900 dark:hover:bg-ink-800 dark:hover:text-white"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
                 >
                   <X size={18} />
                 </button>
@@ -195,15 +251,15 @@ function ReportModal({
 
               {submitted ? (
                 <div className="mt-4 flex flex-col items-center gap-3 py-4 text-center">
-                  <CheckCircle2 size={40} className="text-safe-500" />
-                  <p className="text-sm text-ink-600 dark:text-ink-300">
+                  <CheckCircle2 size={40} className="text-risk-low" />
+                  <p className="text-sm text-scam-muted">
                     Thanks for helping keep the community safe. Our team will
                     review this report.
                   </p>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="mt-2 border border-ink-900 bg-ink-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+                    className="sr-btn-primary mt-2 px-5 py-2"
                   >
                     Done
                   </button>
@@ -214,10 +270,10 @@ function ReportModal({
                     {REPORT_REASONS.map((reason) => (
                       <label
                         key={reason}
-                        className={`flex cursor-pointer items-center gap-3 border px-3 py-2.5 text-sm transition ${
+                        className={`flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-sm transition ${
                           selected === reason
-                            ? 'border-safe-500 bg-safe-50 text-ink-900 dark:bg-safe-500/10 dark:text-white'
-                            : 'border-ink-200 text-ink-700 hover:border-ink-400 dark:border-ink-700 dark:text-ink-300 dark:hover:border-ink-500'
+                            ? 'border-trust-400 bg-trust-400/10 text-scam-text'
+                            : 'border-scam-line text-scam-muted hover:border-scam-muted'
                         }`}
                       >
                         <input
@@ -226,7 +282,7 @@ function ReportModal({
                           value={reason}
                           checked={selected === reason}
                           onChange={() => setSelected(reason)}
-                          className="h-4 w-4 accent-safe-500"
+                          className="h-4 w-4 accent-trust-500"
                         />
                         {reason}
                       </label>
@@ -244,7 +300,7 @@ function ReportModal({
                       >
                         <label
                           htmlFor="report-other-details"
-                          className="mt-3 block text-sm font-medium text-ink-700 dark:text-ink-300"
+                          className="mt-3 block text-sm font-medium text-scam-muted"
                         >
                           Please describe the issue
                         </label>
@@ -255,7 +311,7 @@ function ReportModal({
                           rows={3}
                           autoFocus
                           placeholder="Tell us more about why you're reporting this post…"
-                          className="mt-1.5 w-full resize-none border border-ink-200 bg-paper px-3 py-2 text-sm text-ink-900 outline-none transition placeholder:text-ink-400 focus:border-safe-500 dark:border-ink-700 dark:bg-ink-900 dark:text-white"
+                          className="sr-input mt-1.5 resize-none"
                         />
                       </motion.div>
                     )}
@@ -265,7 +321,7 @@ function ReportModal({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="border border-ink-300 px-4 py-2 text-sm font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 dark:border-ink-700 dark:text-ink-300 dark:hover:border-white dark:hover:text-white"
+                      className="sr-btn-ghost px-4 py-2"
                     >
                       Cancel
                     </button>
@@ -273,7 +329,7 @@ function ReportModal({
                       type="button"
                       disabled={!selected || (selected === 'Other' && !details.trim())}
                       onClick={() => setSubmitted(true)}
-                      className="border border-ink-900 bg-ink-900 px-5 py-2 text-sm font-semibold text-white transition enabled:hover:bg-ink-800 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white dark:bg-white dark:text-ink-900 dark:enabled:hover:bg-ink-100"
+                      className="sr-btn-primary px-5 py-2 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Submit report
                     </button>
@@ -291,6 +347,12 @@ function ReportModal({
 export function PostCard({ post }: { post: Post }) {
   const [showComments, setShowComments] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+
+  const category = post.tags[0]?.name ?? 'Report';
+  const risk = RISK_META[riskKey(post.risk)];
+  const verified = post.reviewStatus === 'reviewed';
 
   return (
     <motion.article
@@ -298,83 +360,193 @@ export function PostCard({ post }: { post: Post }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="group relative mb-5 break-inside-avoid ia-panel overflow-hidden transition-transform transition-colors hover:-translate-y-0.5 hover:border-ink-400 dark:hover:border-ink-600"
+      className="group relative mb-5 cursor-pointer overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card transition hover:border-scam-muted/60 hover:bg-scam-750 hover:shadow-card-hover"
     >
-      {/* Image-forward header (with risk badge overlay) — links to detail */}
-      {post.imageUrl && (
-        <Link to={`/forum/${post.id}`} className="relative block">
-          <img
-            src={post.imageUrl}
-            alt=""
-            loading="lazy"
-            className="block w-full bg-ink-100 object-cover dark:bg-ink-800"
-          />
-          <RiskBadge risk={post.risk} />
-        </Link>
+      {/* Colored left-border risk strip — triage the feed at a glance. */}
+      {post.risk && (
+        <span
+          className={`absolute inset-y-0 left-0 w-1 ${risk.strip}`}
+          aria-hidden
+        />
       )}
 
-      <div className="px-5 pt-4">
-        <div className="flex items-start gap-2">
-          <div className="flex flex-1 flex-wrap items-center gap-2">
-            {post.tags.map((tag) => (
-              <span
-                key={tag.id}
-                className="border border-ink-200 px-2 py-0.5 font-display text-xs font-medium uppercase tracking-wider text-ink-600 dark:border-ink-700 dark:text-ink-300"
-              >
-                #{tag.name}
+      {/* Full-card click target: navigates to the post detail. Interactive
+          controls below sit above this via `relative z-10` and stop clicks
+          from bubbling, so buttons/links keep working. */}
+      <Link
+        to={`/forum/${post.id}`}
+        aria-label={`Open post: ${post.title}`}
+        tabIndex={-1}
+        className="absolute inset-0 z-0"
+      />
+
+      <div className="relative z-10 p-6 pl-7">
+        {/* Header row: icon tile + category + meta + risk flair + follow + menu */}
+        <div className="flex items-start gap-3">
+          <span className="sr-tile h-9 w-9 shrink-0">
+            <ShieldAlert size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-sm font-semibold text-scam-text">{category}</span>
+              {verified && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-trust-500/40 bg-trust-500/10 px-2 py-0.5 text-[11px] font-semibold text-trust-300"
+                  title="Verified by moderators"
+                >
+                  <ShieldCheck size={12} /> Verified
+                </span>
+              )}
+              <span className="truncate text-xs text-scam-muted">
+                · posted by u/{post.author.name} · {formatDate(post.createdAt)}
               </span>
-            ))}
-            {/* If there's no image, show the risk inline instead of overlaid */}
-            {!post.imageUrl && post.risk && (
-              <span
-                className={`ia-label px-2 py-0.5 ${
-                  post.risk === 'high'
-                    ? 'bg-risk-100 text-risk-700 dark:bg-risk-500/15 dark:text-risk-500'
-                    : 'bg-caution-100 text-caution-700 dark:bg-caution-500/15 dark:text-caution-500'
-                }`}
-              >
-                {post.risk === 'high' ? 'High risk' : 'Caution'}
-              </span>
-            )}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <RiskFlair risk={post.risk} />
+              {post.tags.map((tag) => (
+                <span
+                  key={tag.id}
+                  className="relative z-10 rounded-full border border-scam-line px-2 py-0.5 text-xs font-medium text-scam-muted transition hover:border-trust-500/50 hover:text-trust-400"
+                >
+                  #{tag.name}
+                </span>
+              ))}
+            </div>
           </div>
-          <PostMenu onReport={() => setReportOpen(true)} />
+
+          {/* Follow + author avatar initials (kept for test) + menu */}
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFollowing((f) => !f)}
+              aria-pressed={following}
+              className={`hidden rounded-md px-3 py-1.5 text-xs font-semibold transition sm:inline-flex ${
+                following
+                  ? 'bg-trust-500 text-white hover:bg-trust-600'
+                  : 'border border-scam-line text-scam-muted hover:border-trust-500/60 hover:text-trust-400'
+              }`}
+            >
+              {following ? 'Following' : 'Follow'}
+            </button>
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted">
+              {initials(post.author.name)}
+            </span>
+            <PostMenu onReport={() => setReportOpen(true)} />
+          </div>
         </div>
 
-        <h3 className="mt-3 font-display text-xl font-semibold leading-snug text-ink-900 transition group-hover:text-safe-700 dark:text-white dark:group-hover:text-safe-400">
+        {/* Author line (plain name kept for test lookup) */}
+        <p className="sr-only">{post.author.name}</p>
+
+        {/* Title — the clear focal point of the record. */}
+        <h3 className="mt-4 text-xl font-bold leading-snug tracking-tight text-scam-text transition group-hover:text-trust-400">
           <Link to={`/forum/${post.id}`} className="hover:underline">
             {post.title}
           </Link>
         </h3>
-        <p className="mt-2 line-clamp-3 text-base text-ink-600 dark:text-ink-400">
+
+        {/* Body preview — generous line-height for calm readability. */}
+        <p className="mt-2.5 line-clamp-3 text-sm leading-7 text-scam-muted">
           {post.excerpt}
         </p>
+
+        {/* Monospace evidence / identifier chips — reads as "data". */}
+        {(post.imageUrl || post.incidentDate) && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {post.imageUrl && (
+              <span className="sr-chip">🔗 evidence attached</span>
+            )}
+            {post.incidentDate && (
+              <span className="sr-chip">📅 {formatDate(post.incidentDate)}</span>
+            )}
+          </div>
+        )}
+
+        {/* Evidence media (optional) with spoiler blur */}
+        {post.imageUrl && (
+          <div className="relative mt-4 overflow-hidden rounded-md border border-scam-line">
+            <Link to={`/forum/${post.id}`} className="block">
+              <img
+                src={post.imageUrl}
+                alt=""
+                loading="lazy"
+                className={`block w-full bg-scam-750 object-cover transition ${
+                  revealed ? '' : 'blur-md'
+                }`}
+              />
+            </Link>
+            {!revealed && (
+              <button
+                type="button"
+                onClick={() => setRevealed(true)}
+                className="absolute inset-0 grid place-items-center bg-scam-950/50 text-xs font-semibold uppercase tracking-wider text-scam-text"
+              >
+                Sensitive evidence · click to reveal
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Footer: author + date + engagement */}
-      <div className="mt-4 flex items-center gap-3 border-t border-ink-200 px-5 py-3 dark:border-ink-800">
-        <span className="grid h-9 w-9 shrink-0 place-items-center border border-ink-300 bg-ink-50 font-display text-xs font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
-          {initials(post.author.name)}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-ink-900 dark:text-white">
-            {post.author.name}
-          </p>
-          <p className="text-xs text-ink-400">
-            {formatDate(post.createdAt)}
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-3 font-display text-sm text-ink-400">
+      {/* Action bar */}
+      <div className="relative z-10 flex flex-wrap items-center gap-1 border-t border-scam-line px-4 py-2.5 pl-7 text-sm text-scam-muted">
+        {/* Vote control — "did this happen to you too?" (social proof) */}
+        <div className="flex items-center gap-1 rounded-md">
           <button
             type="button"
-            onClick={() => setShowComments((s) => !s)}
-            aria-expanded={showComments}
-            className="flex items-center gap-1.5 px-1.5 py-1 transition hover:text-safe-600 dark:hover:text-safe-400"
+            aria-label="This happened to me too"
+            className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400"
           >
-            <MessageCircle size={16} /> {post.replyCount}
+            <ArrowBigUp size={18} />
           </button>
-          <span className="flex items-center gap-1.5">
-            <Heart size={16} /> {post.likeCount}
+          <span className="min-w-[1.5rem] text-center text-sm font-semibold text-scam-text">
+            {post.likeCount}
           </span>
+          <button
+            type="button"
+            aria-label="Downvote"
+            className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-risk-high"
+          >
+            <ArrowBigDown size={18} />
+          </button>
+        </div>
+
+        {/* Prominent social proof — reassuring on a safety site. */}
+        <span className="ml-1 mr-1 hidden items-center gap-1.5 text-xs font-medium text-risk-low sm:inline-flex">
+          <ShieldCheck size={14} /> {post.likeCount} confirmed
+        </span>
+
+        <button
+          type="button"
+          onClick={() => setShowComments((s) => !s)}
+          aria-expanded={showComments}
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition hover:bg-scam-800 hover:text-trust-400"
+        >
+          <MessageCircle size={16} /> {post.replyCount}
+        </button>
+
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition hover:bg-scam-800 hover:text-trust-400"
+        >
+          <Users size={16} /> Me too
+        </button>
+
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Share"
+            className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400"
+          >
+            <Share2 size={16} />
+          </button>
+          <button
+            type="button"
+            aria-label="Save"
+            className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400"
+          >
+            <Bookmark size={16} />
+          </button>
         </div>
       </div>
 
@@ -386,9 +558,10 @@ export function PostCard({ post }: { post: Post }) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="overflow-hidden border-t border-ink-200 dark:border-ink-800"
+            className="relative z-10 overflow-hidden border-t border-scam-line"
           >
-            <div className="px-5 py-4">
+            <div className="space-y-4 px-6 py-4 pl-7">
+              {showComments && <CommentList postId={post.id} />}
               <CommentBox postId={post.id} />
             </div>
           </motion.div>

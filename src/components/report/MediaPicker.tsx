@@ -59,7 +59,7 @@ export function MediaPicker({ value, onChange }: MediaPickerProps) {
   return (
     <div>
       {value ? (
-        <div className="relative border border-ink-200 dark:border-ink-700">
+        <div className="relative overflow-hidden rounded-md border border-ink-200 dark:border-ink-700">
           <img
             src={value}
             alt="Selected evidence preview"
@@ -89,10 +89,10 @@ export function MediaPicker({ value, onChange }: MediaPickerProps) {
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={onDrop}
-          className={`flex w-full flex-col items-center justify-center gap-2 border border-dashed px-6 py-10 text-center transition ${
+          className={`flex w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed px-6 py-10 text-center transition ${
             dragging
               ? 'border-safe-500 bg-safe-50 dark:bg-safe-500/10'
-              : 'border-ink-300 hover:border-ink-400 dark:border-ink-700 dark:hover:border-ink-500'
+              : 'border-ink-300 hover:border-safe-400 dark:border-ink-700 dark:hover:border-safe-500/60'
           }`}
         >
           {uploading ? (

@@ -11,12 +11,18 @@ interface PostListProps {
 
 function PostSkeleton() {
   return (
-    <div className="mb-5 break-inside-avoid ia-panel overflow-hidden">
-      <div className="aspect-[16/10] w-full animate-pulse bg-ink-100 dark:bg-ink-800" />
-      <div className="space-y-3 px-5 py-4">
-        <div className="h-4 w-20 animate-pulse bg-ink-200 dark:bg-ink-800" />
-        <div className="h-6 w-3/4 animate-pulse bg-ink-200 dark:bg-ink-800" />
-        <div className="h-4 w-full animate-pulse bg-ink-200 dark:bg-ink-800" />
+    <div className="mb-4 rounded-lg border border-scam-line bg-scam-800 p-5">
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 shrink-0 animate-pulse rounded-md bg-scam-750" />
+        <div className="flex-1 space-y-2">
+          <div className="h-3 w-32 animate-pulse rounded bg-scam-750" />
+          <div className="h-3 w-24 animate-pulse rounded bg-scam-750" />
+        </div>
+      </div>
+      <div className="mt-4 space-y-3">
+        <div className="h-5 w-3/4 animate-pulse rounded bg-scam-750" />
+        <div className="h-4 w-full animate-pulse rounded bg-scam-750" />
+        <div className="h-4 w-5/6 animate-pulse rounded bg-scam-750" />
       </div>
     </div>
   );
@@ -53,8 +59,8 @@ export function PostList({ query, tagId, sort }: PostListProps) {
     return () => observer.disconnect();
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  // Media feed: masonry-style via CSS columns.
-  const feedClass = 'columns-1 gap-5 sm:columns-2';
+  // Single centered report feed (one card per row).
+  const feedClass = 'flex flex-col';
 
   if (isLoading) {
     return (
@@ -68,12 +74,12 @@ export function PostList({ query, tagId, sort }: PostListProps) {
 
   if (isError) {
     return (
-      <div className="border border-risk-500 bg-risk-50 p-6 text-center text-risk-700 dark:border-risk-500/50 dark:bg-risk-500/10 dark:text-risk-500">
-        <p className="ia-label">Error</p>
-        <p className="mt-2 text-lg font-medium">
+      <div className="rounded-lg border border-risk-high/40 bg-risk-high/10 p-6 text-center text-risk-high">
+        <p className="sr-label text-risk-high">Error</p>
+        <p className="mt-2 text-lg font-medium text-scam-text">
           Something went wrong loading records.
         </p>
-        <p className="mt-1 text-sm opacity-80">
+        <p className="mt-1 text-sm text-scam-muted">
           {(error as Error).message}
         </p>
       </div>
@@ -85,18 +91,16 @@ export function PostList({ query, tagId, sort }: PostListProps) {
 
   if (posts.length === 0) {
     return (
-      <div className="border border-dashed border-ink-300 p-12 text-center text-ink-500 dark:border-ink-700">
-        <p className="font-display text-xl font-medium text-ink-800 dark:text-ink-200">
-          No records found
-        </p>
-        <p className="mt-1 text-base">Try a different search term or tag.</p>
+      <div className="rounded-lg border border-dashed border-scam-line p-12 text-center text-scam-muted">
+        <p className="text-xl font-medium text-scam-text">No records found</p>
+        <p className="mt-1 text-base">Try a different search term or category.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <p className="ia-label mb-4 text-ink-400">
+      <p className="sr-label mb-4">
         {total} {total === 1 ? 'record' : 'records'}
       </p>
 
@@ -110,13 +114,13 @@ export function PostList({ query, tagId, sort }: PostListProps) {
       <div ref={sentinelRef} className="h-10" />
 
       {isFetchingNextPage && (
-        <div className="py-6 text-center text-sm text-ink-400">
+        <div className="py-6 text-center text-sm text-scam-muted">
           Loading more…
         </div>
       )}
 
       {!hasNextPage && posts.length > 0 && (
-        <div className="py-6 text-center text-sm text-ink-400">
+        <div className="py-6 text-center text-sm text-scam-dim">
           End of records.
         </div>
       )}

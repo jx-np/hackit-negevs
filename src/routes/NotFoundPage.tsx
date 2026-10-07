@@ -48,13 +48,13 @@ export function NotFoundPage() {
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               to="/"
-              className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+              className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600"
             >
               <Home size={18} /> Back to home
             </Link>
             <Link
               to="/forum"
-              className="inline-flex items-center gap-2 border border-ink-300 px-7 py-3.5 text-base font-semibold text-ink-800 transition hover:border-ink-900 dark:border-ink-700 dark:text-ink-100 dark:hover:border-white"
+              className="inline-flex items-center gap-2 rounded-md border border-ink-300 px-7 py-3.5 text-base font-semibold text-ink-800 transition hover:border-safe-500 hover:text-safe-600 dark:border-ink-700 dark:text-ink-100 dark:hover:border-safe-500 dark:hover:text-safe-400"
             >
               <ArrowLeft size={18} /> Enter the forum
             </Link>

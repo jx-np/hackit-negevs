@@ -19,7 +19,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
           id={id}
           ref={ref}
           aria-invalid={!!error}
-          className={`w-full border bg-white px-4 py-2.5 text-ink-900 outline-none transition placeholder:text-ink-400 focus:ring-2 dark:bg-ink-900 dark:text-white ${
+          className={`w-full rounded-md border bg-white px-4 py-2.5 text-ink-900 outline-none transition placeholder:text-ink-400 focus:ring-2 dark:bg-ink-900 dark:text-white ${
             error
               ? 'border-risk-500 focus:ring-risk-500/30'
               : 'border-ink-300 focus:border-safe-500 focus:ring-safe-500/30 dark:border-ink-700'

@@ -84,7 +84,7 @@ export function LandingPage() {
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <Link
                 to="/forum"
-                className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+                className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600"
               >
                 Enter the forum <ArrowRight size={18} />
               </Link>
@@ -251,7 +251,7 @@ export function LandingPage() {
             <div className="flex shrink-0 flex-wrap gap-4">
               <Link
                 to="/forum"
-                className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+                className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600"
               >
                 Enter the forum <ArrowRight size={18} />
               </Link>

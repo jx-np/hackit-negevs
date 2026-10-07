@@ -78,7 +78,7 @@ export function Navbar() {
                   logout();
                   navigate('/');
                 }}
-                className="flex items-center gap-1.5 border border-ink-300 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 dark:border-ink-700 dark:text-ink-300 dark:hover:border-white dark:hover:text-white"
+                className="flex items-center gap-1.5 rounded-md border border-ink-300 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-safe-500 hover:text-safe-600 dark:border-ink-700 dark:text-ink-300 dark:hover:border-safe-500 dark:hover:text-safe-400"
                 aria-label="Log out"
               >
                 <LogOut size={16} /> <span className="hidden sm:inline">Log out</span>
@@ -87,7 +87,7 @@ export function Navbar() {
           ) : (
             <NavLink
               to="/auth"
-              className="border border-ink-900 bg-ink-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+              className="rounded-md border border-safe-600 bg-safe-500 px-5 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-safe-600"
             >
               Sign in
             </NavLink>

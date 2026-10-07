@@ -16,12 +16,22 @@ const PERKS = [
 
 export function AuthPage() {
   const [mode, setMode] = useState<Mode>('login');
-  const { loginDemo } = useAuth();
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const continueAsDemo = () => {
-    loginDemo({ name: 'Demo User', email: 'demo@scamreg.app' });
-    navigate('/report');
+  const continueAsDemo = async () => {
+    setDemoLoading(true);
+    setDemoError(null);
+    try {
+      await login('demo@gmail.com', 'xSFJ@2KyMQEKYa8');
+      navigate('/report');
+    } catch {
+      setDemoError('Demo login failed. Please try again.');
+    } finally {
+      setDemoLoading(false);
+    }
   };
 
   return (
@@ -115,18 +125,25 @@ export function AuthPage() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Demo access — no real backend needed */}
+          {/* Demo access */}
           <div className="mt-6 border-t border-ink-200 pt-6 dark:border-ink-800">
             <button
               type="button"
               onClick={continueAsDemo}
-              className="flex w-full items-center justify-center gap-2 border border-ink-300 py-3 text-base font-semibold text-ink-800 transition hover:border-safe-500 hover:text-safe-700 dark:border-ink-700 dark:text-ink-100 dark:hover:text-safe-400"
+              disabled={demoLoading}
+              className="flex w-full items-center justify-center gap-2 border border-ink-300 py-3 text-base font-semibold text-ink-800 transition hover:border-safe-500 hover:text-safe-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-ink-700 dark:text-ink-100 dark:hover:text-safe-400"
             >
-              <UserRound size={18} /> Continue as demo user
+              <UserRound size={18} />
+              {demoLoading ? 'Signing in…' : 'Continue as demo user'}
             </button>
-            <p className="mt-2 text-center text-xs text-ink-400">
-              Explore reporting without an account
-            </p>
+            {demoError && (
+              <p className="mt-2 text-center text-xs text-red-500">{demoError}</p>
+            )}
+            {!demoError && (
+              <p className="mt-2 text-center text-xs text-ink-400">
+                Explore reporting without an account
+              </p>
+            )}
           </div>
         </motion.div>
       </div>

@@ -1,0 +1,6 @@
+# Local secrets — never commit these
+.env
+
+# Go build output
+/dbsetup
+/api

@@ -7,9 +7,10 @@ object ScamShieldEngineHolder {
     var engine: FlutterEngine? = null
     var nativeChannel: MethodChannel? = null
     var controlChannel: MethodChannel? = null
+    var serviceRunning: Boolean = false
 
     val isRunning: Boolean
-        get() = engine != null
+        get() = serviceRunning
 
     fun control(method: String, arguments: Any?, callback: (Any?) -> Unit) {
         val channel = controlChannel

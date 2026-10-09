@@ -20,9 +20,31 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
 
+    private var deeplinkChannel: MethodChannel? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestListenerRebind()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        deeplinkChannel?.let { deliverDeeplink(intent, it) }
+    }
+
+    private fun deliverDeeplink(intent: Intent?, channel: MethodChannel) {
+        val subject = intent?.getStringExtra(NotificationHelper.EXTRA_REPORT_SUBJECT) ?: return
+        val source = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_SOURCE) ?: "call"
+        val content = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_CONTENT) ?: ""
+        val app = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_APP) ?: ""
+        val key = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_KEY) ?: ""
+        channel.invokeMethod("openReport", mapOf(
+            "subject" to subject,
+            "content" to content,
+            "source" to source,
+            "app" to app,
+            "notificationKey" to key,
+        ))
     }
 
     /**
@@ -112,6 +134,11 @@ class MainActivity : FlutterActivity() {
                         ScamShieldEngineHolder.control("testEvaluate", call.arguments) {
                             result.success(it)
                         }
+                    "dismissScamAlert" -> {
+                        ScamOverlayController.hide()
+                        NotificationHelper.cancelScamAlert(this)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -123,6 +150,12 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        deeplinkChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            DEEPLINK_CHANNEL,
+        )
+        deliverDeeplink(intent, deeplinkChannel!!)
     }
 
     private fun startScamShieldService() {
@@ -188,6 +221,7 @@ class MainActivity : FlutterActivity() {
         private const val EVENTS_CHANNEL = "com.example.call_log_app/call_events"
         private const val SCAM_CHANNEL = "scamshield/ui"
         private const val STORAGE_CHANNEL = "scamshield/storage"
+        private const val DEEPLINK_CHANNEL = "report/deeplink"
         private const val ROLE_REQUEST_CODE = 12001
         private const val NOTIFICATION_REQUEST_CODE = 7717
     }

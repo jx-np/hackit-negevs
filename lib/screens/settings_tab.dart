@@ -9,48 +9,36 @@ class SettingsTab extends StatefulWidget {
   const SettingsTab({
     super.key,
     required this.model,
-    required this.hfToken,
+    required this.onDownloadModel,
+    required this.onDeleteModel,
     required this.threshold,
     required this.endpoint,
-    required this.apiKey,
     required this.remoteModel,
-    required this.reasoningBudget,
-    required this.remoteMaxTokens,
     required this.forceCloud,
     required this.serviceRunning,
     required this.onSelectModel,
     required this.onModelChanged,
-    required this.onHfToken,
     required this.onThreshold,
     required this.onEndpoint,
-    required this.onApiKey,
     required this.onRemoteModel,
-    required this.onReasoningBudget,
-    required this.onRemoteMaxTokens,
     required this.onForceCloud,
     required this.onStopService,
     required this.onClearLog,
   });
 
   final ModelController model;
-  final String hfToken;
+  final Future<void> Function() onDownloadModel;
+  final Future<void> Function() onDeleteModel;
   final double threshold;
   final String endpoint;
-  final String apiKey;
   final String remoteModel;
-  final int reasoningBudget;
-  final int remoteMaxTokens;
   final bool forceCloud;
   final bool serviceRunning;
   final Future<void> Function(ScamModelSpec spec) onSelectModel;
   final Future<void> Function() onModelChanged;
-  final Future<void> Function(String value) onHfToken;
   final Future<void> Function(double value) onThreshold;
   final Future<void> Function(String value) onEndpoint;
-  final Future<void> Function(String value) onApiKey;
   final Future<void> Function(String value) onRemoteModel;
-  final Future<void> Function(int value) onReasoningBudget;
-  final Future<void> Function(int value) onRemoteMaxTokens;
   final Future<void> Function(bool value) onForceCloud;
   final Future<void> Function() onStopService;
   final Future<void> Function() onClearLog;
@@ -60,18 +48,10 @@ class SettingsTab extends StatefulWidget {
 }
 
 class _SettingsTabState extends State<SettingsTab> {
-  late final TextEditingController _tokenController =
-      TextEditingController(text: widget.hfToken);
   late final TextEditingController _endpointController =
       TextEditingController(text: widget.endpoint);
-  late final TextEditingController _apiKeyController =
-      TextEditingController(text: widget.apiKey);
   late final TextEditingController _remoteModelController =
       TextEditingController(text: widget.remoteModel);
-  late final TextEditingController _budgetController =
-      TextEditingController(text: widget.reasoningBudget.toString());
-  late final TextEditingController _maxTokensController =
-      TextEditingController(text: widget.remoteMaxTokens.toString());
   final TextEditingController _customPathController = TextEditingController();
   final TextEditingController _customContextController = TextEditingController(
     text: kDefaultCustomModelContext.toString(),
@@ -88,12 +68,8 @@ class _SettingsTabState extends State<SettingsTab> {
 
   @override
   void dispose() {
-    _tokenController.dispose();
     _endpointController.dispose();
-    _apiKeyController.dispose();
     _remoteModelController.dispose();
-    _budgetController.dispose();
-    _maxTokensController.dispose();
     _customPathController.dispose();
     _customContextController.dispose();
     super.dispose();
@@ -129,6 +105,8 @@ class _SettingsTabState extends State<SettingsTab> {
           widget.model.spec.note,
           style: Theme.of(context).textTheme.bodySmall,
         ),
+        const SizedBox(height: 8),
+        _installedModelCard(),
         const SizedBox(height: 20),
         Text(
           'Model from this device (testing)',
@@ -234,19 +212,6 @@ class _SettingsTabState extends State<SettingsTab> {
           ),
         ),
         const SizedBox(height: 20),
-        Text('HuggingFace token', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        _SaveableField(
-          controller: _tokenController,
-          label: 'Token',
-          hint: 'hf_... (only for gated models)',
-          obscure: true,
-          onSave: (value) async {
-            await widget.onHfToken(value);
-            return null;
-          },
-        ),
-        const SizedBox(height: 20),
         Text(
           'Cloud escalation threshold — escalate below ${(_threshold * 100).round()}%',
           style: Theme.of(context).textTheme.titleMedium,
@@ -292,53 +257,11 @@ class _SettingsTabState extends State<SettingsTab> {
         ),
         const SizedBox(height: 12),
         _SaveableField(
-          controller: _apiKeyController,
-          label: 'API key',
-          hint: 'Bearer token for the cloud endpoint',
-          obscure: true,
-          onSave: (value) async {
-            await widget.onApiKey(value);
-            return null;
-          },
-        ),
-        const SizedBox(height: 12),
-        _SaveableField(
           controller: _remoteModelController,
           label: 'Model name',
           hint: 'minicpm5-2b',
           onSave: (value) async {
             await widget.onRemoteModel(value);
-            return null;
-          },
-        ),
-        const SizedBox(height: 12),
-        _SaveableField(
-          controller: _budgetController,
-          label: 'Reasoning budget (tokens)',
-          hint: '512 (0 = server default)',
-          keyboardType: TextInputType.number,
-          onSave: (value) async {
-            final parsed = int.tryParse(value);
-            if (parsed == null || parsed < 0) {
-              return 'Enter a whole number of tokens (0 or more)';
-            }
-            await widget.onReasoningBudget(parsed);
-            return null;
-          },
-        ),
-        const SizedBox(height: 12),
-        _SaveableField(
-          controller: _maxTokensController,
-          label: 'Max tokens per request',
-          hint: '0 = automatic (reasoning budget + 300)',
-          helper: 'Total generated tokens; reasoning counts towards it.',
-          keyboardType: TextInputType.number,
-          onSave: (value) async {
-            final parsed = int.tryParse(value);
-            if (parsed == null || parsed < 0) {
-              return 'Enter a whole number of tokens (0 or more)';
-            }
-            await widget.onRemoteMaxTokens(parsed);
             return null;
           },
         ),
@@ -366,6 +289,67 @@ class _SettingsTabState extends State<SettingsTab> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _installedModelCard() {
+    final model = widget.model;
+    final scheme = Theme.of(context).colorScheme;
+    final progress = model.progress;
+    final downloading = model.busy && progress >= 0 && progress < 100;
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(
+              model.installed ? Icons.check_circle : Icons.memory,
+              color: model.installed ? Colors.green : scheme.outline,
+            ),
+            title: Text('On-device model — ${model.spec.displayName}'),
+            subtitle: Text(
+              model.installed
+                  ? (model.persistent
+                      ? 'Ready · ${model.spec.approxSizeMb} MB · kept in Downloads (survives reinstall)'
+                      : 'Ready · ${model.spec.approxSizeMb} MB · runs offline')
+                  : downloading
+                      ? (model.isBundled
+                          ? 'Installing bundled model $progress%'
+                          : 'Downloading $progress%')
+                      : model.isBundled
+                          ? 'Bundled with the app · preparing'
+                          : 'Not downloaded (${model.spec.approxSizeMb} MB)',
+            ),
+            trailing: model.installed
+                ? TextButton(
+                    onPressed: model.busy ? null : widget.onDeleteModel,
+                    child: const Text('Remove'),
+                  )
+                : TextButton(
+                    onPressed: model.busy ? null : widget.onDownloadModel,
+                    child: Text(
+                      downloading
+                          ? '$progress%'
+                          : model.isBundled
+                              ? 'Install'
+                              : 'Download',
+                    ),
+                  ),
+          ),
+          if (downloading)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: LinearProgressIndicator(value: progress / 100),
+            ),
+          if (model.error.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(
+                model.error,
+                style: TextStyle(color: scheme.error),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -534,7 +518,6 @@ class _SaveableField extends StatefulWidget {
     required this.onSave,
     this.helper,
     this.keyboardType,
-    this.obscure = false,
   });
 
   final TextEditingController controller;
@@ -543,7 +526,6 @@ class _SaveableField extends StatefulWidget {
   final Future<String?> Function(String value) onSave;
   final String? helper;
   final TextInputType? keyboardType;
-  final bool obscure;
 
   @override
   State<_SaveableField> createState() => _SaveableFieldState();
@@ -600,7 +582,7 @@ class _SaveableFieldState extends State<_SaveableField> {
     return TextField(
       controller: widget.controller,
       focusNode: _focus,
-      obscureText: widget.obscure,
+      obscureText: false,
       keyboardType: widget.keyboardType,
       autocorrect: false,
       enableSuggestions: false,

@@ -20,26 +20,37 @@ class CallHistoryScreen extends StatefulWidget {
   State<CallHistoryScreen> createState() => _CallHistoryScreenState();
 }
 
-class _CallHistoryScreenState extends State<CallHistoryScreen> {
+class _CallHistoryScreenState extends State<CallHistoryScreen>
+    with WidgetsBindingObserver {
   static const String _blockedPrefsKey = 'spam_blocked_numbers';
 
   List<CallRecord> _records = const [];
   final Set<String> _blockedNumbers = {};
   bool _isLoading = false;
+  bool _needsPhonePermission = false;
   String? _error;
   StreamSubscription<CallEvent>? _callEventSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadHistory();
     _listenToCallEvents();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _callEventSub?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadHistory();
+    }
   }
 
   void _listenToCallEvents() {
@@ -144,16 +155,17 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
     try {
       final status = await Permission.phone.status;
       if (!status.isGranted) {
-        final result = await Permission.phone.request();
-        if (!result.isGranted) {
-          if (!mounted) return;
-          setState(() {
-            _error = 'Phone permission is required to view call history';
-            _isLoading = false;
-          });
-          return;
-        }
+        if (!mounted) return;
+        setState(() {
+          _needsPhonePermission = true;
+          _isLoading = false;
+        });
+        return;
       }
+      if (!mounted) return;
+      setState(() {
+        _needsPhonePermission = false;
+      });
 
       await _loadBlockedNumbers();
       final contactNumbers = await _loadContactNumbers();
@@ -187,6 +199,18 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       setState(() {
         _error = 'Failed to load call history: $e';
         _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _grantPhonePermission() async {
+    final result = await Permission.phone.request();
+    if (!mounted) return;
+    if (result.isGranted) {
+      await _loadHistory();
+    } else {
+      setState(() {
+        _needsPhonePermission = true;
       });
     }
   }
@@ -330,13 +354,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       header: FHeader.nested(
         title: const Text('Call History'),
         titleAlignment: Alignment.centerLeft,
-        prefixes: [
-          FHeaderAction(
-            icon: const Icon(Icons.menu),
-            semanticsLabel: 'Open menu',
-            onPress: () => Scaffold.of(context).openDrawer(),
-          ),
-        ],
         suffixes: [
           FHeaderAction(
             icon: const Icon(Icons.block),
@@ -352,11 +369,40 @@ class _CallHistoryScreenState extends State<CallHistoryScreen> {
       ),
       child: _isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _needsPhonePermission
+          ? _buildPermissionGate()
           : _error != null
           ? _buildError()
           : _records.isEmpty
           ? const Center(child: Text('No unknown-number calls found'))
           : _buildList(context),
+    );
+  }
+
+  Widget _buildPermissionGate() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const FAlert(
+              variant: FAlertVariant.destructive,
+              title: Text('Phone permission needed'),
+              subtitle: Text(
+                'Call Manager needs the Phone permission to read your call '
+                'history.',
+              ),
+            ),
+            const SizedBox(height: 16),
+            FButton(
+              onPress: _grantPhonePermission,
+              prefix: const Icon(Icons.phone),
+              child: const Text('Grant phone permission'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

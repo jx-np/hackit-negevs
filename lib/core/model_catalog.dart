@@ -61,51 +61,6 @@ const List<ScamModelSpec> modelCatalog = [
     note: 'Smallest and fastest. Downloads once, then runs offline.',
   ),
   ScamModelSpec(
-    id: 'qwen2.5-1.5b',
-    displayName: 'Qwen2.5 1.5B (download)',
-    url:
-        'https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
-    fileName: 'Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
-    modelType: ModelType.qwen,
-    fileType: ModelFileType.task,
-    approxSizeMb: 1638,
-    contextTokens: 1280,
-    note: 'Bigger and more accurate than the bundled 0.5B. Downloads once, then runs offline.',
-  ),
-  ScamModelSpec(
-    id: 'deepseek-r1-1.5b',
-    displayName: 'DeepSeek-R1 1.5B (reasoning, download)',
-    url:
-        'https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv1280.task',
-    fileName:
-        'DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv1280.task',
-    modelType: ModelType.deepSeek,
-    fileType: ModelFileType.task,
-    approxSizeMb: 1775,
-    thinking: true,
-    contextTokens: 1280,
-    note: 'Reasoning model: thinks step by step before answering, which can '
-        'classify tricky messages better but is slower. Context is capped at '
-        '1280 tokens, so long thinking is truncated. Downloads once, then runs '
-        'offline.',
-  ),
-  ScamModelSpec(
-    id: 'deepseek-r1-1.5b-long',
-    displayName: 'DeepSeek-R1 1.5B, long context (reasoning, download)',
-    url:
-        'https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm',
-    fileName:
-        'DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm',
-    modelType: ModelType.deepSeek,
-    fileType: ModelFileType.litertlm,
-    approxSizeMb: 1749,
-    thinking: true,
-    contextTokens: 4096,
-    note: 'Same reasoning model with a 4096-token context, leaving real room '
-        'for thinking. Use this one for the 1.5B. Downloads once, then runs '
-        'offline.',
-  ),
-  ScamModelSpec(
     id: 'qwen3-4b-2507',
     displayName: 'Qwen3 4B Instruct 2507 (download, large)',
     url:
@@ -115,18 +70,6 @@ const List<ScamModelSpec> modelCatalog = [
     fileType: ModelFileType.litertlm,
     approxSizeMb: 2536,
     note: 'Most accurate but large (~2.5 GB, INT4). Needs a flagship phone. Downloads once, then runs offline.',
-  ),
-  ScamModelSpec(
-    id: 'gemma3-1b-it',
-    displayName: 'Gemma 3 1B (download, gated)',
-    url:
-        'https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/gemma3-1b-it-int4.task',
-    fileName: 'gemma3-1b-it-int4.task',
-    modelType: ModelType.gemmaIt,
-    fileType: ModelFileType.task,
-    approxSizeMb: 554,
-    requiresToken: true,
-    note: 'Downloaded on demand. The repo is gated: needs a HuggingFace token with access granted.',
   ),
 ];
 

@@ -1,14 +1,15 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:call_log_app/background/background_runner.dart';
 import 'package:call_log_app/screens/call_history_screen.dart';
-import 'package:call_log_app/screens/contacts_screen.dart';
+import 'package:call_log_app/screens/login_screen.dart';
 import 'package:call_log_app/screens/notifications_screen.dart';
-import 'package:call_log_app/screens/protection_screen.dart';
+import 'package:call_log_app/screens/report_screen.dart';
 import 'package:call_log_app/screens/scam_shield_screen.dart';
+import 'package:call_log_app/screens/settings_screen.dart';
 import 'package:call_log_app/services/protection_settings.dart';
 import 'package:call_log_app/services/scamshield_channels.dart';
 import 'package:call_log_app/theme/theme.dart';
@@ -66,7 +67,7 @@ class MyApp extends StatelessWidget {
           child: FTooltipGroup(child: child ?? const SizedBox.shrink()),
         ),
       ),
-      home: const HomePage(),
+      home: const LoginScreen(),
     );
   }
 }
@@ -80,28 +81,47 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const CallHistoryScreen(),
-    const ContactsScreen(),
-    const ProtectionScreen(),
-    const NotificationsScreen(),
-    const ScamShieldScreen(),
-  ];
+  static const MethodChannel _deeplink = MethodChannel('report/deeplink');
+  final GlobalKey<ReportScreenState> _reportKey =
+      GlobalKey<ReportScreenState>();
+  ReportDeepLinkPayload? _pendingReport;
 
   final List<_NavigationItem> _items = [
     _NavigationItem(icon: Icons.history, label: 'Call History'),
-    _NavigationItem(icon: Icons.contact_mail, label: 'Contacts'),
-    _NavigationItem(icon: Icons.security, label: 'Protection'),
-    _NavigationItem(icon: Icons.notifications_active, label: 'Notifications'),
     _NavigationItem(icon: Icons.smart_toy, label: 'Scam AI'),
+    _NavigationItem(icon: Icons.flag, label: 'Report'),
+    _NavigationItem(icon: Icons.notifications_active, label: 'Notifications'),
+    _NavigationItem(icon: Icons.settings, label: 'Settings'),
   ];
 
   @override
   void initState() {
     super.initState();
-    _ensureNotificationPermission();
     _syncShieldFlag();
+    _deeplink.setMethodCallHandler(_onDeeplink);
+  }
+
+  Future<void> _onDeeplink(MethodCall call) async {
+    if (call.method != 'openReport') return;
+    final args = call.arguments as Map?;
+    if (args == null) return;
+    final payload = ReportDeepLinkPayload(
+      subject: args['subject'] as String? ?? '',
+      content: args['content'] as String? ?? '',
+      source: args['source'] as String? ?? 'call',
+      app: args['app'] as String? ?? '',
+      notificationKey: args['notificationKey'] as String? ?? '',
+    );
+    if (!mounted) return;
+    setState(
+      () => _currentIndex = _items.indexWhere((item) => item.label == 'Report'),
+    );
+    final state = _reportKey.currentState;
+    if (state != null) {
+      state.prefillFromLink(payload);
+    } else {
+      _pendingReport = payload;
+    }
   }
 
   Future<void> _syncShieldFlag() async {
@@ -115,15 +135,17 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {}
   }
 
-  Future<void> _ensureNotificationPermission() async {
-    if (!Platform.isAndroid) return;
-    if (await Permission.notification.isDenied) {
-      await Permission.notification.request();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final pending = _pendingReport;
+    _pendingReport = null;
+    final screens = [
+      const CallHistoryScreen(),
+      const ScamShieldScreen(),
+      ReportScreen(key: _reportKey, initialLink: pending),
+      const NotificationsScreen(),
+      const SettingsScreen(),
+    ];
     return Scaffold(
       drawer: Drawer(
         child: ListView(
@@ -188,7 +210,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      body: _screens[_currentIndex],
+      body: screens[_currentIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
@@ -217,3 +239,20 @@ class _NavigationItem {
 
   _NavigationItem({required this.icon, required this.label});
 }
+
+class ReportDeepLinkPayload {
+  const ReportDeepLinkPayload({
+    required this.subject,
+    required this.content,
+    required this.source,
+    this.app = '',
+    this.notificationKey = '',
+  });
+
+  final String subject;
+  final String content;
+  final String source;
+  final String app;
+  final String notificationKey;
+}
+

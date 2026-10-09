@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:notification_listener_service/notification_listener_service.dart';
 
 import '../services/model_controller.dart';
 import '../services/protection_settings.dart';
 import '../services/scamshield_channels.dart';
 import 'protection_tab.dart';
-import 'settings_tab.dart';
 
 class ScamShieldScreen extends StatefulWidget {
   const ScamShieldScreen({super.key});
@@ -22,18 +19,7 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
   late final ModelController _model = ModelController(_settings);
 
   Timer? _poll;
-  bool _notificationAccess = false;
-  bool _overlayGranted = false;
-  bool _notificationPermission = true;
   bool _protectionEnabled = false;
-  double _threshold = 0.6;
-  String _endpoint = '';
-  String _token = '';
-  String _apiKey = kDefaultRemoteApiKey;
-  String _remoteModel = kDefaultRemoteModel;
-  int _reasoningBudget = kDefaultReasoningBudget;
-  int _remoteMaxTokens = kDefaultRemoteMaxTokens;
-  bool _forceCloud = false;
   ServiceStatus _status = ServiceStatus.idle;
 
   @override
@@ -68,45 +54,13 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
   }
 
   Future<void> _refresh() async {
-    final access = Platform.isAndroid
-        ? await NotificationListenerService.isPermissionGranted()
-        : false;
-    final overlay = await ScamShieldController.hasOverlayPermission();
-    final permission = await ScamShieldController.hasNotificationPermission();
     final enabled = await _settings.protectionEnabled();
-    final threshold = await _settings.confidenceThreshold();
-    final endpoint = await _settings.remoteEndpoint();
-    final token = await _settings.hfToken();
-    final apiKey = await _settings.remoteApiKey();
-    final remoteModel = await _settings.remoteModel();
-    final reasoningBudget = await _settings.reasoningBudget();
-    final remoteMaxTokens = await _settings.remoteMaxTokens();
-    final forceCloud = await _settings.forceCloud();
     final status = await ScamShieldController.status();
     if (!mounted) return;
     setState(() {
-      _notificationAccess = access;
-      _overlayGranted = overlay;
-      _notificationPermission = permission;
       _protectionEnabled = enabled;
-      _threshold = threshold;
-      _endpoint = endpoint;
-      _token = token;
-      _apiKey = apiKey;
-      _remoteModel = remoteModel;
-      _reasoningBudget = reasoningBudget;
-      _remoteMaxTokens = remoteMaxTokens;
-      _forceCloud = forceCloud;
       _status = status;
     });
-  }
-
-  /// Persists a setting and pushes it to the running background service so the
-  /// evaluator picks it up immediately.
-  Future<void> _saveAndSync(Future<void> Function() save) async {
-    await save();
-    await ScamShieldController.syncSettings();
-    await _refresh();
   }
 
   Future<void> _toggleProtection(bool value) async {
@@ -121,36 +75,13 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
     await _refresh();
   }
 
-  Future<void> _downloadModel() async {
-    final messenger = ScaffoldMessenger.of(context);
-    if (!_notificationPermission) {
-      await ScamShieldController.requestNotificationPermission();
-      await Future<void>.delayed(const Duration(seconds: 1));
-    }
-    final ok = await _model.download();
-    if (!mounted) return;
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(ok ? '${_model.spec.displayName} installed' : _model.error),
-      ),
-    );
-    if (ok) await ScamShieldController.syncSettings();
-    await _refresh();
-  }
-
-  Future<void> _deleteModel() async {
-    await _model.delete();
-    await ScamShieldController.syncSettings();
-    await _refresh();
-  }
-
   Future<void> _runTest(String text) async {
     if (text.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
     if (!_model.installed) {
       messenger.showSnackBar(
         const SnackBar(
-          content: Text('Download a model in the Model tab first'),
+          content: Text('Download a model in the Settings tab first'),
         ),
       );
       return;
@@ -176,82 +107,137 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Scam Shield'),
+          title: const Text('Scam AI'),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Protection'),
-              Tab(text: 'Model'),
+              Tab(text: 'Scam AI'),
             ],
           ),
         ),
         body: TabBarView(
           children: [
             ProtectionTab(
-              notificationAccess: _notificationAccess,
-              overlayGranted: _overlayGranted,
-              notificationPermission: _notificationPermission,
               protectionEnabled: _protectionEnabled,
               status: _status,
-              model: _model,
               onToggleProtection: _toggleProtection,
-              onRequestNotificationAccess: () async {
-                await NotificationListenerService.requestPermission();
-                await _refresh();
-              },
-              onRequestOverlay: ScamShieldController.requestOverlayPermission,
-              onRequestNotificationPermission: () async {
-                await ScamShieldController.requestNotificationPermission();
-                await _refresh();
-              },
-              onDownloadModel: _downloadModel,
-              onDeleteModel: _deleteModel,
+              onRefresh: _refresh,
+            ),
+            ScamAiTab(
+              modelInstalled: _model.installed,
+              status: _status,
               onTestMessage: _runTest,
               onRefresh: _refresh,
             ),
-            SettingsTab(
-              model: _model,
-              hfToken: _token,
-              threshold: _threshold,
-              endpoint: _endpoint,
-              apiKey: _apiKey,
-              remoteModel: _remoteModel,
-              reasoningBudget: _reasoningBudget,
-              remoteMaxTokens: _remoteMaxTokens,
-              forceCloud: _forceCloud,
-              serviceRunning: _status.running,
-              onSelectModel: (spec) async {
-                await _model.select(spec);
-                await ScamShieldController.syncSettings();
-              },
-              onModelChanged: () async {
-                await ScamShieldController.syncSettings();
-                await _refresh();
-              },
-              onHfToken: _settings.setHfToken,
-              onThreshold: (value) =>
-                  _saveAndSync(() => _settings.setConfidenceThreshold(value)),
-              onEndpoint: (value) =>
-                  _saveAndSync(() => _settings.setRemoteEndpoint(value)),
-              onApiKey: (value) =>
-                  _saveAndSync(() => _settings.setRemoteApiKey(value)),
-              onRemoteModel: (value) =>
-                  _saveAndSync(() => _settings.setRemoteModel(value)),
-              onReasoningBudget: (value) =>
-                  _saveAndSync(() => _settings.setReasoningBudget(value)),
-              onRemoteMaxTokens: (value) =>
-                  _saveAndSync(() => _settings.setRemoteMaxTokens(value)),
-              onForceCloud: (value) =>
-                  _saveAndSync(() => _settings.setForceCloud(value)),
-              onStopService: () async {
-                await _settings.setProtectionEnabled(false);
-                await ScamShieldController.setShieldEnabled(false);
-                await ScamShieldController.stopService();
-                await _refresh();
-              },
-              onClearLog: () async {},
-            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class ScamAiTab extends StatefulWidget {
+  const ScamAiTab({
+    super.key,
+    required this.modelInstalled,
+    required this.status,
+    required this.onTestMessage,
+    required this.onRefresh,
+  });
+
+  final bool modelInstalled;
+  final ServiceStatus status;
+  final Future<void> Function(String text) onTestMessage;
+  final Future<void> Function() onRefresh;
+
+  @override
+  State<ScamAiTab> createState() => _ScamAiTabState();
+}
+
+class _ScamAiTabState extends State<ScamAiTab> {
+  final TextEditingController _testController = TextEditingController();
+
+  @override
+  void dispose() {
+    _testController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        widget.modelInstalled ? Icons.smart_toy : Icons.smart_toy_outlined,
+                        color: widget.modelInstalled ? Colors.green : Colors.orange,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.modelInstalled
+                              ? 'On-device model ready'
+                              : 'No on-device model installed',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.status.lastMessage.isEmpty
+                        ? 'Checked ${widget.status.evaluated} messages, '
+                            'raised ${widget.status.alertsRaised} alerts'
+                        : widget.status.lastMessage,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Try a message', style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _testController,
+                    minLines: 2,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      hintText: 'Paste a suspicious message...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.icon(
+                      onPressed: () => widget.onTestMessage(_testController.text.trim()),
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Check'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

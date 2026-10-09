@@ -135,5 +135,17 @@ class NotificationLog {
     await _prefs.setStringList(_key, raw);
   }
 
+  Future<void> remove(String id) async {
+    final raw = await _prefs.getStringList(_key) ?? <String>[];
+    raw.removeWhere((entry) {
+      try {
+        return (jsonDecode(entry) as Map<String, dynamic>)['id'] == id;
+      } catch (_) {
+        return false;
+      }
+    });
+    await _prefs.setStringList(_key, raw);
+  }
+
   Future<void> clear() => _prefs.remove(_key);
 }

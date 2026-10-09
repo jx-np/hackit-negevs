@@ -67,6 +67,7 @@ class BackgroundRunner {
   static const Duration _catchUpWindow = Duration(hours: 24);
 
   Future<void> start() async {
+    if (_running) return;
     ScamShieldChannels.control.setMethodCallHandler(_onControl);
     _running = true;
     await _models.ensureInitialized();
@@ -74,6 +75,7 @@ class BackgroundRunner {
     await _refreshRouter();
     // The model is loaded lazily on the first notification, and released again
     // once the device is idle (see [_scheduleIdleUnload]).
+    if (!_running) return;
     _setStatus('Waiting for messages');
     await _listen();
     unawaited(_catchUp());
@@ -362,6 +364,8 @@ class BackgroundRunner {
       await ScamShieldChannels.native.invokeMethod<void>('showAlert', {
         'appLabel': record.appLabel,
         'packageName': record.packageName,
+        'sender': record.title,
+        'notificationKey': record.key,
         'headline': verdict.label.title,
         'message': record.body,
         'reason': verdict.reason,
@@ -376,6 +380,12 @@ class BackgroundRunner {
 
   Future<dynamic> _onControl(MethodCall call) async {
     switch (call.method) {
+      case 'start':
+        await start();
+        return _statusMap();
+      case 'shutdown':
+        await stop();
+        return _statusMap();
       case 'status':
         _modelInstalled = await _models.isInstalled();
         return _statusMap();

@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.service.notification.NotificationListenerService
 import android.util.Log
 import android.service.notification.StatusBarNotification
@@ -25,15 +27,41 @@ class ScamNotificationListener : NotificationListenerService() {
         if (!ScamShieldEngineHolder.isRunning && SpamStore.isShieldEnabled(this)) {
             ScamShieldService.start(this)
         }
+        sweepActiveNotifications()
     }
 
     override fun onListenerDisconnected() {
         if (instance === this) instance = null
         Log.i(TAG, "listener disconnected")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            try {
+                NotificationListenerService.requestRebind(
+                    ComponentName(this, ScamNotificationListener::class.java),
+                )
+                Log.i(TAG, "rebind requested after disconnect")
+            } catch (e: Exception) {
+                Log.w(TAG, "rebind after disconnect failed", e)
+            }
+        }
+    }
+
+    private fun sweepActiveNotifications() {
+        val active = try {
+            activeNotifications
+        } catch (e: Exception) {
+            Log.w(TAG, "could not read active notifications", e)
+            return
+        } ?: return
+        if (active.isEmpty()) return
+        Log.i(TAG, "sweeping ${active.size} active notification(s)")
+        for (sbn in active) emitNotification(sbn)
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
-        val sbn = sbn ?: return
+        emitNotification(sbn ?: return)
+    }
+
+    private fun emitNotification(sbn: StatusBarNotification) {
         val notification = sbn.notification ?: return
         val flags = notification.flags
         if (flags and Notification.FLAG_GROUP_SUMMARY != 0) return
@@ -50,7 +78,7 @@ class ScamNotificationListener : NotificationListenerService() {
         val content = extractContent(extras)
         if (title.isEmpty() && content.isEmpty()) return
 
-        Log.i(TAG, "posted pkg=${sbn.packageName} title='$title' contentLen=${content.length}")
+        Log.i(TAG, "emitting pkg=${sbn.packageName} title='$title' contentLen=${content.length}")
         NotificationRelay.emit(
             mapOf(
                 "id" to sbn.id,
@@ -110,6 +138,8 @@ class ScamNotificationListener : NotificationListenerService() {
         private const val TAG = "ScamNotification"
         private const val MAX_BUNDLED_MESSAGES = 8
         private const val MAX_MESSAGE_CHARS = 400
+        private const val REBIND_SETTLE_MS = 1200L
+        private const val TOGGLE_GAP_MS = 150L
 
         @Volatile
         var instance: ScamNotificationListener? = null
@@ -127,21 +157,44 @@ class ScamNotificationListener : NotificationListenerService() {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
             val component = ComponentName(context, ScamNotificationListener::class.java)
             try {
-                val pm = context.packageManager
+                NotificationListenerService.requestRebind(component)
+            } catch (e: Exception) {
+                Log.w(TAG, "rebind request failed for $component", e)
+            }
+            if (isConnected()) return
+            val handler = Handler(Looper.getMainLooper())
+            handler.postDelayed({
+                if (!isConnected()) forceToggle(context, component, handler)
+            }, REBIND_SETTLE_MS)
+        }
+
+        private fun forceToggle(
+            context: Context,
+            component: ComponentName,
+            handler: Handler,
+        ) {
+            val pm = context.packageManager
+            try {
                 pm.setComponentEnabledSetting(
                     component,
                     PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                     PackageManager.DONT_KILL_APP,
                 )
-                pm.setComponentEnabledSetting(
-                    component,
-                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                    PackageManager.DONT_KILL_APP,
-                )
-                NotificationListenerService.requestRebind(component)
-                Log.i(TAG, "rebind requested for $component")
+                handler.postDelayed({
+                    pm.setComponentEnabledSetting(
+                        component,
+                        PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                        PackageManager.DONT_KILL_APP,
+                    )
+                    try {
+                        NotificationListenerService.requestRebind(component)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "rebind after toggle failed", e)
+                    }
+                    Log.i(TAG, "forced rebind for $component")
+                }, TOGGLE_GAP_MS)
             } catch (e: Exception) {
-                Log.w(TAG, "rebind failed for $component", e)
+                Log.w(TAG, "forced rebind failed for $component", e)
             }
         }
     }

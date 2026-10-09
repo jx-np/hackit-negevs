@@ -114,4 +114,9 @@ class ScamShieldController {
 
   static Future<void> setShieldEnabled(bool value) => ScamShieldChannels.ui
       .invokeMethod<void>('setShieldEnabled', {'enabled': value});
+
+  /// Dismisses the scam-alert notification and any overlay after the user has
+  /// acted on it (reported the message).
+  static Future<void> dismissScamAlert() =>
+      ScamShieldChannels.ui.invokeMethod<void>('dismissScamAlert');
 }

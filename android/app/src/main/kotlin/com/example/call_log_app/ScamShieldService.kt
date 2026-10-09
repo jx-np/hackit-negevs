@@ -46,6 +46,14 @@ class ScamShieldService : Service() {
         startForegroundInternal("ScamShield is starting")
         requestListenerRebind()
 
+        val existing = ScamShieldEngineHolder.engine
+        if (existing != null) {
+            engine = existing
+            ScamShieldEngineHolder.serviceRunning = true
+            ScamShieldEngineHolder.control("start", null) {}
+            return
+        }
+
         val flutterEngine = FlutterEngine(this)
         val loader = FlutterInjector.instance().flutterLoader()
         flutterEngine.dartExecutor.executeDartEntrypoint(
@@ -64,6 +72,7 @@ class ScamShieldService : Service() {
                 }
                 "dismissAlert" -> {
                     ScamOverlayController.hide()
+                    NotificationHelper.cancelScamAlert(this)
                     result.success(null)
                 }
                 "updateStatus" -> {
@@ -112,19 +121,20 @@ class ScamShieldService : Service() {
             "scamshield/control",
         )
         engine = flutterEngine
+        ScamShieldEngineHolder.serviceRunning = true
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
     override fun onDestroy() {
         ScamOverlayController.hide()
-        // Drop the Dart sink before the engine dies, otherwise a stale sink
-        // would keep reporting "delivered to Dart" into a dead engine.
         NotificationRelay.attach(null)
+        ScamShieldEngineHolder.serviceRunning = false
+        // Keep the engine alive for reuse: destroying and recreating one that
+        // loaded the LiteRT/MediaPipe runtime crashes the native side.
+        ScamShieldEngineHolder.control("shutdown", null) {}
         wakeLock?.let { if (it.isHeld) it.release() }
         wakeLock = null
-        engine?.destroy()
-        ScamShieldEngineHolder.clear()
         engine = null
         super.onDestroy()
     }
@@ -196,19 +206,37 @@ class ScamShieldService : Service() {
 
     private fun showAlert(arguments: Map<*, *>?) {
         if (arguments == null) return
+        val appLabel = arguments["appLabel"] as? String ?: "Unknown app"
+        val headline = arguments["headline"] as? String ?: "Possible scam"
+        val message = arguments["message"] as? String ?: ""
+        val confidence = (arguments["confidence"] as? Number)?.toDouble() ?: 0.0
+        val sender = (arguments["sender"] as? String)?.takeIf { it.isNotBlank() } ?: appLabel
+        val notificationKey = arguments["notificationKey"] as? String
+        NotificationHelper.showScamAlert(
+            this,
+            sender,
+            headline,
+            message,
+            confidence,
+            appLabel,
+            notificationKey,
+        )
         if (!Settings.canDrawOverlays(this)) {
             updateStatus("Overlay permission missing")
             return
         }
-        ScamOverlayController.show(
+        val overlayError = ScamOverlayController.show(
             context = this,
-            appLabel = arguments["appLabel"] as? String ?: "Unknown app",
-            headline = arguments["headline"] as? String ?: "Possible scam",
-            message = arguments["message"] as? String ?: "",
+            appLabel = appLabel,
+            sender = sender,
+            notificationKey = notificationKey,
+            headline = headline,
+            message = message,
             reason = arguments["reason"] as? String ?: "",
-            confidence = (arguments["confidence"] as? Number)?.toDouble() ?: 0.0,
+            confidence = confidence,
             escalated = arguments["escalated"] as? Boolean ?: false,
         )
+        if (overlayError != null) updateStatus(overlayError)
     }
 
     companion object {
@@ -239,12 +267,14 @@ object ScamOverlayController {
     fun show(
         context: Context,
         appLabel: String,
+        sender: String,
+        notificationKey: String?,
         headline: String,
         message: String,
         reason: String,
         confidence: Double,
         escalated: Boolean,
-    ) {
+    ): String? {
         hide()
         val manager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         windowManager = manager
@@ -334,12 +364,33 @@ object ScamOverlayController {
         )
 
         card.addView(Button(context).apply {
+            text = "Report as scam"
+            setOnClickListener {
+                hide()
+                val intent = Intent(context, MainActivity::class.java).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    putExtra(NotificationHelper.EXTRA_REPORT_SUBJECT, sender)
+                    putExtra(NotificationHelper.EXTRA_REPORT_CONTENT, message)
+                    putExtra(NotificationHelper.EXTRA_REPORT_SOURCE, "notification")
+                    putExtra(NotificationHelper.EXTRA_REPORT_APP, appLabel)
+                    if (!notificationKey.isNullOrEmpty()) {
+                        putExtra(NotificationHelper.EXTRA_REPORT_KEY, notificationKey)
+                    }
+                }
+                context.startActivity(intent)
+            }
+        }, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(16) })
+
+        card.addView(Button(context).apply {
             text = "Dismiss"
             setOnClickListener { hide() }
         }, LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { topMargin = dp(16) })
+        ).apply { topMargin = dp(8) })
 
         container.addView(
             card,
@@ -375,7 +426,10 @@ object ScamOverlayController {
             rootView = container
         } catch (error: Exception) {
             rootView = null
+            Log.w("ScamShieldService", "overlay failed", error)
+            return "Overlay failed: ${error.message}"
         }
+        return null
     }
 
     fun hide() {

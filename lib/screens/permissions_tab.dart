@@ -2,21 +2,29 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/role_service.dart';
+import '../services/scamshield_channels.dart';
 
-class ProtectionScreen extends StatefulWidget {
-  const ProtectionScreen({super.key});
+/// Every permission the app can ask for, in one place: the Scam Shield
+/// service checks (notification listener access, overlay, alerts), the
+/// runtime permissions (phone, contacts, notifications), and the call
+/// screening role.
+class PermissionsTab extends StatefulWidget {
+  const PermissionsTab({super.key});
 
   @override
-  State<ProtectionScreen> createState() => _ProtectionScreenState();
+  State<PermissionsTab> createState() => _PermissionsTabState();
 }
 
-class _ProtectionScreenState extends State<ProtectionScreen> {
-  bool _spamProtectionEnabled = false;
+class _PermissionsTabState extends State<PermissionsTab>
+    with WidgetsBindingObserver {
+  bool _notificationAccess = false;
+  bool _overlayGranted = false;
+  bool _notificationPermission = true;
   bool _isCallScreening = false;
   String? _statusMessage;
   Map<Permission, PermissionStatus> _permissions = {};
@@ -24,52 +32,58 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSpamPreference();
-    _checkPermissions();
-    _refreshRoles();
+    WidgetsBinding.instance.addObserver(this);
+    _refreshAll();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshAll();
+    }
   }
 
   Future<void> _refreshAll() async {
-    await _refreshRoles();
-    await _checkPermissions();
-  }
-
-  Future<void> _refreshRoles() async {
+    final access = Platform.isAndroid
+        ? await NotificationListenerService.isPermissionGranted()
+        : false;
+    final overlay = await ScamShieldController.hasOverlayPermission();
+    final alerts = await ScamShieldController.hasNotificationPermission();
     final screening = await RoleService.isCallScreening();
-    if (mounted) {
-      setState(() {
-        _isCallScreening = screening;
-      });
-    }
-  }
-
-  Future<void> _loadSpamPreference() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _spamProtectionEnabled =
-            prefs.getBool('spam_protection_enabled') ?? false;
-      });
-    }
-  }
-
-  Future<void> _saveSpamPreference(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('spam_protection_enabled', enabled);
-  }
-
-  Future<void> _checkPermissions() async {
     final permissions = <Permission, PermissionStatus>{
       Permission.phone: await Permission.phone.status,
       Permission.contacts: await Permission.contacts.status,
       Permission.notification: await Permission.notification.status,
     };
-    if (mounted) {
-      setState(() {
-        _permissions = permissions;
-        _statusMessage = 'Review the settings below';
-      });
-    }
+    if (!mounted) return;
+    setState(() {
+      _notificationAccess = access;
+      _overlayGranted = overlay;
+      _notificationPermission = alerts;
+      _isCallScreening = screening;
+      _permissions = permissions;
+    });
+  }
+
+  Future<void> _requestNotificationAccess() async {
+    await NotificationListenerService.requestPermission();
+    await _refreshAll();
+  }
+
+  Future<void> _requestOverlay() async {
+    await ScamShieldController.requestOverlayPermission();
+    await _refreshAll();
+  }
+
+  Future<void> _requestAlerts() async {
+    await ScamShieldController.requestNotificationPermission();
+    await _refreshAll();
   }
 
   Future<void> _requestPermission(
@@ -83,6 +97,7 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
         _statusMessage = status.isGranted ? grantedMessage : 'Permission denied';
       });
     }
+    await _refreshAll();
   }
 
   Future<void> _enableCallScreening() async {
@@ -93,30 +108,7 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
           ? 'Confirm Call Manager for call screening'
           : 'Call screening is not available on this device';
     });
-    await _refreshRoles();
-  }
-
-  Future<void> _onSpamToggled(bool value) async {
-    if (value && !_isCallScreening) {
-      await _enableCallScreening();
-      final held = await RoleService.isCallScreening();
-      if (!mounted) return;
-      setState(() => _isCallScreening = held);
-      if (!held) {
-        setState(() {
-          _statusMessage =
-              'Grant call screening first: tap "Enable call screening" above.';
-        });
-        return;
-      }
-    }
-    await _saveSpamPreference(value);
-    if (!mounted) return;
-    setState(() {
-      _spamProtectionEnabled = value;
-      _statusMessage =
-          value ? 'Spam protection enabled' : 'Spam protection disabled';
-    });
+    await _refreshAll();
   }
 
   Future<void> _openAppSettings() async {
@@ -136,59 +128,80 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
-    return FScaffold(
-      childPad: false,
-      header: FHeader.nested(
-        title: const Text('Protection'),
-        titleAlignment: Alignment.centerLeft,
-        prefixes: [
-          FHeaderAction(
-            icon: const Icon(Icons.menu),
-            semanticsLabel: 'Open menu',
-            onPress: () => Scaffold.of(context).openDrawer(),
-          ),
-        ],
-        suffixes: [
-          FHeaderAction(
-            icon: const Icon(Icons.refresh),
-            semanticsLabel: 'Refresh',
-            onPress: _refreshAll,
-          ),
-        ],
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Icon(Icons.security, size: 100, color: colors.primary),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Call Protection',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
+    return RefreshIndicator(
+      onRefresh: _refreshAll,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_statusMessage != null) ...[
             Text(
-              _statusMessage ?? 'Tap below to configure',
+              _statusMessage!,
               textAlign: TextAlign.center,
               style: TextStyle(color: colors.mutedForeground),
             ),
-            const SizedBox(height: 24),
-            _buildRoleCard(context),
-            const SizedBox(height: 16),
-            _buildPermissionCard(context),
-            const SizedBox(height: 16),
-            _buildTroubleshootCard(context),
+            const SizedBox(height: 12),
           ],
-        ),
+          _buildServiceCard(context),
+          const SizedBox(height: 16),
+          _buildCallScreeningCard(context),
+          const SizedBox(height: 16),
+          _buildAppPermissionsCard(context),
+          const SizedBox(height: 16),
+          _buildTroubleshootCard(context),
+        ],
       ),
     );
   }
 
-  Widget _buildRoleCard(BuildContext context) {
+  Widget _buildServiceCard(BuildContext context) {
+    return Card(
+      child: Column(
+        children: [
+          _checkTile(
+            'Notification access',
+            'Reads messages from notifications',
+            _notificationAccess,
+            _requestNotificationAccess,
+          ),
+          const Divider(height: 1),
+          _checkTile(
+            'Display over other apps',
+            'Shows the scam alert while a call is ringing',
+            _overlayGranted,
+            _requestOverlay,
+          ),
+          const Divider(height: 1),
+          _checkTile(
+            'Alerts allowed',
+            'Posts scam alerts as notifications',
+            _notificationPermission,
+            _requestAlerts,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _checkTile(
+    String title,
+    String subtitle,
+    bool ok,
+    Future<void> Function() onFix,
+  ) {
+    return ListTile(
+      leading: Icon(
+        ok ? Icons.check_circle : Icons.error_outline,
+        color: ok ? Colors.green : Colors.orange,
+      ),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: ok
+          ? const Text('Granted')
+          : TextButton(onPressed: onFix, child: const Text('Grant')),
+    );
+  }
+
+  Widget _buildCallScreeningCard(BuildContext context) {
     final colors = context.theme.colors;
     return FCard(
       child: Padding(
@@ -198,11 +211,11 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.security, size: 28),
+                const Icon(Icons.phone_in_talk, size: 28),
                 const SizedBox(width: 12),
                 const Expanded(
                   child: Text(
-                    'Spam & Call Protection',
+                    'Call screening role',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -226,17 +239,6 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
                 _isCallScreening ? 'Screening active' : 'Enable call screening',
               ),
             ),
-            const SizedBox(height: 12),
-            const FDivider(),
-            const SizedBox(height: 4),
-            FSwitch(
-              value: _spamProtectionEnabled,
-              label: const Text('Spam Protection'),
-              description: const Text(
-                'Block calls from numbers you marked as spam.',
-              ),
-              onChange: _onSpamToggled,
-            ),
             if (!_isCallScreening) ...[
               const SizedBox(height: 12),
               const FAlert(
@@ -254,7 +256,7 @@ class _ProtectionScreenState extends State<ProtectionScreen> {
     );
   }
 
-  Widget _buildPermissionCard(BuildContext context) {
+  Widget _buildAppPermissionsCard(BuildContext context) {
     return FCard(
       child: Padding(
         padding: const EdgeInsets.all(16),

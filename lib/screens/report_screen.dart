@@ -204,6 +204,53 @@ class ReportScreenState extends State<ReportScreen> {
     }
   }
 
+  Future<void> _confirmReport(LoggedNotification entry) async {
+    final theme = Theme.of(context);
+    final content = entry.record.content.trim();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(Icons.gpp_bad, size: 40, color: theme.colorScheme.error),
+        title: Text(
+          'Report this message as a scam?',
+          style: theme.textTheme.titleLarge,
+        ),
+        content: content.isEmpty
+            ? null
+            : Text(
+                content,
+                maxLines: 6,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyLarge,
+              ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [
+          SizedBox(
+            height: 56,
+            child: TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text('Cancel', style: theme.textTheme.titleMedium),
+            ),
+          ),
+          SizedBox(
+            height: 56,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.colorScheme.error,
+                foregroundColor: theme.colorScheme.onError,
+              ),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text('Report', style: theme.textTheme.titleMedium),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await _reportNotification(entry);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -214,27 +261,33 @@ class ReportScreenState extends State<ReportScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 children: [
+                  Text(
+                    'Suspicious messages',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Tap “Report this” on anything that looks like a scam.',
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 20),
+                  if (_queue.isEmpty)
+                    _emptyCard(
+                      Icons.verified_user_outlined,
+                      'Nothing suspicious right now',
+                    )
+                  else
+                    for (final entry in _queue) ...[
+                      _queueCard(theme, entry),
+                      const SizedBox(height: 16),
+                    ],
+                  const SizedBox(height: 12),
                   _recentCard(theme),
-                  const SizedBox(height: 20),
-                  Text('Report queue', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  _queue.isEmpty
-                      ? _emptyCard(Icons.flag_outlined, 'No suspicious notifications yet')
-                      : Card(
-                          child: Column(
-                            children: [
-                              for (var i = 0; i < _queue.length; i++) ...[
-                                if (i > 0) const Divider(height: 1),
-                                _queueTile(_queue[i]),
-                              ],
-                            ],
-                          ),
-                        ),
-                  const SizedBox(height: 20),
-                  Text('Compose a report', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 24),
                   _composeCard(theme),
                 ],
               ),
@@ -242,183 +295,303 @@ class ReportScreenState extends State<ReportScreen> {
     );
   }
 
-  Widget _recentCard(ThemeData theme) {
+  Widget _queueCard(ThemeData theme, LoggedNotification entry) {
+    final verdict = entry.verdict;
+    final title = entry.record.title.isEmpty
+        ? entry.record.appLabel
+        : entry.record.title;
+    final appLabel = entry.record.appLabel.trim();
     return Card(
+      color: theme.colorScheme.errorContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Recent calls', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            if (_recentCalls.isEmpty)
-              const Text('No calls recorded yet')
-            else
-              for (final record in _recentCalls)
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  leading: const Icon(Icons.phone_outlined),
-                  title: Text(
-                    record.rawNumber,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: OutlinedButton(
-                    onPressed: () {
-                      _numberController.text = record.rawNumber;
-                      _applicationController.text = 'Phone';
-                      setState(() => _category = ReportPayload.categorySpam);
-                    },
-                    child: const Text('Report'),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.gpp_bad,
+                  size: 36,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                      if (appLabel.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          appLabel,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
+              ],
+            ),
+            if (verdict != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                '${verdict.label.title} · ${(verdict.confidence * 100).round()}% sure',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+            if (entry.record.content.trim().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                entry.record.content,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onErrorContainer,
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 60,
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: theme.colorScheme.error,
+                  foregroundColor: theme.colorScheme.onError,
+                ),
+                onPressed: _sending ? null : () => _confirmReport(entry),
+                icon: _sending
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.flag, size: 24),
+                label: Text(
+                  'Report this',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.onError,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _queueTile(LoggedNotification entry) {
-    final verdict = entry.verdict;
-    final theme = Theme.of(context);
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      leading: const Icon(
-        Icons.warning_amber_rounded,
-        size: 20,
-        color: Colors.orange,
-      ),
-      title: Text(
-        entry.record.title.isEmpty ? entry.record.appLabel : entry.record.title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        verdict == null
-            ? entry.record.content
-            : '${verdict.label.title} · ${(verdict.confidence * 100).round()}% '
-                '· ${entry.record.content}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall,
-      ),
-      isThreeLine: false,
-      trailing: TextButton(
-        onPressed: _sending ? null : () => _reportNotification(entry),
-        child: const Text('Report'),
+  Widget _recentCard(ThemeData theme) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Recent calls',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_recentCalls.isEmpty)
+              Text('No calls recorded yet', style: theme.textTheme.bodyLarge)
+            else
+              for (var i = 0; i < _recentCalls.length; i++) ...[
+                if (i > 0) const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.phone_outlined,
+                      size: 28,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _recentCalls[i].rawNumber,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      height: 56,
+                      child: FilledButton(
+                        onPressed: () {
+                          _numberController.text = _recentCalls[i].rawNumber;
+                          _applicationController.text = 'Phone';
+                          setState(() => _category = ReportPayload.categorySpam);
+                        },
+                        child: Text(
+                          'Report',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.onPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _composeCard(ThemeData theme) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _numberController,
-              keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Number (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _applicationController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Application (required)',
-                hintText: 'WhatsApp, Telegram, Phone…',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _category,
-              decoration: const InputDecoration(
-                labelText: 'Mark as',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: ReportPayload.categorySpam,
-                  child: Text('Spam'),
-                ),
-                DropdownMenuItem(
-                  value: ReportPayload.categoryScam,
-                  child: Text('Scam'),
-                ),
-                DropdownMenuItem(
-                  value: ReportPayload.categoryOther,
-                  child: Text('Other'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value != null) setState(() => _category = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _reasonController,
-              minLines: 2,
-              maxLines: 4,
-              textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                hintText: 'What did they do or say?',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _commentsController,
-              minLines: 2,
-              maxLines: 4,
-              textInputAction: TextInputAction.newline,
-              decoration: const InputDecoration(
-                labelText: 'Other comments',
-                hintText: 'Anything else we should know (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _sending ? null : _submitForm,
-                icon: _sending
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_outlined),
-                label: const Text('Submit report'),
-              ),
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        initiallyExpanded: false,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        leading: Icon(
+          Icons.edit_outlined,
+          size: 28,
+          color: theme.colorScheme.primary,
         ),
+        title: Text(
+          'Report something else',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          'Write your own report',
+          style: theme.textTheme.bodyLarge,
+        ),
+        children: [
+          TextField(
+            controller: _numberController,
+            keyboardType: TextInputType.phone,
+            textInputAction: TextInputAction.next,
+            style: theme.textTheme.titleMedium,
+            decoration: const InputDecoration(
+              labelText: 'Number (optional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _applicationController,
+            textInputAction: TextInputAction.next,
+            style: theme.textTheme.titleMedium,
+            decoration: const InputDecoration(
+              labelText: 'Application (required)',
+              hintText: 'WhatsApp, Telegram, Phone…',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            initialValue: _category,
+            style: theme.textTheme.titleMedium,
+            decoration: const InputDecoration(
+              labelText: 'Mark as',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: ReportPayload.categorySpam,
+                child: Text('Spam'),
+              ),
+              DropdownMenuItem(
+                value: ReportPayload.categoryScam,
+                child: Text('Scam'),
+              ),
+              DropdownMenuItem(
+                value: ReportPayload.categoryOther,
+                child: Text('Other'),
+              ),
+            ],
+            onChanged: (value) {
+              if (value != null) setState(() => _category = value);
+            },
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _reasonController,
+            minLines: 2,
+            maxLines: 4,
+            textInputAction: TextInputAction.newline,
+            style: theme.textTheme.titleMedium,
+            decoration: const InputDecoration(
+              labelText: 'Reason',
+              hintText: 'What did they do or say?',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _commentsController,
+            minLines: 2,
+            maxLines: 4,
+            textInputAction: TextInputAction.newline,
+            style: theme.textTheme.titleMedium,
+            decoration: const InputDecoration(
+              labelText: 'Other comments',
+              hintText: 'Anything else we should know (optional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 60,
+            child: FilledButton.icon(
+              onPressed: _sending ? null : _submitForm,
+              icon: _sending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_outlined, size: 24),
+              label: Text(
+                'Submit report',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onPrimary,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _emptyCard(IconData icon, String message) {
+    final theme = Theme.of(context);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(32),
         child: Center(
           child: Column(
             children: [
-              Icon(icon, size: 40, color: Theme.of(context).colorScheme.outline),
-              const SizedBox(height: 8),
-              Text(message, textAlign: TextAlign.center),
+              Icon(icon, size: 56, color: theme.colorScheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium,
+              ),
             ],
           ),
         ),

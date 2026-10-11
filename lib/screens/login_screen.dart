@@ -16,19 +16,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _identifierController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  bool _busy = false;
 
-  @override
-  void dispose() {
-    _identifierController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
+  Future<void> _start() async {
+    setState(() => _busy = true);
     final ready = await _allPermissionsGranted();
     if (!mounted) return;
+    setState(() => _busy = false);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) => ready
@@ -65,56 +59,49 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Icon(Icons.phone, size: 64, color: theme.colorScheme.primary),
-                const SizedBox(height: 16),
-                Text(
-                  'Call Manager',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineSmall,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const Spacer(),
+              Icon(Icons.shield, size: 96, color: theme.colorScheme.primary),
+              const SizedBox(height: 24),
+              Text(
+                'Call Manager',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sign in to continue',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Keeps you safe from scam calls and messages.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge,
+              ),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                height: 68,
+                child: FilledButton(
+                  onPressed: _busy ? null : _start,
+                  child: _busy
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
+                        )
+                      : const Text(
+                          'Get Started',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                 ),
-                const SizedBox(height: 32),
-                TextField(
-                  controller: _identifierController,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Email or username',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: Icon(Icons.lock_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: _submit,
-                  child: const Text('Sign in'),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 24),
+            ],
           ),
         ),
       ),

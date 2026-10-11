@@ -91,7 +91,7 @@ class _SettingsTabState extends State<SettingsTab> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Detection model', style: Theme.of(context).textTheme.titleMedium),
+        Text('Detection model', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         Card(
           child: Column(
@@ -107,166 +107,8 @@ class _SettingsTabState extends State<SettingsTab> {
         ),
         const SizedBox(height: 8),
         _installedModelCard(),
-        const SizedBox(height: 20),
-        Text(
-          'Model from this device (testing)',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Card(
-          child: Column(
-            children: [
-              _customModelTile(),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.travel_explore),
-                title: const Text('Scan for model files'),
-                subtitle: Text(
-                  _scanning
-                      ? 'Scanning storage…'
-                      : 'Finds .litertlm and .task files in Downloads and Documents',
-                ),
-                trailing:
-                    _scanning
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.chevron_right),
-                onTap: _scanning ? null : _scanForModels,
-              ),
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: TextField(
-                  controller: _customPathController,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  keyboardType: TextInputType.url,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Model file path',
-                    hintText: '/storage/emulated/0/Download/model.litertlm',
-                    helperText:
-                        'Typed paths work too. The file is used in place — it is never copied.',
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: _SaveableField(
-                  controller: _customContextController,
-                  label: 'Context window (tokens)',
-                  hint: kDefaultCustomModelContext.toString(),
-                  helper:
-                      'Context to request when loading. Must not exceed what '
-                      'your conversion baked in as kv_cache_max_len '
-                      '(MiniCPM5-2B supports up to $kMaxCustomModelContext). '
-                      'Larger windows cost roughly 40 KB of RAM per token.',
-                  keyboardType: TextInputType.number,
-                  onSave: (value) async {
-                    final parsed = int.tryParse(value);
-                    if (parsed == null ||
-                        parsed < 1024 ||
-                        parsed > kMaxCustomModelContext) {
-                      return 'Enter between 1024 and $kMaxCustomModelContext';
-                    }
-                    final settings = ProtectionSettings();
-                    await settings.setCustomModelContext(parsed);
-                    await settings.hydrateCustomModel();
-                    await widget.onModelChanged();
-                    return null;
-                  },
-                ),
-              ),
-              SwitchListTile(
-                title: const Text('Thinking (reasoning)'),
-                subtitle: const Text(
-                  'Lets the model reason before answering. Uses more tokens '
-                  'and is slower; needs a 3000+ token context to be useful.',
-                ),
-                value: _customThinking,
-                onChanged: (value) async {
-                  setState(() => _customThinking = value);
-                  final settings = ProtectionSettings();
-                  await settings.setCustomModelThinking(value);
-                  await settings.hydrateCustomModel();
-                  await widget.onModelChanged();
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed:
-                        widget.model.busy ? null : _loadFromTypedPath,
-                    icon: const Icon(Icons.upload_file_outlined),
-                    label: const Text('Load model from file'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'Cloud escalation threshold — escalate below ${(_threshold * 100).round()}%',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        Slider(
-          value: _threshold,
-          min: 0,
-          max: 1,
-          divisions: 20,
-          label: '${(_threshold * 100).round()}%',
-          onChanged: (value) => setState(() => _threshold = value),
-          onChangeEnd: widget.onThreshold,
-        ),
-        const SizedBox(height: 12),
-        Text('Cloud review', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        Card(
-          child: Column(
-            children: [
-              SwitchListTile(
-                title: const Text('Force cloud'),
-                subtitle: const Text(
-                  'Send every message to the cloud model and skip the '
-                  'on-device model. Falls back to on-device only if the cloud '
-                  'is unreachable.',
-                ),
-                value: widget.forceCloud,
-                onChanged: (value) => widget.onForceCloud(value),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        _SaveableField(
-          controller: _endpointController,
-          label: 'Endpoint',
-          hint: 'https://.../v1/chat/completions (empty = disabled)',
-          keyboardType: TextInputType.url,
-          onSave: (value) async {
-            await widget.onEndpoint(value);
-            return null;
-          },
-        ),
-        const SizedBox(height: 12),
-        _SaveableField(
-          controller: _remoteModelController,
-          label: 'Model name',
-          hint: 'minicpm5-2b',
-          onSave: (value) async {
-            await widget.onRemoteModel(value);
-            return null;
-          },
-        ),
         const SizedBox(height: 24),
-        Text('Danger zone', style: Theme.of(context).textTheme.titleMedium),
+        Text('Protection', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         Card(
           child: Column(
@@ -284,6 +126,191 @@ class _SettingsTabState extends State<SettingsTab> {
                   widget.serviceRunning ? 'Service running' : 'Service stopped',
                 ),
                 onTap: widget.serviceRunning ? widget.onStopService : null,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: ExpansionTile(
+            initiallyExpanded: false,
+            leading: const Icon(Icons.tune),
+            title: Text(
+              'Advanced',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            subtitle: const Text('Developer and model-tuning options'),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Model from this device (testing)',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Column(
+                  children: [
+                    _customModelTile(),
+                    const Divider(height: 1),
+                    ListTile(
+                      leading: const Icon(Icons.travel_explore),
+                      title: const Text('Scan for model files'),
+                      subtitle: Text(
+                        _scanning
+                            ? 'Scanning storage…'
+                            : 'Finds .litertlm and .task files in Downloads and Documents',
+                      ),
+                      trailing:
+                          _scanning
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.chevron_right),
+                      onTap: _scanning ? null : _scanForModels,
+                    ),
+                    const Divider(height: 1),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: TextField(
+                        controller: _customPathController,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        keyboardType: TextInputType.url,
+                        textInputAction: TextInputAction.done,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          labelText: 'Model file path',
+                          hintText: '/storage/emulated/0/Download/model.litertlm',
+                          helperText:
+                              'Typed paths work too. The file is used in place — it is never copied.',
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: _SaveableField(
+                        controller: _customContextController,
+                        label: 'Context window (tokens)',
+                        hint: kDefaultCustomModelContext.toString(),
+                        helper:
+                            'Context to request when loading. Must not exceed what '
+                            'your conversion baked in as kv_cache_max_len '
+                            '(MiniCPM5-2B supports up to $kMaxCustomModelContext). '
+                            'Larger windows cost roughly 40 KB of RAM per token.',
+                        keyboardType: TextInputType.number,
+                        onSave: (value) async {
+                          final parsed = int.tryParse(value);
+                          if (parsed == null ||
+                              parsed < 1024 ||
+                              parsed > kMaxCustomModelContext) {
+                            return 'Enter between 1024 and $kMaxCustomModelContext';
+                          }
+                          final settings = ProtectionSettings();
+                          await settings.setCustomModelContext(parsed);
+                          await settings.hydrateCustomModel();
+                          await widget.onModelChanged();
+                          return null;
+                        },
+                      ),
+                    ),
+                    SwitchListTile(
+                      title: const Text('Thinking (reasoning)'),
+                      subtitle: const Text(
+                        'Lets the model reason before answering. Uses more tokens '
+                        'and is slower; needs a 3000+ token context to be useful.',
+                      ),
+                      value: _customThinking,
+                      onChanged: (value) async {
+                        setState(() => _customThinking = value);
+                        final settings = ProtectionSettings();
+                        await settings.setCustomModelThinking(value);
+                        await settings.hydrateCustomModel();
+                        await widget.onModelChanged();
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed:
+                              widget.model.busy ? null : _loadFromTypedPath,
+                          icon: const Icon(Icons.upload_file_outlined),
+                          label: const Text('Load model from file'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Cloud escalation threshold — escalate below ${(_threshold * 100).round()}%',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              Slider(
+                value: _threshold,
+                min: 0,
+                max: 1,
+                divisions: 20,
+                label: '${(_threshold * 100).round()}%',
+                onChanged: (value) => setState(() => _threshold = value),
+                onChangeEnd: widget.onThreshold,
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Cloud review',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Column(
+                  children: [
+                    SwitchListTile(
+                      title: const Text('Force cloud'),
+                      subtitle: const Text(
+                        'Send every message to the cloud model and skip the '
+                        'on-device model. Falls back to on-device only if the cloud '
+                        'is unreachable.',
+                      ),
+                      value: widget.forceCloud,
+                      onChanged: (value) => widget.onForceCloud(value),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _SaveableField(
+                controller: _endpointController,
+                label: 'Endpoint',
+                hint: 'https://.../v1/chat/completions (empty = disabled)',
+                keyboardType: TextInputType.url,
+                onSave: (value) async {
+                  await widget.onEndpoint(value);
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              _SaveableField(
+                controller: _remoteModelController,
+                label: 'Model name',
+                hint: 'minicpm5-2b',
+                onSave: (value) async {
+                  await widget.onRemoteModel(value);
+                  return null;
+                },
               ),
             ],
           ),

@@ -1,0 +1,289 @@
+import 'package:flutter/material.dart';
+
+import '../../api/api_client.dart';
+import '../../api/api_exception.dart';
+import '../../models/api/community_models.dart';
+import '../../services/api/community_service.dart';
+
+class CreatePostScreen extends StatefulWidget {
+  const CreatePostScreen({
+    super.key,
+    required this.client,
+    this.checkId,
+    this.initialText,
+  });
+
+  final ApiClient client;
+  final String? checkId;
+  final String? initialText;
+
+  @override
+  State<CreatePostScreen> createState() => _CreatePostScreenState();
+}
+
+class _CreatePostScreenState extends State<CreatePostScreen> {
+  late final CommunityService _community = CommunityService(widget.client);
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _titleController = TextEditingController();
+  late final TextEditingController _textController =
+      TextEditingController(text: widget.initialText ?? '');
+
+  List<ScamCategory> _categories = const [];
+  List<ScamTag> _availableTags = const [];
+  final Set<String> _selectedTags = <String>{};
+  String? _scamType;
+
+  bool _loadingOptions = true;
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOptions();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadOptions() async {
+    setState(() => _loadingOptions = true);
+    List<ScamCategory> cats = const [];
+    List<ScamTag> tags = const [];
+    try {
+      final types = await _community.scamTypes();
+      cats = types.items;
+    } catch (_) {}
+    try {
+      final tagList = await _community.tags(limit: 50);
+      tags = tagList.items;
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _categories = cats;
+      _availableTags = tags;
+      _loadingOptions = false;
+    });
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_scamType == null) {
+      setState(() => _error = 'Please choose a scam type.');
+      return;
+    }
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    try {
+      final post = await _community.createPost(
+        checkId: widget.checkId,
+        title: _titleController.text.trim(),
+        redactedText: _textController.text.trim(),
+        scamType: _scamType!,
+        tags: _selectedTags.toList(),
+      );
+      if (!mounted) return;
+      Navigator.of(context).pop(post);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _submitting = false;
+      });
+    }
+  }
+
+  String? _validateTitle(String? value) {
+    if ((value ?? '').trim().isEmpty) return 'Please add a title.';
+    return null;
+  }
+
+  String? _validateText(String? value) {
+    if ((value ?? '').trim().isEmpty) return 'Please add the message text.';
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Share a scam',
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        ),
+      ),
+      body: _loadingOptions
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Help others by sharing a scam you received. Remove any personal details first.',
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 24),
+                    _FieldLabel('Title'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _titleController,
+                      validator: _validateTitle,
+                      style: theme.textTheme.titleMedium,
+                      decoration: _fieldDecoration('A short summary'),
+                    ),
+                    const SizedBox(height: 24),
+                    _FieldLabel('Message'),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _textController,
+                      validator: _validateText,
+                      minLines: 4,
+                      maxLines: 10,
+                      style: theme.textTheme.bodyLarge,
+                      decoration: _fieldDecoration('Paste the scam message here'),
+                    ),
+                    const SizedBox(height: 24),
+                    _FieldLabel('What kind of scam?'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final cat in _categories)
+                          ChoiceChip(
+                            label: Text(
+                              cat.displayName,
+                              style: theme.textTheme.bodyLarge,
+                            ),
+                            selected: _scamType == cat.slug,
+                            onSelected: (_) =>
+                                setState(() => _scamType = cat.slug),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (_availableTags.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _FieldLabel('Tags (optional)'),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final tag in _availableTags)
+                            FilterChip(
+                              label: Text(
+                                tag.displayName,
+                                style: theme.textTheme.bodyLarge,
+                              ),
+                              selected: _selectedTags.contains(tag.slug),
+                              onSelected: (selected) => setState(() {
+                                if (selected) {
+                                  _selectedTags.add(tag.slug);
+                                } else {
+                                  _selectedTags.remove(tag.slug);
+                                }
+                              }),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    if (_error != null) ...[
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: theme.colorScheme.onErrorContainer,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: theme.colorScheme.onErrorContainer,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      height: 64,
+                      child: FilledButton.icon(
+                        onPressed: _submitting ? null : _submit,
+                        icon: _submitting
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.publish, size: 26),
+                        label: Text(
+                          _submitting ? 'Sharing...' : 'Share with community',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      text,
+      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+    );
+  }
+}

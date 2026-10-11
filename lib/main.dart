@@ -3,19 +3,27 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
+import 'package:provider/provider.dart';
+import 'package:call_log_app/api/api_client.dart';
 import 'package:call_log_app/background/background_runner.dart';
 import 'package:call_log_app/screens/call_history_screen.dart';
+import 'package:call_log_app/screens/community/my_posts_screen.dart';
+import 'package:call_log_app/screens/community/report_tab_screen.dart';
 import 'package:call_log_app/screens/login_screen.dart';
-import 'package:call_log_app/screens/notifications_screen.dart';
 import 'package:call_log_app/screens/report_screen.dart';
-import 'package:call_log_app/screens/scam_shield_screen.dart';
+import 'package:call_log_app/screens/safety_screen.dart';
 import 'package:call_log_app/screens/settings_screen.dart';
 import 'package:call_log_app/services/protection_settings.dart';
 import 'package:call_log_app/services/scamshield_channels.dart';
+import 'package:call_log_app/state/auth_controller.dart';
 import 'package:call_log_app/theme/theme.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  final apiClient = ApiClient();
+  final authController = AuthController(client: apiClient);
+  authController.bootstrap();
+  runApp(MyApp(apiClient: apiClient, authController: authController));
 }
 
 @pragma('vm:entry-point')
@@ -49,25 +57,48 @@ ThemeData _materialTheme(FColors colors) {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({
+    super.key,
+    required this.apiClient,
+    required this.authController,
+  });
+
+  final ApiClient apiClient;
+  final AuthController authController;
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Call Manager',
-      supportedLocales: FLocalizations.supportedLocales,
-      localizationsDelegates: const [...FLocalizations.localizationsDelegates],
-      theme: _materialTheme(lightColors),
-      darkTheme: _materialTheme(darkColors),
-      builder: (context, child) => FTheme(
-        data: Theme.brightnessOf(context) == Brightness.light
-            ? lightTheme
-            : darkTheme,
-        child: FToaster(
-          child: FTooltipGroup(child: child ?? const SizedBox.shrink()),
-        ),
+    return MultiProvider(
+      providers: [
+        Provider<ApiClient>.value(value: apiClient),
+        ChangeNotifierProvider<AuthController>.value(value: authController),
+      ],
+      child: MaterialApp(
+        title: 'Call Manager',
+        supportedLocales: FLocalizations.supportedLocales,
+        localizationsDelegates: const [...FLocalizations.localizationsDelegates],
+        theme: _materialTheme(lightColors),
+        darkTheme: _materialTheme(darkColors),
+        builder: (context, child) {
+          final media = MediaQuery.of(context);
+          final clamped = media.textScaler.clamp(
+            minScaleFactor: 1.3,
+            maxScaleFactor: 1.8,
+          );
+          return MediaQuery(
+            data: media.copyWith(textScaler: clamped),
+            child: FTheme(
+              data: Theme.brightnessOf(context) == Brightness.light
+                  ? lightTheme
+                  : darkTheme,
+              child: FToaster(
+                child: FTooltipGroup(child: child ?? const SizedBox.shrink()),
+              ),
+            ),
+          );
+        },
+        home: const LoginScreen(),
       ),
-      home: const LoginScreen(),
     );
   }
 }
@@ -82,15 +113,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   static const MethodChannel _deeplink = MethodChannel('report/deeplink');
-  final GlobalKey<ReportScreenState> _reportKey =
-      GlobalKey<ReportScreenState>();
-  ReportDeepLinkPayload? _pendingReport;
 
   final List<_NavigationItem> _items = [
-    _NavigationItem(icon: Icons.history, label: 'Call History'),
-    _NavigationItem(icon: Icons.smart_toy, label: 'Scam AI'),
-    _NavigationItem(icon: Icons.flag, label: 'Report'),
-    _NavigationItem(icon: Icons.notifications_active, label: 'Notifications'),
+    _NavigationItem(icon: Icons.phone, label: 'Calls'),
+    _NavigationItem(icon: Icons.shield, label: 'Safety'),
+    _NavigationItem(icon: Icons.campaign, label: 'Report'),
+    _NavigationItem(icon: Icons.article, label: 'My Posts'),
     _NavigationItem(icon: Icons.settings, label: 'Settings'),
   ];
 
@@ -113,15 +141,11 @@ class _HomePageState extends State<HomePage> {
       notificationKey: args['notificationKey'] as String? ?? '',
     );
     if (!mounted) return;
-    setState(
-      () => _currentIndex = _items.indexWhere((item) => item.label == 'Report'),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => ReportScreen(initialLink: payload),
+      ),
     );
-    final state = _reportKey.currentState;
-    if (state != null) {
-      state.prefillFromLink(payload);
-    } else {
-      _pendingReport = payload;
-    }
   }
 
   Future<void> _syncShieldFlag() async {
@@ -137,97 +161,58 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final pending = _pendingReport;
-    _pendingReport = null;
+    final client = context.read<ApiClient>();
     final screens = [
       const CallHistoryScreen(),
-      const ScamShieldScreen(),
-      ReportScreen(key: _reportKey, initialLink: pending),
-      const NotificationsScreen(),
+      const SafetyScreen(),
+      ReportTabScreen(client: client),
+      MyPostsScreen(client: client),
       const SettingsScreen(),
     ];
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: context.theme.colors.primary,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: context.theme.colors.primaryForeground,
-                    child: Icon(
-                      Icons.phone,
-                      size: 36,
+      body: screens[_currentIndex],
+      bottomNavigationBar: MediaQuery.withNoTextScaling(
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            height: 76,
+            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+            backgroundColor: context.theme.colors.card,
+            indicatorColor: context.theme.colors.primary.withValues(
+              alpha: 0.15,
+            ),
+            labelTextStyle: WidgetStateProperty.resolveWith((states) {
+              final selected = states.contains(WidgetState.selected);
+              return TextStyle(
+                fontSize: 15,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected
+                    ? context.theme.colors.primary
+                    : context.theme.colors.mutedForeground,
+              );
+            }),
+          ),
+          child: NavigationBar(
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            destinations: _items
+                .map(
+                  (item) => NavigationDestination(
+                    icon: Icon(item.icon, size: 30),
+                    label: item.label,
+                    selectedIcon: Icon(
+                      item.icon,
+                      size: 30,
                       color: context.theme.colors.primary,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Call Manager',
-                    style: TextStyle(
-                      color: context.theme.colors.primaryForeground,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            ...List.generate(_items.length, (index) {
-              return ListTile(
-                leading: Icon(_items[index].icon),
-                title: Text(_items[index].label),
-                selected: _currentIndex == index,
-                selectedTileColor: context.theme.colors.muted,
-                onTap: () {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            }),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('About'),
-              onTap: () {
-                Navigator.pop(context);
-                showAboutDialog(
-                  context: context,
-                  applicationName: 'Call Manager',
-                  applicationVersion: '1.0.0',
-                  applicationIcon: const Icon(Icons.phone),
-                );
-              },
-            ),
-          ],
+                )
+                .toList(),
+          ),
         ),
-      ),
-      body: screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: _items
-            .map(
-              (item) => NavigationDestination(
-                icon: Icon(item.icon),
-                label: item.label,
-                selectedIcon:
-                    Icon(item.icon, color: context.theme.colors.primary),
-              ),
-            )
-            .toList(),
       ),
     );
   }

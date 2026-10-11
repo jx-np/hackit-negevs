@@ -64,6 +64,15 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
   }
 
   Future<void> _toggleProtection(bool value) async {
+    if (value && !_model.installed) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Download a model in the Settings tab first'),
+        ),
+      );
+      return;
+    }
     await _settings.setProtectionEnabled(value);
     await ScamShieldController.setShieldEnabled(value);
     if (value) {
@@ -119,6 +128,7 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
           children: [
             ProtectionTab(
               protectionEnabled: _protectionEnabled,
+              modelInstalled: _model.installed,
               status: _status,
               onToggleProtection: _toggleProtection,
               onRefresh: _refresh,

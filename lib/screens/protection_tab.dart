@@ -6,12 +6,14 @@ class ProtectionTab extends StatefulWidget {
   const ProtectionTab({
     super.key,
     required this.protectionEnabled,
+    required this.modelInstalled,
     required this.status,
     required this.onToggleProtection,
     required this.onRefresh,
   });
 
   final bool protectionEnabled;
+  final bool modelInstalled;
   final ServiceStatus status;
   final Future<void> Function(bool value) onToggleProtection;
   final Future<void> Function() onRefresh;
@@ -70,9 +72,11 @@ class _ProtectionTabState extends State<ProtectionTab> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.status.lastMessage.isEmpty
-                        ? 'Reads notifications from messaging apps'
-                        : widget.status.lastMessage,
+                    !widget.modelInstalled
+                        ? 'Download a model in the Settings tab first'
+                        : widget.status.lastMessage.isEmpty
+                            ? 'Reads notifications from messaging apps'
+                            : widget.status.lastMessage,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -80,7 +84,8 @@ class _ProtectionTabState extends State<ProtectionTab> {
             ),
             Switch(
               value: widget.protectionEnabled,
-              onChanged: widget.onToggleProtection,
+              onChanged:
+                  widget.modelInstalled ? widget.onToggleProtection : null,
             ),
           ],
         ),

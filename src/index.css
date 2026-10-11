@@ -7,6 +7,33 @@
      Default is Atkinson Hyperlegible for accessibility (low-vision friendly). */
   --app-font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
   --app-font-scale: 1;
+
+  /* ===== ScamReg forum palette — LIGHT mode (space-separated RGB) =====
+     Semantics are inverted vs. dark: `950` is the page background (lightest
+     surface here), `800`/`750` are lifted cards, `text` is near-black. These
+     feed the Tailwind `scam-*` colors so the forum flips with the theme. */
+  --scam-950: 247 249 251; /* page background */
+  --scam-900: 243 246 249;
+  --scam-850: 240 244 248;
+  --scam-800: 255 255 255; /* cards / lifted surfaces */
+  --scam-750: 244 247 250; /* inputs / inner surfaces */
+  --scam-line: 219 226 233; /* hairline borders */
+  --scam-text: 15 23 36; /* primary text (near-black) */
+  --scam-muted: 90 101 114; /* muted text (AA on light) */
+  --scam-dim: 120 130 142; /* dimmest meta */
+}
+
+.dark {
+  /* ===== ScamReg forum palette — DARK mode ===== */
+  --scam-950: 10 14 20; /* #0a0e14 page background */
+  --scam-900: 15 20 28; /* #0f141c */
+  --scam-850: 17 24 34; /* #111822 */
+  --scam-800: 20 26 34; /* #141a22 cards */
+  --scam-750: 24 32 41; /* #182029 inputs */
+  --scam-line: 35 43 54; /* #232b36 borders */
+  --scam-text: 237 241 245; /* #edf1f5 */
+  --scam-muted: 122 134 148; /* #7a8694 */
+  --scam-dim: 95 107 120; /* #5f6b78 */
 }
 
 html {
@@ -56,9 +83,9 @@ body {
 @layer utilities {
   /* ===== IA "security-grade" utilities ===== */
 
-  /* Monospaced label — registry IDs, tags, risk levels, section eyebrows */
+  /* Small-caps label — registry IDs, tags, risk levels, section eyebrows */
   .ia-label {
-    @apply font-mono text-xs font-medium uppercase tracking-[0.18em];
+    @apply font-display text-xs font-medium uppercase tracking-[0.18em];
   }
 
   /* Structural bordered surface (replaces floaty shadow cards) */
@@ -77,6 +104,86 @@ body {
     background-image:
       linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+
+  /* ===== ScamReg forum utilities (theme-aware via --scam-* vars) ===== */
+
+  /* Flat, bordered surface — thin hairline border over a lifted fill. */
+  .sr-surface {
+    @apply rounded-lg;
+    border: 1px solid rgb(var(--scam-line));
+    background-color: rgb(var(--scam-800));
+    box-shadow: theme('boxShadow.card');
+  }
+
+  /* Tiny all-caps trust-blue eyebrow label (e.g. "CONTRIBUTE"). */
+  .sr-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em];
+    color: theme('colors.trust.500');
+  }
+
+  /* Tiny all-caps muted field/section label. */
+  .sr-label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em];
+    color: rgb(var(--scam-muted));
+  }
+
+  /* Rounded-square shield-style icon tile. */
+  .sr-tile {
+    @apply grid place-items-center rounded-md;
+    border: 1px solid rgb(var(--scam-line));
+    background-color: rgb(var(--scam-750));
+    color: theme('colors.trust.500');
+  }
+
+  /* Minimal outline/ghost button (secondary action). */
+  .sr-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition;
+    border: 1px solid rgb(var(--scam-line));
+    background-color: transparent;
+    color: rgb(var(--scam-text));
+  }
+  .sr-btn-ghost:hover {
+    border-color: theme('colors.trust.500 / 70%');
+    color: theme('colors.trust.500');
+  }
+
+  /* Primary trust-blue button (primary CTA). */
+  .sr-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition;
+    background-color: theme('colors.trust.500');
+    color: #ffffff;
+  }
+  .sr-btn-primary:hover {
+    background-color: theme('colors.trust.600');
+  }
+
+  /* Form input with trust-blue focus ring. */
+  .sr-input {
+    @apply w-full rounded-md px-3.5 py-2.5 text-sm outline-none transition;
+    border: 1px solid rgb(var(--scam-line));
+    background-color: rgb(var(--scam-750));
+    color: rgb(var(--scam-text));
+  }
+  .sr-input::placeholder {
+    color: rgb(var(--scam-muted));
+  }
+  .sr-input:focus {
+    border-color: theme('colors.trust.500');
+    box-shadow: 0 0 0 2px theme('colors.trust.500 / 35%');
+  }
+
+  /* Monospace evidence chip — reads as "data / evidence". */
+  .sr-chip {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs transition;
+    font-family: theme('fontFamily.mono');
+    border: 1px solid rgb(var(--scam-line));
+    background-color: rgb(var(--scam-750));
+    color: rgb(var(--scam-muted));
+  }
+  .sr-chip:hover {
+    border-color: theme('colors.trust.500 / 60%');
+    color: theme('colors.trust.600');
   }
 }
 

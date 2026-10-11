@@ -7,8 +7,8 @@ import { SettingsPanel } from './SettingsPanel';
 const LINKS = [
   { to: '/', label: 'Home', end: true },
   { to: '/forum', label: 'Forum', end: false },
+  { to: '/report', label: 'Post', end: false },
   { to: '/check', label: 'Check', end: false },
-  { to: '/report', label: 'Report', end: false },
 ];
 
 export function Navbar() {
@@ -29,7 +29,7 @@ export function Navbar() {
           <span className="grid h-10 w-10 place-items-center bg-ink-900 text-white transition group-hover:bg-safe-600 dark:bg-white dark:text-ink-900 dark:group-hover:bg-safe-500">
             <ShieldCheck size={22} />
           </span>
-          <span className="font-display text-xl font-bold tracking-tight text-ink-900 dark:text-white">
+          <span className="font-display text-xl font-bold tracking-tight text-ink-900 transition group-hover:text-safe-600 dark:text-white dark:group-hover:text-safe-500">
             ScamReg
           </span>
         </NavLink>
@@ -41,7 +41,7 @@ export function Navbar() {
                 key={link.to}
                 to={link.to}
                 end={link.end}
-                className="relative px-3 py-2 font-mono text-sm font-medium uppercase tracking-wider transition"
+                className="relative px-3 py-2 font-display text-sm font-medium uppercase tracking-wider transition"
               >
                 {({ isActive }) => (
                   <>
@@ -69,7 +69,7 @@ export function Navbar() {
 
           {isLoggedIn ? (
             <div className="flex items-center gap-3">
-              <span className="hidden font-mono text-xs text-ink-400 sm:inline">
+              <span className="hidden text-xs text-ink-400 sm:inline">
                 {user?.name}
               </span>
               <button
@@ -78,7 +78,7 @@ export function Navbar() {
                   logout();
                   navigate('/');
                 }}
-                className="flex items-center gap-1.5 border border-ink-300 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-ink-900 hover:text-ink-900 dark:border-ink-700 dark:text-ink-300 dark:hover:border-white dark:hover:text-white"
+                className="flex items-center gap-1.5 rounded-md border border-ink-300 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-safe-500 hover:text-safe-600 dark:border-ink-700 dark:text-ink-300 dark:hover:border-safe-500 dark:hover:text-safe-400"
                 aria-label="Log out"
               >
                 <LogOut size={16} /> <span className="hidden sm:inline">Log out</span>
@@ -87,7 +87,7 @@ export function Navbar() {
           ) : (
             <NavLink
               to="/auth"
-              className="border border-ink-900 bg-ink-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+              className="rounded-md border border-safe-600 bg-safe-500 px-5 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-safe-600"
             >
               Sign in
             </NavLink>

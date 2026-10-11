@@ -22,7 +22,7 @@ describe('CommentBox (auth gating)', () => {
   it('shows a comment input when logged in', () => {
     // Seed a persisted session so AuthProvider starts logged in.
     localStorage.setItem(
-      'scamreg-auth',
+      'scamreg-user',
       JSON.stringify({ id: 'u1', email: 'a@b.com', name: 'Alice' }),
     );
     renderWithProviders(<CommentBox postId="post-1" />);
@@ -35,7 +35,7 @@ describe('CommentBox (auth gating)', () => {
   it('disables the submit button until text is entered', async () => {
     const user = userEvent.setup();
     localStorage.setItem(
-      'scamreg-auth',
+      'scamreg-user',
       JSON.stringify({ id: 'u1', email: 'a@b.com', name: 'Alice' }),
     );
     renderWithProviders(<CommentBox postId="post-1" />);

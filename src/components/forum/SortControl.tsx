@@ -15,7 +15,7 @@ const OPTIONS: { value: SortKey; label: string }[] = [
 export function SortControl({ value, onChange }: SortControlProps) {
   return (
     <div
-      className="inline-flex border border-ink-200 dark:border-ink-800"
+      className="inline-flex overflow-hidden rounded-md border border-scam-line"
       role="group"
       aria-label="Sort posts"
     >
@@ -27,12 +27,12 @@ export function SortControl({ value, onChange }: SortControlProps) {
             type="button"
             onClick={() => onChange(opt.value)}
             aria-pressed={active}
-            className={`px-4 py-2.5 font-mono text-xs font-semibold uppercase tracking-wider transition ${
-              i > 0 ? 'border-l border-ink-200 dark:border-ink-800' : ''
+            className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition ${
+              i > 0 ? 'border-l border-scam-line' : ''
             } ${
               active
-                ? 'bg-ink-900 text-white dark:bg-white dark:text-ink-900'
-                : 'bg-white text-ink-500 hover:text-ink-900 dark:bg-ink-900 dark:text-ink-400 dark:hover:text-white'
+                ? 'bg-trust-500 text-white'
+                : 'bg-scam-800 text-scam-muted hover:text-scam-text'
             }`}
           >
             {opt.label}

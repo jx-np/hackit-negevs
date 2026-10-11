@@ -9,15 +9,20 @@ interface UsePostsArgs {
 }
 
 /**
- * Infinite-scroll posts query. Re-fetches from page 1 whenever the search
- * text, selected tag, or sort order changes (they are part of the query key).
+ * Infinite-scroll posts query using cursor pagination. Re-fetches from the
+ * beginning whenever the search text, selected tag, or sort order changes.
  */
 export function usePosts({ query, tagId, sort }: UsePostsArgs) {
   return useInfiniteQuery<PostsPage>({
     queryKey: ['posts', { query, tagId, sort }],
     queryFn: ({ pageParam }) =>
-      getPosts({ query, tagId, sort, page: pageParam as number }),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.nextPage ?? undefined,
+      getPosts({
+        query,
+        tagId,
+        sort,
+        cursor: pageParam as string | null,
+      }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }

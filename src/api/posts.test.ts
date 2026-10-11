@@ -1,136 +1,148 @@
-import { describe, expect, it } from 'vitest';
-import { createPost, getPosts } from './posts';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mockFetch } from '../test/mockFetch';
+import type { ApiFeedItem, ApiPostDetail } from '../types';
+import { createPost, getPost, getPosts } from './posts';
 
-describe('getPosts (mock mode)', () => {
-  it('returns the first page with the default page size', async () => {
-    const result = await getPosts({ page: 1 });
-    expect(result.posts).toHaveLength(8);
-    expect(result.total).toBeGreaterThan(8);
-    expect(result.nextPage).toBe(2);
-  });
-
-  it('paginates: page 2 returns different posts than page 1', async () => {
-    const page1 = await getPosts({ page: 1 });
-    const page2 = await getPosts({ page: 2 });
-    const overlap = page1.posts.filter((p) =>
-      page2.posts.some((q) => q.id === p.id),
-    );
-    expect(overlap).toHaveLength(0);
-  });
-
-  it('sets nextPage to null on the final page', async () => {
-    const first = await getPosts({ page: 1 });
-    const lastPage = Math.ceil(first.total / 8);
-    const result = await getPosts({ page: lastPage });
-    expect(result.nextPage).toBeNull();
-  });
-
-  it('filters by a text query (case-insensitive)', async () => {
-    const result = await getPosts({ query: 'react', page: 1, pageSize: 100 });
-    expect(result.posts.length).toBeGreaterThan(0);
-    for (const post of result.posts) {
-      const haystack =
-        `${post.title} ${post.excerpt} ${post.author.name}`.toLowerCase();
-      expect(haystack).toContain('react');
-    }
-  });
-
-  it('matches by author name', async () => {
-    const result = await getPosts({ query: 'Ada', page: 1, pageSize: 100 });
-    expect(result.posts.length).toBeGreaterThan(0);
-    expect(
-      result.posts.every((p) => p.author.name.includes('Ada')),
-    ).toBe(true);
-  });
-
-  it('filters by a single tag id', async () => {
-    const result = await getPosts({
-      tagId: 't-react',
-      page: 1,
-      pageSize: 100,
-    });
-    expect(result.posts.length).toBeGreaterThan(0);
-    expect(
-      result.posts.every((p) => p.tags.some((t) => t.id === 't-react')),
-    ).toBe(true);
-  });
-
-  it('combines text query and tag filter', async () => {
-    const result = await getPosts({
-      query: 'react',
-      tagId: 't-react',
-      page: 1,
-      pageSize: 100,
-    });
-    for (const post of result.posts) {
-      expect(post.tags.some((t) => t.id === 't-react')).toBe(true);
-      const haystack =
-        `${post.title} ${post.excerpt} ${post.author.name}`.toLowerCase();
-      expect(haystack).toContain('react');
-    }
-  });
-
-  it('returns an empty result set for a non-matching query', async () => {
-    const result = await getPosts({
-      query: 'zzz-nonexistent-term',
-      page: 1,
-    });
-    expect(result.posts).toHaveLength(0);
-    expect(result.total).toBe(0);
-    expect(result.nextPage).toBeNull();
-  });
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
-
-describe('getPosts sorting (mock mode)', () => {
-  it('sorts by likes descending', async () => {
-    const result = await getPosts({ sort: 'likes', page: 1, pageSize: 100 });
-    const likes = result.posts.map((p) => p.likeCount);
-    const sorted = [...likes].sort((a, b) => b - a);
-    expect(likes).toEqual(sorted);
-  });
-
-  it('sorts by comment count descending', async () => {
-    const result = await getPosts({ sort: 'comments', page: 1, pageSize: 100 });
-    const replies = result.posts.map((p) => p.replyCount);
-    const sorted = [...replies].sort((a, b) => b - a);
-    expect(replies).toEqual(sorted);
-  });
-
-  it('sorts by newest first (default)', async () => {
-    const result = await getPosts({ sort: 'new', page: 1, pageSize: 100 });
-    const times = result.posts.map((p) => new Date(p.createdAt).getTime());
-    const sorted = [...times].sort((a, b) => b - a);
-    expect(times).toEqual(sorted);
-  });
-});
-
-describe('getPosts images (mock mode)', () => {
-  it('includes some posts with an imageUrl', async () => {
-    const result = await getPosts({ page: 1, pageSize: 100 });
-    expect(result.posts.some((p) => !!p.imageUrl)).toBe(true);
-  });
-});
-
-
-describe('createPost — requires a logged-in author', () => {
-  const base = {
-    title: 'A new scam report',
-    excerpt: 'A description of the scam that is long enough.',
-    tagId: 't-react',
-    authorName: 'Alice',
+function feedItem(over: Partial<ApiFeedItem> = {}): ApiFeedItem {
+  return {
+    post_id: '12',
+    title: 'Fake bank SMS',
+    redacted_excerpt: 'Your account is suspended ...',
+    category: { slug: 'phishing', name_key: 'category.phishing' },
+    tags: [{ slug: 'bank-impersonation', name_key: 'tag.bank_impersonation' }],
+    review_status: 'reviewed',
+    created_at: '2026-09-29T08:30:00Z',
+    comment_count: 4,
+    ...over,
   };
+}
 
+function postDetail(over: Partial<ApiPostDetail> = {}): ApiPostDetail {
+  return {
+    post_id: '12',
+    title: 'Fake bank SMS',
+    redacted_text: 'Your account is suspended ...',
+    category: { slug: 'phishing', name_key: 'category.phishing' },
+    tags: [{ slug: 'bank-impersonation', name_key: 'tag.bank_impersonation' }],
+    review_status: 'reviewed',
+    created_at: '2026-09-29T08:30:00Z',
+    updated_at: '2026-09-29T09:00:00Z',
+    comment_count: 4,
+    reactions: { up: 10, down: 1 },
+    my_vote: 0,
+    ...over,
+  };
+}
+
+describe('getPosts (feed API)', () => {
+  it('calls the feed endpoint and maps items to Post shape', async () => {
+    mockFetch([
+      {
+        match: '/community/feed',
+        json: { items: [feedItem()], next_cursor: 'abc123' },
+      },
+    ]);
+
+    const result = await getPosts({});
+    expect(result.posts).toHaveLength(1);
+    const post = result.posts[0];
+    expect(post.id).toBe('12');
+    expect(post.title).toBe('Fake bank SMS');
+    expect(post.excerpt).toBe('Your account is suspended ...');
+    expect(post.tags[0].id).toBe('phishing');
+    expect(post.replyCount).toBe(4);
+    expect(result.nextCursor).toBe('abc123');
+  });
+
+  it('uses the search endpoint when a query is provided', async () => {
+    const fetchMock = mockFetch([
+      { match: '/community/feed/search', json: { items: [] } },
+    ]);
+    await getPosts({ query: 'bank' });
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('/community/feed/search');
+    expect(url).toContain('q=bank');
+  });
+
+  it('passes scam_type when filtering by tag', async () => {
+    const fetchMock = mockFetch([
+      { match: '/community/feed', json: { items: [] } },
+    ]);
+    await getPosts({ tagId: 'phishing' });
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('scam_type=phishing');
+  });
+
+  it('passes cursor when paginating', async () => {
+    const fetchMock = mockFetch([
+      { match: '/community/feed', json: { items: [] } },
+    ]);
+    await getPosts({ cursor: 'nextcur' });
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('cursor=nextcur');
+  });
+
+  it('returns null nextCursor when the backend omits it', async () => {
+    mockFetch([
+      { match: '/community/feed', json: { items: [feedItem()] } },
+    ]);
+    const result = await getPosts({});
+    expect(result.nextCursor).toBeNull();
+  });
+});
+
+describe('getPost (detail API)', () => {
+  it('fetches and maps a post detail', async () => {
+    mockFetch([
+      { match: '/community/posts/', json: postDetail() },
+    ]);
+    const post = await getPost('12');
+    expect(post.id).toBe('12');
+    expect(post.likeCount).toBe(10);
+    expect(post.tags.length).toBeGreaterThan(0);
+    expect(post.excerpt).toBe('Your account is suspended ...');
+  });
+});
+
+describe('createPost', () => {
   it('rejects when authorId is missing', async () => {
     await expect(
-      createPost({ ...base, authorId: '' }),
+      createPost({
+        title: 'Test',
+        excerpt: 'Description of the scam report.',
+        tagId: 'phishing',
+        authorName: 'Alice',
+        authorId: '',
+      }),
     ).rejects.toThrow(/logged in/i);
   });
 
-  it('creates a post when an authorId is provided', async () => {
-    const post = await createPost({ ...base, authorId: 'user-1' });
-    expect(post.id).toBeTruthy();
-    expect(post.author.id).toBe('user-1');
-    expect(post.title).toBe(base.title);
+  it('sends the correct backend payload', async () => {
+    const fetchMock = mockFetch([
+      {
+        match: '/community/posts',
+        method: 'POST',
+        status: 201,
+        json: postDetail({ post_id: '99' }),
+      },
+    ]);
+
+    const post = await createPost({
+      title: 'New scam',
+      excerpt: 'Details here.',
+      tagId: 'phishing',
+      authorName: 'Alice',
+      authorId: 'user-1',
+    });
+
+    expect(post.id).toBe('99');
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(body.scam_type).toBe('phishing');
+    expect(body.confirm_publication).toBe(true);
+    expect(body.redacted_text).toBe('Details here.');
   });
 });

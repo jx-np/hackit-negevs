@@ -1,10 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import {
-  hasReported,
-  lookupNumber,
-  normalizeNumber,
-  reportNumber,
-} from './numbers';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mockFetch } from '../test/mockFetch';
+import { lookupNumber, normalizeNumber } from './numbers';
+import type { ApiTrustScore } from '../types';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const trustScore = (over: Partial<ApiTrustScore> = {}): ApiTrustScore => ({
+  phone_number: '+18005551234',
+  trust_score: 60,
+  rating: 'unknown',
+  report_count: 0,
+  known: false,
+  ...over,
+});
 
 describe('normalizeNumber', () => {
   it('returns the canonical digits-only key (ignoring + and formatting)', () => {
@@ -24,99 +34,68 @@ describe('normalizeNumber', () => {
   });
 });
 
-describe('lookupNumber — + and non-+ consistency', () => {
-  it('returns the same registry entry with or without a leading +', async () => {
-    const withPlus = await lookupNumber('+18005551234');
-    const withoutPlus = await lookupNumber('18005551234');
-    expect(withPlus.status).toBe(withoutPlus.status);
-    expect(withPlus.counts.total).toBe(withoutPlus.counts.total);
-  });
-
-  it('rejects an invalid number', async () => {
+describe('lookupNumber (trust-score API)', () => {
+  it('rejects an invalid number without calling the API', async () => {
+    const fetchMock = mockFetch([]);
     await expect(lookupNumber('nope')).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
-});
 
-describe('lookupNumber (mock mode)', () => {
-  it('returns "scam" for a heavily scam-reported number', async () => {
-    const res = await lookupNumber('+1 800 555 1234');
-    expect(res.number).toBe('+18005551234');
+  it('calls the trust-score endpoint with the phone_number query param', async () => {
+    const fetchMock = mockFetch([
+      { match: '/detection/phone-number/trust-score', json: trustScore() },
+    ]);
+    await lookupNumber('+1 800 555 1234');
+    const url = fetchMock.mock.calls[0][0] as string;
+    expect(url).toContain('/detection/phone-number/trust-score');
+    expect(url).toContain('phone_number=');
+  });
+
+  it('maps a high_risk rating to the "scam" status', async () => {
+    mockFetch([
+      {
+        match: '/trust-score',
+        json: trustScore({ trust_score: 18, rating: 'high_risk', report_count: 42, known: true }),
+      },
+    ]);
+    const res = await lookupNumber('+18005551234');
     expect(res.status).toBe('scam');
-    expect(res.counts.scam).toBeGreaterThan(res.counts.trusted);
-    expect(res.counts.total).toBe(res.counts.scam + res.counts.trusted);
+    expect(res.trustScore).toBe(18);
+    expect(res.reportCount).toBe(42);
+    expect(res.known).toBe(true);
   });
 
-  it('returns "trusted" for a mostly-trusted number', async () => {
+  it('maps a trusted rating to the "trusted" status', async () => {
+    mockFetch([
+      {
+        match: '/trust-score',
+        json: trustScore({ trust_score: 90, rating: 'trusted', known: true }),
+      },
+    ]);
     const res = await lookupNumber('+441632960000');
     expect(res.status).toBe('trusted');
-    expect(res.counts.trusted).toBeGreaterThan(res.counts.scam);
+    expect(res.trustScore).toBe(90);
   });
 
-  it('returns "unknown" with zero counts for an unseen number', async () => {
+  it('maps an unknown rating (default score) to the "unknown" status', async () => {
+    mockFetch([{ match: '/trust-score', json: trustScore() }]);
     const res = await lookupNumber('+19998887766');
     expect(res.status).toBe('unknown');
-    expect(res.counts.total).toBe(0);
-    expect(res.lastReportedAt).toBeNull();
-  });
-});
-
-describe('reportNumber (mock mode)', () => {
-  it('increments the scam count and can flip an unknown number to scam', async () => {
-    const number = '+15550001111';
-    const before = await lookupNumber(number);
-    expect(before.status).toBe('unknown');
-
-    const after = await reportNumber(number, 'scam', 'user-a');
-    expect(after.counts.scam).toBe(before.counts.scam + 1);
-    expect(after.status).toBe('scam');
-    expect(after.lastReportedAt).not.toBeNull();
+    expect(res.trustScore).toBe(60);
+    expect(res.known).toBe(false);
+    expect(res.reportCount).toBe(0);
   });
 
-  it('increments the trusted count', async () => {
-    const number = '+15550002222';
-    const before = await lookupNumber(number);
-    const after = await reportNumber(number, 'trusted', 'user-a');
-    expect(after.counts.trusted).toBe(before.counts.trusted + 1);
-    expect(after.status).toBe('trusted');
-  });
-});
-
-describe('reportNumber — auth + one-report-per-account', () => {
-  it('rejects a report with no logged-in user', async () => {
-    await expect(reportNumber('+15550003333', 'scam', null)).rejects.toThrow(
-      /logged in/i,
-    );
-  });
-
-  it('rejects a second report of the same number by the same account', async () => {
-    const number = '+15550004444';
-    await reportNumber(number, 'scam', 'user-dup');
-    await expect(
-      reportNumber(number, 'scam', 'user-dup'),
-    ).rejects.toThrow(/already reported/i);
-  });
-
-  it('treats + and non-+ as the same number for the per-account limit', async () => {
-    await reportNumber('+15550005555', 'scam', 'user-plus');
-    await expect(
-      reportNumber('15550005555', 'trusted', 'user-plus'),
-    ).rejects.toThrow(/already reported/i);
-  });
-
-  it('allows a different account to report the same number', async () => {
-    const number = '+15550006666';
-    await reportNumber(number, 'scam', 'user-1');
-    const second = await reportNumber(number, 'scam', 'user-2');
-    // Two distinct accounts -> two scam reports counted.
-    expect(second.counts.scam).toBe(2);
-  });
-
-  it('hasReported reflects whether an account reported a number', async () => {
-    const number = '+15550007777';
-    expect(hasReported('user-hr', number)).toBe(false);
-    await reportNumber(number, 'scam', 'user-hr');
-    expect(hasReported('user-hr', number)).toBe(true);
-    // + / non-+ equivalence
-    expect(hasReported('user-hr', '15550007777')).toBe(true);
+  it('sends the same number consistently with or without a leading +', async () => {
+    const fetchMock = mockFetch([
+      { match: '/trust-score', json: trustScore() },
+    ]);
+    await lookupNumber('+18005551234');
+    await lookupNumber('18005551234');
+    const url1 = fetchMock.mock.calls[0][0] as string;
+    const url2 = fetchMock.mock.calls[1][0] as string;
+    // Both lookups target the trust-score endpoint and encode the digits.
+    expect(url1).toContain('8005551234');
+    expect(url2).toContain('8005551234');
   });
 });

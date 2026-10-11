@@ -14,7 +14,7 @@ export function Footer() {
           </span>
         </Link>
 
-        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-sm uppercase tracking-wider text-ink-500 dark:text-ink-400">
+        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-display text-sm uppercase tracking-wider text-ink-500 dark:text-ink-400">
           <Link to="/" className="transition hover:text-safe-700 dark:hover:text-safe-400">
             Home
           </Link>
@@ -40,7 +40,7 @@ export function Footer() {
           </a>
         </nav>
 
-        <p className="font-mono text-xs text-ink-400">
+        <p className="text-xs text-ink-400">
           © {new Date().getFullYear()} ScamReg
         </p>
       </div>

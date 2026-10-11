@@ -33,7 +33,7 @@ export function TagPanel({ selected, onSelect, side, onMove }: TagPanelProps) {
 
   return (
     <aside
-      className={`ia-panel w-full overflow-hidden lg:w-64 lg:shrink-0 ${
+      className={`ia-panel w-full lg:sticky lg:top-20 lg:w-64 lg:shrink-0 lg:self-start ${
         dragging ? 'opacity-60' : ''
       }`}
       aria-label="Filter by tag"
@@ -53,12 +53,12 @@ export function TagPanel({ selected, onSelect, side, onMove }: TagPanelProps) {
       </p>
 
       {isError ? (
-        <p className="px-4 py-3 font-mono text-sm text-risk-600">
+        <p className="px-4 py-3 text-sm text-risk-600">
           Couldn't load tags.
         </p>
       ) : (
         <div
-          className="flex flex-col gap-0.5 p-2.5"
+          className="flex flex-col gap-0.5 overflow-y-auto p-2.5 lg:max-h-[calc(100vh-12rem)]"
           role="group"
           aria-label="Tags"
         >
@@ -116,7 +116,7 @@ function TagRow({
       <span>{label}</span>
       {typeof count === 'number' && (
         <span
-          className={`font-mono text-xs ${
+          className={`font-display text-xs ${
             active ? 'text-safe-700 dark:text-safe-400' : 'text-ink-400'
           }`}
         >

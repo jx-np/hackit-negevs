@@ -21,7 +21,7 @@ export type FontSize = 'sm' | 'md' | 'lg';
 const FONT_STACKS: Record<FontChoice, string> = {
   sans: "'Inter', system-ui, -apple-system, sans-serif",
   serif: "'Georgia', 'Times New Roman', serif",
-  mono: "'JetBrains Mono', 'Courier New', monospace",
+  mono: "ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace",
   // Readability-focused options (easier on the eye / dyslexia-friendly)
   atkinson: "'Atkinson Hyperlegible', system-ui, sans-serif",
   lexend: "'Lexend', system-ui, sans-serif",

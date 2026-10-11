@@ -65,7 +65,7 @@ export function ReportPage() {
           </p>
           <Link
             to="/auth"
-            className="mt-8 inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+            className="mt-8 inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600"
           >
             <LogIn size={18} /> Log in to continue
           </Link>
@@ -75,7 +75,7 @@ export function ReportPage() {
   }
 
   const inputCls =
-    'w-full border bg-white px-4 py-3 text-base text-ink-900 outline-none transition placeholder:text-ink-400 focus:ring-2 dark:bg-ink-900 dark:text-white';
+    'w-full rounded-md border bg-white px-4 py-3 text-base text-ink-900 outline-none transition placeholder:text-ink-400 focus:ring-2 dark:bg-ink-900 dark:text-white';
   const okBorder =
     'border-ink-300 focus:border-safe-500 focus:ring-safe-500/30 dark:border-ink-700';
   const errBorder = 'border-risk-500 focus:border-risk-500 focus:ring-risk-500/30';
@@ -163,7 +163,7 @@ export function ReportPage() {
           <Field label="Risk level" error={errors.risk?.message}>
             <select {...register('risk')} className={`${inputCls} ${okBorder}`}>
               <option value="high">High risk</option>
-              <option value="medium">Caution</option>
+              <option value="medium">Medium / under review</option>
               <option value="none">Not sure</option>
             </select>
           </Field>
@@ -174,19 +174,19 @@ export function ReportPage() {
           </Field>
 
           {create.isError && (
-            <p className="border border-risk-500 bg-risk-50 px-4 py-3 font-mono text-sm text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
+            <p className="border border-risk-500 bg-risk-50 px-4 py-3 text-sm text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
               {(create.error as Error).message}
             </p>
           )}
 
           <div className="flex items-center justify-between border-t border-ink-200 pt-6 dark:border-ink-800">
-            <span className="font-mono text-xs text-ink-400">
+            <span className="text-xs text-ink-400">
               Posting as {user?.name}
             </span>
             <button
               type="submit"
               disabled={isSubmitting || create.isPending}
-              className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 disabled:opacity-50 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+              className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600 disabled:opacity-50"
             >
               <ShieldPlus size={18} />
               {create.isPending ? 'Submitting…' : 'Submit report'}
@@ -209,12 +209,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400">
+      <label className="mb-1.5 block font-display text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400">
         {label}
       </label>
       {children}
       {error && (
-        <p className="mt-1 font-mono text-xs text-risk-600 dark:text-risk-500">
+        <p className="mt-1 text-xs text-risk-600 dark:text-risk-500">
           {error}
         </p>
       )}

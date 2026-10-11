@@ -1,13 +1,23 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test/utils';
+import { mockFetch } from '../test/mockFetch';
 import { ReportPage } from './ReportPage';
 
-describe('ReportPage (auth gating)', () => {
-  beforeEach(() => localStorage.clear());
+beforeEach(() => localStorage.clear());
+afterEach(() => vi.unstubAllGlobals());
 
+function seedLoggedIn() {
+  localStorage.setItem(
+    'scamreg-user',
+    JSON.stringify({ id: 'u1', email: 'a@b.com', name: 'Alice' }),
+  );
+}
+
+describe('ReportPage (auth gating)', () => {
   it('shows a login gate when logged out', () => {
+    mockFetch([{ match: '/community/scam-types', json: { items: [] } }]);
     renderWithProviders(<ReportPage />);
     expect(screen.getByText(/log in to report a scam/i)).toBeInTheDocument();
     expect(
@@ -19,35 +29,32 @@ describe('ReportPage (auth gating)', () => {
   });
 
   it('shows the full report form when logged in', async () => {
-    localStorage.setItem(
-      'scamreg-auth',
-      JSON.stringify({ id: 'u1', email: 'a@b.com', name: 'Alice' }),
-    );
+    mockFetch([
+      {
+        match: '/community/scam-types',
+        json: { items: [{ slug: 'phishing', name_key: 'category.phishing' }] },
+      },
+    ]);
+    seedLoggedIn();
     renderWithProviders(<ReportPage />);
 
     expect(
       screen.getByRole('button', { name: /submit report/i }),
     ).toBeInTheDocument();
-    // Incident date picker, media picker, and category are all present.
     expect(screen.getByText(/when did it happen/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/click to choose an image/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/click to choose an image/i)).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByText(/choose a category/i)).toBeInTheDocument(),
     );
   });
 
   it('validates required fields before submitting', async () => {
+    mockFetch([{ match: '/community/scam-types', json: { items: [] } }]);
     const user = userEvent.setup();
-    localStorage.setItem(
-      'scamreg-auth',
-      JSON.stringify({ id: 'u1', email: 'a@b.com', name: 'Alice' }),
-    );
+    seedLoggedIn();
     renderWithProviders(<ReportPage />);
 
     await user.click(screen.getByRole('button', { name: /submit report/i }));
-    // A validation message for the title should appear.
     await waitFor(() =>
       expect(screen.getByText(/clear title/i)).toBeInTheDocument(),
     );

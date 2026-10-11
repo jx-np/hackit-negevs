@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { uploadMedia, validateMediaFile } from './media';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function makeFile(name: string, type: string, size = 100): File {
   const blob = new Blob(['x'.repeat(size)], { type });
@@ -23,10 +27,18 @@ describe('validateMediaFile', () => {
   });
 });
 
-describe('uploadMedia (mock scaffold)', () => {
-  it('returns an object URL and the file name', async () => {
+describe('uploadMedia', () => {
+  it('returns the uploaded URL and the file name', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => ({ url: 'https://cdn.example.com/evidence.png' }),
+      })),
+    );
     const media = await uploadMedia(makeFile('evidence.png', 'image/png'));
-    expect(media.url).toBeTruthy();
+    expect(media.url).toBe('https://cdn.example.com/evidence.png');
     expect(media.name).toBe('evidence.png');
   });
 });

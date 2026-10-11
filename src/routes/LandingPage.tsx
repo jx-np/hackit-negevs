@@ -72,13 +72,6 @@ export function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
-            <div className="flex items-center gap-3">
-              <span className="ia-label flex items-center gap-2 text-safe-700 dark:text-safe-400">
-                <span className="h-2 w-2 rounded-full bg-safe-500" />
-                Scam registry · live
-              </span>
-            </div>
-
             <h1 className="mt-6 font-display text-6xl font-bold leading-[0.95] tracking-tight text-ink-900 dark:text-white sm:text-7xl lg:text-8xl">
               ScamReg
             </h1>
@@ -91,7 +84,7 @@ export function LandingPage() {
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <Link
                 to="/forum"
-                className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+                className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600"
               >
                 Enter the forum <ArrowRight size={18} />
               </Link>
@@ -107,7 +100,7 @@ export function LandingPage() {
             <dl className="mt-12 grid max-w-lg grid-cols-3 divide-x divide-ink-200 border-y border-ink-200 dark:divide-ink-800 dark:border-ink-800">
               {STATS.map((s) => (
                 <div key={s.label} className="px-4 py-4 first:pl-0">
-                  <dt className="font-mono text-2xl font-semibold text-ink-900 dark:text-white">
+                  <dt className="font-display text-2xl font-semibold text-ink-900 dark:text-white">
                     {s.value}
                   </dt>
                   <dd className="ia-label mt-1 text-ink-400">{s.label}</dd>
@@ -219,7 +212,7 @@ export function LandingPage() {
                 className="border-t-2 border-ink-900 pt-5 dark:border-white"
               >
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-3xl font-semibold text-ink-900 dark:text-white">
+                  <span className="font-display text-3xl font-semibold text-ink-900 dark:text-white">
                     0{i + 1}
                   </span>
                   <Icon size={22} className="text-safe-600 dark:text-safe-400" />
@@ -258,7 +251,7 @@ export function LandingPage() {
             <div className="flex shrink-0 flex-wrap gap-4">
               <Link
                 to="/forum"
-                className="inline-flex items-center gap-2 border border-ink-900 bg-ink-900 px-7 py-3.5 text-base font-semibold text-white transition hover:bg-ink-800 dark:border-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+                className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600"
               >
                 Enter the forum <ArrowRight size={18} />
               </Link>

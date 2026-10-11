@@ -49,8 +49,8 @@ const FONT_OPTIONS: {
   {
     value: 'mono',
     label: 'Monospace',
-    note: 'JetBrains Mono',
-    css: "'JetBrains Mono', monospace",
+    note: 'System mono',
+    css: "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
   },
 ];
 
@@ -144,7 +144,7 @@ export function SettingsPanel() {
                         </>
                       )}
                     </span>
-                    <span className="font-mono text-xs uppercase tracking-wider text-ink-400">
+                    <span className="font-display text-xs uppercase tracking-wider text-ink-400">
                       Tap to toggle
                     </span>
                   </button>

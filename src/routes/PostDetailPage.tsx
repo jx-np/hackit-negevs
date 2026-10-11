@@ -1,7 +1,17 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, CalendarDays, Heart, MessageCircle } from 'lucide-react';
+import {
+  ArrowBigDown,
+  ArrowBigUp,
+  ArrowLeft,
+  CalendarDays,
+  MessageCircle,
+  ShieldAlert,
+  ShieldCheck,
+  TriangleAlert,
+} from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { CommentBox } from '../components/forum/CommentBox';
+import { CommentList } from '../components/forum/CommentList';
 import { usePost } from '../hooks/usePost';
 import type { Post } from '../types';
 
@@ -22,15 +32,35 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
+/** Risk metadata — traffic-light pill + colored strip (icon + label). */
+const RISK_META = {
+  high: {
+    label: 'High risk',
+    pill: 'border-risk-high/40 bg-risk-high/10 text-risk-high',
+    strip: 'bg-risk-high',
+    Icon: TriangleAlert,
+  },
+  medium: {
+    label: 'Under review',
+    pill: 'border-risk-med/40 bg-risk-med/10 text-risk-med',
+    strip: 'bg-risk-med',
+    Icon: ShieldAlert,
+  },
+} as const;
+
+function riskKey(risk: Post['risk']): 'high' | 'medium' {
+  return risk === 'high' ? 'high' : 'medium';
+}
+
 function RiskBadge({ risk }: { risk: Post['risk'] }) {
   if (!risk) return null;
-  const cls =
-    risk === 'high'
-      ? 'bg-risk-600 text-white'
-      : 'bg-caution-500 text-ink-900';
+  const s = RISK_META[riskKey(risk)];
+  const { Icon } = s;
   return (
-    <span className={`ia-label px-2.5 py-1 ${cls}`}>
-      {risk === 'high' ? 'High risk' : 'Caution'}
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${s.pill}`}
+    >
+      <Icon size={13} /> {s.label}
     </span>
   );
 }
@@ -38,37 +68,44 @@ function RiskBadge({ risk }: { risk: Post['risk'] }) {
 export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: post, isLoading, isError, error } = usePost(id);
+  const verified = post?.reviewStatus === 'reviewed';
+  const risk = post?.risk ? RISK_META[riskKey(post.risk)] : null;
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-ink-950">
-      <div className="mx-auto w-full max-w-6xl px-6 py-10">
+    <div
+      className="min-h-screen bg-scam-950 text-scam-text"
+      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+    >
+      <div className="mx-auto w-full max-w-6xl px-5 py-10 lg:px-8">
         <Link
           to="/forum"
-          className="mb-6 inline-flex items-center gap-2 font-mono text-sm uppercase tracking-wider text-ink-500 transition hover:text-safe-700 dark:text-ink-400 dark:hover:text-safe-400"
+          className="mb-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-scam-muted transition hover:text-trust-400"
         >
           <ArrowLeft size={16} /> Back to forum
         </Link>
 
         {isLoading && (
-          <div className="ia-panel overflow-hidden">
-            <div className="aspect-[16/9] w-full animate-pulse bg-ink-100 dark:bg-ink-800" />
+          <div className="overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card">
+            <div className="aspect-[16/9] w-full animate-pulse bg-scam-750" />
             <div className="space-y-3 p-6">
-              <div className="h-8 w-3/4 animate-pulse bg-ink-200 dark:bg-ink-800" />
-              <div className="h-4 w-full animate-pulse bg-ink-200 dark:bg-ink-800" />
-              <div className="h-4 w-2/3 animate-pulse bg-ink-200 dark:bg-ink-800" />
+              <div className="h-8 w-3/4 animate-pulse rounded bg-scam-750" />
+              <div className="h-4 w-full animate-pulse rounded bg-scam-750" />
+              <div className="h-4 w-2/3 animate-pulse rounded bg-scam-750" />
             </div>
           </div>
         )}
 
         {isError && (
-          <div className="border border-risk-500 bg-risk-50 p-6 text-center text-risk-700 dark:border-risk-500/50 dark:bg-risk-500/10 dark:text-risk-500">
-            <p className="ia-label">Not found</p>
-            <p className="mt-2 text-lg font-medium">
+          <div className="rounded-lg border border-risk-high/40 bg-risk-high/10 p-6 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-risk-high">
+              Not found
+            </p>
+            <p className="mt-2 text-lg font-medium text-scam-text">
               {(error as Error)?.message ?? 'This report could not be loaded.'}
             </p>
             <Link
               to="/forum"
-              className="mt-4 inline-block font-mono text-sm underline"
+              className="mt-4 inline-block text-sm font-medium text-trust-400 underline"
             >
               Return to the forum
             </Link>
@@ -77,101 +114,146 @@ export function PostDetailPage() {
 
         {post && (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
-          <motion.article
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
-            className="ia-panel overflow-hidden"
-          >
-            {post.imageUrl && (
-              <div className="relative">
-                <img
-                  src={post.imageUrl}
-                  alt=""
-                  className="block max-h-96 w-full bg-ink-100 object-cover dark:bg-ink-800"
+            <motion.article
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="relative overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card"
+            >
+              {/* Colored left-border risk strip */}
+              {post.risk && risk && (
+                <span
+                  className={`absolute inset-y-0 left-0 z-10 w-1 ${risk.strip}`}
+                  aria-hidden
                 />
-                {post.risk && (
-                  <span className="absolute left-3 top-3">
-                    <RiskBadge risk={post.risk} />
-                  </span>
-                )}
-              </div>
-            )}
+              )}
 
-            <div className="p-6">
-              {/* Tags + risk (inline when no image) */}
-              <div className="mb-4 flex flex-wrap items-center gap-2">
-                {post.tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="border border-ink-200 px-2.5 py-1 font-mono text-xs font-medium uppercase tracking-wider text-ink-600 dark:border-ink-700 dark:text-ink-300"
-                  >
-                    #{tag.name}
-                  </span>
-                ))}
-                {!post.imageUrl && post.risk && <RiskBadge risk={post.risk} />}
-              </div>
-
-              <h1 className="font-display text-3xl font-bold leading-tight text-ink-900 dark:text-white sm:text-4xl">
-                {post.title}
-              </h1>
-
-              {/* Author row */}
-              <div className="mt-5 flex items-center gap-3 border-b border-ink-200 pb-5 dark:border-ink-800">
-                <span className="grid h-11 w-11 place-items-center border border-ink-300 bg-ink-50 font-mono text-sm font-semibold text-ink-700 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200">
-                  {initials(post.author.name)}
-                </span>
-                <div>
-                  <p className="font-medium text-ink-900 dark:text-white">
-                    {post.author.name}
-                  </p>
-                  <p className="font-mono text-xs text-ink-400">
-                    {formatDate(post.createdAt)}
-                  </p>
-                </div>
-                <div className="ml-auto flex items-center gap-4 font-mono text-sm text-ink-400">
-                  <span className="flex items-center gap-1.5">
-                    <MessageCircle size={16} /> {post.replyCount}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Heart size={16} /> {post.likeCount}
-                  </span>
-                </div>
-              </div>
-
-              {/* Incident date */}
-              {post.incidentDate && (
-                <div className="mt-5 flex items-center gap-2 border border-ink-200 bg-ink-50 px-4 py-3 dark:border-ink-800 dark:bg-ink-900/50">
-                  <CalendarDays size={18} className="text-safe-600 dark:text-safe-400" />
-                  <span className="ia-label text-ink-500 dark:text-ink-400">
-                    Incident date
-                  </span>
-                  <span className="ml-auto font-mono text-sm text-ink-900 dark:text-white">
-                    {formatDate(post.incidentDate)}
-                  </span>
+              {post.imageUrl && (
+                <div className="relative">
+                  <img
+                    src={post.imageUrl}
+                    alt=""
+                    className="block max-h-96 w-full bg-scam-750 object-cover"
+                  />
+                  {post.risk && (
+                    <span className="absolute left-4 top-4">
+                      <RiskBadge risk={post.risk} />
+                    </span>
+                  )}
                 </div>
               )}
 
-              {/* Body */}
-              <div className="mt-5 space-y-4 text-lg leading-relaxed text-ink-700 dark:text-ink-300">
-                <p>{post.excerpt}</p>
-                {post.body && <p>{post.body}</p>}
-              </div>
-            </div>
-          </motion.article>
+              <div className="p-6 pl-7">
+                {/* Category + verified + tags + risk (inline when no image) */}
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  {verified && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-trust-500/40 bg-trust-500/10 px-2 py-0.5 text-[11px] font-semibold text-trust-300"
+                      title="Verified by moderators"
+                    >
+                      <ShieldCheck size={12} /> Verified
+                    </span>
+                  )}
+                  {!post.imageUrl && post.risk && <RiskBadge risk={post.risk} />}
+                  {post.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="rounded-full border border-scam-line px-2.5 py-0.5 text-xs font-medium text-scam-muted transition hover:border-trust-500/50 hover:text-trust-400"
+                    >
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
 
-          {/* Comment thread — side column on large screens */}
-          <motion.aside
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
-            className="ia-panel p-6 lg:sticky lg:top-24"
-          >
-            <h2 className="ia-label mb-4 border-b border-ink-200 pb-4 text-ink-500 dark:border-ink-800 dark:text-ink-400">
-              Discussion · {post.replyCount} comments
-            </h2>
-            <CommentBox postId={post.id} />
-          </motion.aside>
+                <h1 className="text-3xl font-bold leading-tight tracking-tight text-scam-text sm:text-4xl">
+                  {post.title}
+                </h1>
+
+                {/* Author row */}
+                <div className="mt-5 flex items-center gap-3 border-b border-scam-line pb-5">
+                  <span className="sr-tile h-11 w-11">
+                    <ShieldAlert size={20} />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-scam-text">
+                      {post.author.name}
+                    </p>
+                    <p className="text-xs text-scam-muted">
+                      {initials(post.author.name)} · {formatDate(post.createdAt)}
+                    </p>
+                  </div>
+                  <div className="ml-auto flex items-center gap-4 text-sm text-scam-muted">
+                    <span className="flex items-center gap-1.5">
+                      <MessageCircle size={16} /> {post.replyCount}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-risk-low">
+                      <ShieldCheck size={16} /> {post.likeCount}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Vote control + social proof */}
+                <div className="mt-5 flex items-center gap-3">
+                  <div className="flex items-center gap-1 rounded-md border border-scam-line bg-scam-750 px-1 py-0.5">
+                    <button
+                      type="button"
+                      aria-label="This happened to me too"
+                      className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400"
+                    >
+                      <ArrowBigUp size={18} />
+                    </button>
+                    <span className="min-w-[1.5rem] text-center text-sm font-semibold text-scam-text">
+                      {post.likeCount}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label="Downvote"
+                      className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-risk-high"
+                    >
+                      <ArrowBigDown size={18} />
+                    </button>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk-low">
+                    <ShieldCheck size={14} /> {post.likeCount} confirmed
+                  </span>
+                </div>
+
+                {/* Incident date */}
+                {post.incidentDate && (
+                  <div className="mt-5 flex items-center gap-2 rounded-md border border-scam-line bg-scam-750 px-4 py-3">
+                    <CalendarDays size={18} className="text-trust-400" />
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-scam-muted">
+                      Incident date
+                    </span>
+                    <span className="ml-auto text-sm text-scam-text">
+                      {formatDate(post.incidentDate)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Body */}
+                <div className="mt-5 space-y-4 text-base leading-7 text-scam-muted">
+                  <p>{post.excerpt}</p>
+                  {post.body && <p>{post.body}</p>}
+                </div>
+              </div>
+            </motion.article>
+
+            {/* Comment thread — side column on large screens */}
+            <motion.aside
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
+              className="rounded-lg border border-scam-line bg-scam-800 p-6 shadow-card lg:sticky lg:top-24"
+            >
+              <h2 className="mb-4 border-b border-scam-line pb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-scam-muted">
+                Discussion · {post.replyCount} comments
+              </h2>
+              <div className="mb-5">
+                <CommentList postId={post.id} />
+              </div>
+              <CommentBox postId={post.id} />
+            </motion.aside>
           </div>
         )}
       </div>

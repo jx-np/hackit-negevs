@@ -10,7 +10,7 @@ export function Footer() {
             <ShieldCheck size={20} />
           </span>
           <span className="font-display text-lg font-bold text-ink-900 dark:text-white">
-            ScamReg
+            ScamWatch
           </span>
         </Link>
 
@@ -41,7 +41,7 @@ export function Footer() {
         </nav>
 
         <p className="text-xs text-ink-400">
-          © {new Date().getFullYear()} ScamReg
+          © {new Date().getFullYear()} ScamWatch
         </p>
       </div>
     </footer>

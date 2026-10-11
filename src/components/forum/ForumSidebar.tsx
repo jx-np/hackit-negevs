@@ -2,14 +2,22 @@ import {
   BadgeCheck,
   Banknote,
   Bell,
+  Bitcoin,
   BookOpen,
   Briefcase,
+  Building2,
   ChevronDown,
+  CreditCard,
   Flame,
+  Gift,
+  Globe,
+  GraduationCap,
+  HeartHandshake,
   HelpCircle,
   Home,
+  Landmark,
   Mail,
-  MessageSquareWarning,
+  MessageSquare,
   Phone,
   PlusCircle,
   ScrollText,
@@ -19,7 +27,11 @@ import {
   Siren,
   Sparkles,
   Star,
+  Truck,
+  UserRoundX,
   UserX,
+  Wallet,
+  Wrench,
 } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
@@ -41,20 +53,38 @@ const NAV_ITEMS: { icon: IconType; label: string; to?: string }[] = [
   { icon: BookOpen, label: 'How to Stay Safe' },
 ];
 
-/** Icons mapped by category keyword so backend tags get a sensible glyph. */
+/**
+ * Icons mapped by category keyword so backend tags get a sensible glyph.
+ * Ordered most-specific first so overlapping keywords (e.g. "bank" vs
+ * "impersonation") resolve to the most fitting icon.
+ */
 const CATEGORY_ICONS: { match: RegExp; icon: IconType }[] = [
-  { match: /phish|email/i, icon: Mail },
-  { match: /crypto|invest/i, icon: Banknote },
-  { match: /romance|dating/i, icon: MessageSquareWarning },
-  { match: /tech|support/i, icon: ShieldQuestion },
-  { match: /shop|marketplace|deliver/i, icon: ShoppingBag },
-  { match: /job|employ/i, icon: Briefcase },
-  { match: /impersonat|bank|gov/i, icon: ShieldAlert },
-  { match: /phone|sms|smish|vish/i, icon: Phone },
+  { match: /phish/i, icon: Mail },
+  { match: /vish|call|phone|robocall|telemarket/i, icon: Phone },
+  { match: /smish|sms|text/i, icon: MessageSquare },
+  { match: /crypto|bitcoin|token|wallet|nft|blockchain/i, icon: Bitcoin },
+  { match: /invest|ponzi|pump|trading|stock|forex/i, icon: Banknote },
+  { match: /romance|dating|love|relationship/i, icon: HeartHandshake },
+  { match: /tech|support/i, icon: Wrench },
+  { match: /deliver|parcel|courier|package|shipping/i, icon: Truck },
+  { match: /shop|marketplace|retail|store|ecommerce|e-commerce/i, icon: ShoppingBag },
+  { match: /job|employ|recruit|work.?from.?home|career/i, icon: Briefcase },
+  { match: /bank/i, icon: Landmark },
+  { match: /card|credit|debit|payment/i, icon: CreditCard },
+  { match: /gov|tax|irs|hmrc|benefit|refund/i, icon: Building2 },
+  { match: /impersonat|identity|spoof|fake.?profile/i, icon: UserRoundX },
+  { match: /charity|donat|fundrais|disaster/i, icon: Gift },
+  { match: /loan|debt|credit.?repair|advance.?fee/i, icon: Wallet },
+  { match: /lottery|prize|giveaway|reward|inherit/i, icon: Gift },
+  { match: /education|scholar|student|tuition|visa/i, icon: GraduationCap },
+  { match: /social|message|whatsapp|telegram|chat/i, icon: MessageSquare },
+  { match: /website|phish.?site|clone|url|domain|online/i, icon: Globe },
+  { match: /email|mail|spam/i, icon: Mail },
 ];
 
-function iconForCategory(name: string): IconType {
-  return CATEGORY_ICONS.find((c) => c.match.test(name))?.icon ?? ShieldAlert;
+function iconForCategory(name: string, slug = ''): IconType {
+  const haystack = `${slug} ${name}`;
+  return CATEGORY_ICONS.find((c) => c.match.test(haystack))?.icon ?? ShieldAlert;
 }
 
 const COMMUNITY_ITEMS: { icon: IconType; label: string }[] = [
@@ -70,7 +100,7 @@ export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
 
   return (
     <aside
-      className="w-full lg:sticky lg:top-20 lg:w-60 lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
+      className="w-full lg:sticky lg:top-[6.5rem] lg:w-60 lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
       aria-label="Forum navigation"
     >
       {/* Primary nav */}
@@ -146,7 +176,7 @@ export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
               : tags?.map((tag) => (
                   <CategoryRow
                     key={tag.id}
-                    icon={iconForCategory(tag.name)}
+                    icon={iconForCategory(tag.name, tag.id)}
                     label={tag.name}
                     count={tag.count}
                     active={selected === tag.id}

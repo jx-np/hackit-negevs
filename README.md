@@ -1,6 +1,6 @@
-# ScamReg
+# ScamWatch
 
-A modern React web app for the **ScamReg** platform — a scam-identification tool
+A modern React web app for the **ScamWatch** platform — a scam-identification tool
 that uses on-device AI to flag scams and a centralized reporting system that warns
 the community. This project is the marketing landing page plus the community forum.
 
@@ -11,7 +11,7 @@ font and wide layout tuned for readability (including users with low vision).
 
 ## Pages
 
-- **Landing page** (`/`) — introduces ScamReg with a large hero, a scroll-driven
+- **Landing page** (`/`) — introduces ScamWatch with a large hero, a scroll-driven
   "app pops out of the device" animation, feature sections (on-device AI detection,
   centralized reporting, privacy, real-time warnings), a "how it works" walkthrough,
   and a call-to-action into the forum. New visitors start here.
@@ -141,7 +141,7 @@ device" animation. To drop in real assets, edit
 `src/components/landing/DeviceMockup.tsx`:
 
 - Replace the contents of `PlaceholderScreen` with your app screenshot(s), e.g.
-  `<img src="/assets/scamreg-screen-1.png" alt="ScamReg app" />`.
+  `<img src="/assets/scamwatch-screen-1.png" alt="ScamWatch app" />`.
 - The element that lifts out of the screen is `PopOutCard` (marked
   `data-slot="popout"`); replace it with the graphic you want to "pop out".
 

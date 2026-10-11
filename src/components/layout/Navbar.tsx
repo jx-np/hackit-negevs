@@ -1,42 +1,43 @@
-import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { LogOut, ShieldCheck } from 'lucide-react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { SettingsPanel } from './SettingsPanel';
 
-const LINKS = [
+const BASE_LINKS = [
   { to: '/', label: 'Home', end: true },
   { to: '/forum', label: 'Forum', end: false },
   { to: '/report', label: 'Post', end: false },
   { to: '/check', label: 'Check', end: false },
+  { to: '/help', label: 'Get help', end: false },
 ];
 
 export function Navbar() {
-  const { scrollY } = useScroll();
-  // Condense the navbar as the user scrolls down.
-  const paddingY = useTransform(scrollY, [0, 80], [16, 10]);
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoggedIn, user, logout } = useAuth();
 
+  const links = isLoggedIn
+    ? [...BASE_LINKS, { to: '/me/posts', label: 'My posts', end: false }]
+    : BASE_LINKS;
+
   return (
     <motion.header
-      style={{ paddingTop: paddingY, paddingBottom: paddingY }}
-      className="sticky top-0 z-30 border-b border-ink-200 bg-paper/85 backdrop-blur-md dark:border-ink-800 dark:bg-ink-950/85"
+      className="sticky top-0 z-30 border-b border-ink-200 bg-paper/85 py-3 backdrop-blur-md dark:border-ink-800 dark:bg-ink-950/85"
     >
       <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-6">
         <NavLink to="/" className="group flex items-center gap-2.5 font-semibold">
-          <span className="grid h-10 w-10 place-items-center bg-ink-900 text-white transition group-hover:bg-safe-600 dark:bg-white dark:text-ink-900 dark:group-hover:bg-safe-500">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-ink-900 text-white transition group-hover:bg-safe-600 dark:bg-white dark:text-ink-900 dark:group-hover:bg-safe-500">
             <ShieldCheck size={22} />
           </span>
           <span className="font-display text-xl font-bold tracking-tight text-ink-900 transition group-hover:text-safe-600 dark:text-white dark:group-hover:text-safe-500">
-            ScamReg
+            ScamWatch
           </span>
         </NavLink>
 
         <nav className="flex items-center gap-4 sm:gap-6">
           <div className="flex items-center gap-1">
-            {LINKS.map((link) => (
+            {links.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}

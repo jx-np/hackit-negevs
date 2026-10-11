@@ -3,9 +3,12 @@
  */
 import type {
   ApiComment,
+  ApiFlagResponse,
   ApiListResponse,
   Comment,
   CommentsPage,
+  FlagReason,
+  FlagResult,
 } from '../types';
 import { apiFetch } from './client';
 
@@ -57,4 +60,46 @@ export async function createComment(
     },
   );
   return mapComment(c);
+}
+
+/** Edit a comment's body (author only). */
+export async function updateComment(
+  id: string,
+  body: string,
+): Promise<Comment> {
+  const c = await apiFetch<ApiComment>(
+    `/community/discussion/comments/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ body }),
+    },
+  );
+  return mapComment(c);
+}
+
+/** Soft-remove a comment (author or moderator). */
+export async function deleteComment(id: string): Promise<void> {
+  await apiFetch<void>(
+    `/community/discussion/comments/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+}
+
+/** Flag a comment for moderator review. */
+export async function flagComment(
+  id: string,
+  reason: FlagReason,
+  details?: string,
+): Promise<FlagResult> {
+  const r = await apiFetch<ApiFlagResponse>(
+    `/community/discussion/comments/${encodeURIComponent(id)}/flag`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        reason,
+        ...(details ? { details } : {}),
+      }),
+    },
+  );
+  return { flagId: r.flag_id, status: r.status };
 }

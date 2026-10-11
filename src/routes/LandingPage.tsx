@@ -17,7 +17,7 @@ const FEATURES = [
     id: 'AI-01',
     icon: Cpu,
     title: 'On-device AI detection',
-    body: 'ScamReg analyzes messages, calls, and links with AI models that run entirely on your device — no data leaves your phone to spot a scam.',
+    body: 'ScamWatch analyzes messages, calls, and links with AI models that run entirely on your device — no data leaves your phone to spot a scam.',
   },
   {
     id: 'REG-02',
@@ -40,7 +40,7 @@ const FEATURES = [
 ];
 
 const STEPS = [
-  { icon: ScanLine, title: 'Scan', body: 'ScamReg checks incoming messages and links on your device.' },
+  { icon: ScanLine, title: 'Scan', body: 'ScamWatch checks incoming messages and links on your device.' },
   { icon: ShieldCheck, title: 'Detect', body: 'On-device AI flags anything that looks like a scam.' },
   { icon: Users, title: 'Report', body: 'Submit it to the shared registry to protect others.' },
 ];
@@ -73,7 +73,7 @@ export function LandingPage() {
             transition={{ duration: 0.5, ease: 'easeOut' }}
           >
             <h1 className="mt-6 font-display text-6xl font-bold leading-[0.95] tracking-tight text-ink-900 dark:text-white sm:text-7xl lg:text-8xl">
-              ScamReg
+              ScamWatch
             </h1>
             <p className="mt-6 max-w-xl text-xl leading-relaxed text-ink-600 dark:text-ink-300">
               On-device AI that identifies scams in real time, backed by a
@@ -139,7 +139,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== What is ScamReg ===== */}
+      {/* ===== What is ScamWatch ===== */}
       <section className="border-b border-ink-200 dark:border-ink-800">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <motion.div {...fade} className="max-w-3xl">
@@ -150,7 +150,7 @@ export function LandingPage() {
               Your first line of defense against scams
             </h2>
             <p className="mt-5 text-xl leading-relaxed text-ink-600 dark:text-ink-300">
-              ScamReg pairs private, on-device AI that identifies scams in real
+              ScamWatch pairs private, on-device AI that identifies scams in real
               time with a centralized reporting system that warns the whole
               community. This forum is where members discuss threats, share
               tactics, and help each other stay safe.

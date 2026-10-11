@@ -63,7 +63,7 @@ export function RecentReports() {
 
   return (
     <aside
-      className="w-full lg:sticky lg:top-20 lg:w-[310px] lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
+      className="w-full lg:sticky lg:top-[6.5rem] lg:w-[310px] lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
       aria-label="Recently reported scams"
     >
       {/* Recently reported */}

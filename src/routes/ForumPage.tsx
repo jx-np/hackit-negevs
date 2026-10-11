@@ -18,7 +18,7 @@ export function ForumPage() {
   const debouncedSearch = useDebounce(search, 350);
 
   return (
-    // The forum adopts the ScamReg dark theme regardless of the global mode.
+    // The forum adopts the ScamWatch dark theme regardless of the global mode.
     // Inter is used here for a trustworthy, contemporary feel.
     <div
       className="min-h-screen bg-scam-950 text-scam-text"

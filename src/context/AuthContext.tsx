@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginDemo = useCallback((partial?: Partial<User>) => {
     const demo: User = {
       id: partial?.id ?? 'demo-user',
-      email: partial?.email ?? 'demo@scamreg.app',
+      email: partial?.email ?? 'demo@scamwatch.app',
       name: partial?.name ?? 'Demo User',
     };
     setUser(demo);

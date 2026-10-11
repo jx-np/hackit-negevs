@@ -12,7 +12,9 @@ import { AppearanceProvider } from './context/AppearanceContext';
 import { AuthProvider } from './context/AuthContext';
 import { AuthPage } from './routes/AuthPage';
 import { ForumPage } from './routes/ForumPage';
+import { HelpPage } from './routes/HelpPage';
 import { LandingPage } from './routes/LandingPage';
+import { MyPostsPage } from './routes/MyPostsPage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { NumberCheckPage } from './routes/NumberCheckPage';
 import { PostDetailPage } from './routes/PostDetailPage';
@@ -44,6 +46,8 @@ function AnimatedRoutes() {
           <Route path="/forum/:id" element={<PostDetailPage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/check" element={<NumberCheckPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/me/posts" element={<MyPostsPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

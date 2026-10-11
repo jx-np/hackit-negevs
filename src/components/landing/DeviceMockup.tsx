@@ -5,7 +5,7 @@ import { ShieldCheck } from 'lucide-react';
  *
  * REPLACE WITH REAL ASSETS LATER:
  *  - Swap the `<PlaceholderScreen />` contents for your app screenshot(s),
- *    e.g. <img src="/assets/scamreg-screen-1.png" alt="ScamReg app" />.
+ *    e.g. <img src="/assets/scamwatch-screen-1.png" alt="ScamWatch app" />.
  *  - The "app pops out" layer is the element with `data-slot="popout"`; drop a
  *    transparent PNG / element there that should appear to lift out of the
  *    screen as the user scrolls.
@@ -56,7 +56,7 @@ function PlaceholderScreen() {
           <ShieldCheck size={16} />
         </span>
         <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
-          ScamReg
+          ScamWatch
         </span>
       </div>
 

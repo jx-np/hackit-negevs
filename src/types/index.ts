@@ -36,11 +36,24 @@ export interface Post {
   createdAt: string;
   replyCount: number;
   likeCount: number;
+  /** Down-vote count (detail only; 0 on feed items). */
+  downCount?: number;
+  /** The caller's current vote: 1 (up), -1 (down), or 0 (none/anonymous). */
+  myVote?: number;
   imageUrl?: string | null;
   risk?: RiskLevel;
   incidentDate?: string | null;
   /** Backend moderation label, surfaced in the UI. */
   reviewStatus?: ReviewStatus;
+  /** True when the authenticated caller owns this post (can edit/delete). */
+  isMine?: boolean;
+}
+
+/** Result of setting or clearing a reaction on a post. */
+export interface ReactionResult {
+  upCount: number;
+  downCount: number;
+  myVote: number;
 }
 
 export type ReviewStatus =
@@ -113,6 +126,52 @@ export interface CommentsPage {
 }
 
 // ---------------------------------------------------------------------------
+// Flagging (reporting content)
+// ---------------------------------------------------------------------------
+
+/** Backend-recognised reasons for flagging a post or comment. */
+export type FlagReason =
+  | 'personal_information'
+  | 'harmful'
+  | 'spam'
+  | 'misinformation'
+  | 'other';
+
+/** Result of flagging a post or comment. */
+export interface FlagResult {
+  flagId: string;
+  status: string;
+}
+
+// ---------------------------------------------------------------------------
+// Guidance & resources ("Get help now")
+// ---------------------------------------------------------------------------
+
+export type GuidanceUrgency = 'normal' | 'urgent' | 'emergency';
+
+export interface GuidanceItem {
+  id: string;
+  scenario: string;
+  urgency: GuidanceUrgency;
+  title: string;
+  body: string;
+  /** Related resource slugs/ids referenced by this guidance step. */
+  resources: string[];
+}
+
+export interface Resource {
+  id: string;
+  slug: string;
+  countryCode: string;
+  url: string;
+  contactInstructions?: string;
+  name: string;
+  description?: string;
+  verifiedAt: string;
+  ownerName: string;
+}
+
+// ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
 
@@ -180,6 +239,9 @@ export interface ApiFeedItem {
   review_status: ReviewStatus;
   created_at: string;
   comment_count: number;
+  reactions?: { up: number; down: number };
+  my_vote?: number;
+  is_mine?: boolean;
 }
 
 export interface ApiPostDetail {
@@ -194,11 +256,46 @@ export interface ApiPostDetail {
   comment_count: number;
   reactions: { up: number; down: number };
   my_vote: number;
+  is_mine?: boolean;
+}
+
+/** Response body from PUT/DELETE /community/posts/{id}/reaction. */
+export interface ApiReactionResponse {
+  up_count: number;
+  down_count: number;
+  my_vote: number;
 }
 
 export interface ApiListResponse<T> {
   items: T[];
   next_cursor?: string | null;
+}
+
+/** Response body from POST .../flag. */
+export interface ApiFlagResponse {
+  flag_id: string;
+  status: string;
+}
+
+export interface ApiGuidanceItem {
+  id: string;
+  scenario: string;
+  urgency: GuidanceUrgency;
+  title: string;
+  body: string;
+  resources?: string[];
+}
+
+export interface ApiResource {
+  id: string;
+  slug: string;
+  country_code: string;
+  url: string;
+  contact_instructions?: string;
+  name: string;
+  description?: string;
+  verified_at: string;
+  owner_name: string;
 }
 
 export interface ApiComment {

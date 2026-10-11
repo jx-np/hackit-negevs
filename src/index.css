@@ -8,7 +8,7 @@
   --app-font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
   --app-font-scale: 1;
 
-  /* ===== ScamReg forum palette — LIGHT mode (space-separated RGB) =====
+  /* ===== ScamWatch forum palette — LIGHT mode (space-separated RGB) =====
      Semantics are inverted vs. dark: `950` is the page background (lightest
      surface here), `800`/`750` are lifted cards, `text` is near-black. These
      feed the Tailwind `scam-*` colors so the forum flips with the theme. */
@@ -24,7 +24,7 @@
 }
 
 .dark {
-  /* ===== ScamReg forum palette — DARK mode ===== */
+  /* ===== ScamWatch forum palette — DARK mode ===== */
   --scam-950: 10 14 20; /* #0a0e14 page background */
   --scam-900: 15 20 28; /* #0f141c */
   --scam-850: 17 24 34; /* #111822 */
@@ -106,7 +106,7 @@ body {
       linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   }
 
-  /* ===== ScamReg forum utilities (theme-aware via --scam-* vars) ===== */
+  /* ===== ScamWatch forum utilities (theme-aware via --scam-* vars) ===== */
 
   /* Flat, bordered surface — thin hairline border over a lifted fill. */
   .sr-surface {

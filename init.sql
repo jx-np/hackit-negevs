@@ -82,6 +82,10 @@ CREATE TABLE private_uploads (
     check_id bigint REFERENCES private_checks(id) ON DELETE CASCADE,
     owner_user_id bigint REFERENCES users(id) ON DELETE CASCADE,
     storage_key text NOT NULL UNIQUE,
+    -- Key of the PII-redacted copy produced by the OCR worker. NULL until the
+    -- worker finishes; the original (storage_key) and the redacted copy are
+    -- distinct objects so the raw image can be purged independently.
+    redacted_storage_key text UNIQUE,
     media_type text NOT NULL CHECK (media_type IN ('image/jpeg', 'image/png', 'image/webp')),
     byte_size bigint NOT NULL CHECK (byte_size > 0),
     status text NOT NULL DEFAULT 'uploaded'
@@ -96,9 +100,15 @@ CREATE TABLE reports (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     author_user_id bigint REFERENCES users(id) ON DELETE SET NULL,
     source_check_id bigint REFERENCES private_checks(id) ON DELETE SET NULL,
-    category_id bigint NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+    -- Nullable: the post stays unclassified (and author-only) until the
+    -- classifier assigns a category.
+    category_id bigint REFERENCES categories(id) ON DELETE RESTRICT,
     title text NOT NULL,
     redacted_text text NOT NULL,
+    -- Optional PII-redacted screenshot attached to the post. References the
+    -- redacted copy of an upload that belonged to the author's own completed
+    -- check; the raw upload is never exposed here.
+    redacted_image_key text,
     source_locale text NOT NULL DEFAULT 'en-SG',
     publication_confirmed_at timestamptz NOT NULL DEFAULT now(),
     review_status text NOT NULL DEFAULT 'unverified'
@@ -116,6 +126,10 @@ CREATE INDEX reports_category_recent_idx ON reports (category_id, created_at DES
 CREATE INDEX reports_search_idx ON reports
     USING gin (to_tsvector('simple', title || ' ' || redacted_text));
 CREATE INDEX reports_author_idx ON reports (author_user_id, created_at DESC);
+-- Posts still awaiting a classifier decision; supports a retry sweep and the
+-- author-only visibility queries.
+CREATE INDEX reports_unclassified_idx ON reports (created_at, id)
+    WHERE category_id IS NULL AND deleted_at IS NULL;
 
 CREATE TABLE report_tags (
     report_id bigint NOT NULL REFERENCES reports(id) ON DELETE CASCADE,

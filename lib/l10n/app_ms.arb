@@ -1,0 +1,436 @@
+{
+  "@@locale": "ms",
+
+  "commonReport": "Lapor",
+  "commonCancel": "Batal",
+  "commonRetry": "Cuba lagi",
+  "commonRefresh": "Muat semula",
+  "commonReviewed": "Disemak",
+  "commonClear": "Kosongkan",
+  "commonUnknown": "Tidak diketahui",
+  "commonReportThis": "Lapor ini",
+  "commonNoPostsYet": "Tiada siaran lagi",
+  "commonShareWithCommunity": "Kongsi dengan komuniti",
+  "commonSharing": "Berkongsi...",
+  "commonDownloadModelFirst": "Muat turun model dalam tab Tetapan dahulu",
+  "commonTitle": "Tajuk",
+  "commonTitleHint": "Ringkasan pendek",
+  "commonMessage": "Mesej",
+  "commonMessageHint": "Tampal mesej penipuan di sini",
+  "commonWhatKindOfScam": "Jenis penipuan apa?",
+  "commonTagsOptional": "Tag (pilihan)",
+  "commonShareIntro": "Bantu orang lain dengan berkongsi penipuan yang anda terima. Buang sebarang maklumat peribadi dahulu.",
+
+  "settingsDetectionModel": "Model pengesanan",
+  "settingsProtection": "Perlindungan",
+  "settingsClearNotifications": "Kosongkan pemberitahuan yang ditangkap",
+  "settingsStopProtection": "Hentikan perlindungan latar belakang",
+  "settingsServiceRunning": "Perkhidmatan berjalan",
+  "settingsServiceStopped": "Perkhidmatan dihentikan",
+  "settingsAccount": "Akaun",
+  "settingsShowTutorial": "Tunjuk tutorial semula",
+  "settingsReplayTour": "Main semula gambaran keseluruhan ciri apl",
+  "settingsLogOut": "Log keluar",
+  "settingsSignOutSubtitle": "Log keluar daripada akaun anda",
+  "settingsAdvanced": "Lanjutan",
+  "settingsAdvancedSubtitle": "Pilihan pembangun dan penalaan model",
+  "settingsModelFromDevice": "Model dari peranti ini (ujian)",
+  "settingsScanForModels": "Imbas untuk fail model",
+  "settingsScanningStorage": "Mengimbas storan…",
+  "settingsScanSubtitle": "Mencari fail .litertlm dan .task dalam Muat Turun dan Dokumen",
+  "settingsModelFilePath": "Laluan fail model",
+  "settingsModelFilePathHelper": "Laluan yang ditaip juga berfungsi. Fail digunakan di tempatnya — ia tidak pernah disalin.",
+  "settingsContextWindow": "Tetingkap konteks (token)",
+  "settingsContextWindowHelper": "Konteks untuk diminta semasa memuatkan. Tidak boleh melebihi apa yang penukaran anda tetapkan sebagai kv_cache_max_len (MiniCPM5-2B menyokong sehingga {max}). Tetingkap yang lebih besar menggunakan kira-kira 40 KB RAM setiap token.",
+  "@settingsContextWindowHelper": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsContextRange": "Masukkan antara 1024 dan {max}",
+  "@settingsContextRange": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsThinking": "Pemikiran (penaakulan)",
+  "settingsThinkingHelper": "Membolehkan model menaakul sebelum menjawab. Menggunakan lebih banyak token dan lebih perlahan; memerlukan konteks 3000+ token untuk berguna.",
+  "settingsLoadModelFromFile": "Muatkan model dari fail",
+  "settingsCloudThreshold": "Ambang peningkatan awan — tingkatkan di bawah {pct}%",
+  "@settingsCloudThreshold": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsCloudReview": "Semakan awan",
+  "settingsForceCloud": "Paksa awan",
+  "settingsForceCloudHelper": "Hantar setiap mesej ke model awan dan langkau model pada peranti. Kembali kepada pada peranti sahaja jika awan tidak dapat dihubungi.",
+  "settingsEndpoint": "Titik akhir",
+  "settingsEndpointHint": "https://.../v1/chat/completions (kosong = dilumpuhkan)",
+  "settingsModelName": "Nama model",
+  "settingsOnDeviceModel": "Model pada peranti — {name}",
+  "@settingsOnDeviceModel": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsReadyKept": "Sedia · {mb} MB · disimpan dalam Muat Turun (kekal selepas pasang semula)",
+  "@settingsReadyKept": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsReadyOffline": "Sedia · {mb} MB · berjalan luar talian",
+  "@settingsReadyOffline": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsInstallingBundled": "Memasang model terbundel {pct}%",
+  "@settingsInstallingBundled": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsDownloadingPct": "Memuat turun {pct}%",
+  "@settingsDownloadingPct": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsBundledPreparing": "Terbundel dengan apl · menyediakan",
+  "settingsNotDownloaded": "Tidak dimuat turun ({mb} MB)",
+  "@settingsNotDownloaded": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsRemove": "Buang",
+  "settingsPercent": "{pct}%",
+  "@settingsPercent": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsInstall": "Pasang",
+  "settingsDownload": "Muat turun",
+  "settingsNoFilePicked": "Belum ada fail dipilih",
+  "settingsScanHint": "Imbas untuk fail model yang sudah ada pada telefon ini.",
+  "settingsCustomModelMeta": "{path} · {mb} MB · {tokens} token",
+  "@settingsCustomModelMeta": {
+    "placeholders": {
+      "path": { "type": "String" },
+      "mb": { "type": "int" },
+      "tokens": { "type": "int" }
+    }
+  },
+  "settingsForget": "Lupakan",
+  "settingsAllFilesAccess": "Benarkan \"Akses semua fail\" untuk Scam Shield dalam tetapan Android, kemudian imbas semula.",
+  "settingsNoModelFiles": "Tiada fail .litertlm atau .task dijumpai.\n\nLetakkan model dalam Muat Turun (atau taip laluannya di bawah) dan imbas semula.",
+  "settingsFileSizeMb": "{mb} MB",
+  "@settingsFileSizeMb": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsEnterPathFirst": "Masukkan laluan fail model dahulu",
+  "settingsModelLoaded": "{name} dimuatkan",
+  "@settingsModelLoaded": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsModelForgotten": "Model pilihan dilupakan — fail disimpan pada peranti",
+  "settingsSizeFromDevice": "~{mb} MB · dari peranti ini",
+  "@settingsSizeFromDevice": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeBundled": "~{mb} MB · terbundel",
+  "@settingsSizeBundled": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeDownload": "~{mb} MB · muat turun",
+  "@settingsSizeDownload": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsFieldSaved": "{label} disimpan",
+  "@settingsFieldSaved": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "settingsSave": "Simpan",
+  "settingsLanguage": "Bahasa",
+  "settingsLanguageSystem": "Lalai sistem",
+
+  "callIncoming": "Panggilan masuk: {who}",
+  "@callIncoming": {
+    "placeholders": { "who": { "type": "String" } }
+  },
+  "callBlocked": "Disekat {number}",
+  "@callBlocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callUnblocked": "Nyahsekat {number}",
+  "@callUnblocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callReported": "Dilaporkan {number}",
+  "@callReported": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callRemovedReport": "Laporan dibuang untuk {number}",
+  "@callRemovedReport": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callOutgoing": "Keluar",
+  "callAnswered": "Dijawab",
+  "callRejected": "Ditolak",
+  "callMissed": "Terlepas",
+  "callBlockedLabel": "Disekat",
+  "callHistoryTitle": "Sejarah Panggilan",
+  "callBlockedNumbers": "Nombor disekat",
+  "callNoUnknown": "Tiada panggilan nombor tidak diketahui dijumpai",
+  "callPhonePermNeeded": "Kebenaran telefon diperlukan",
+  "callPhonePermBody": "Call Manager memerlukan kebenaran Telefon untuk membaca sejarah panggilan anda.",
+  "callGrantPhone": "Beri kebenaran telefon",
+  "callCouldNotLoad": "Tidak dapat memuatkan sejarah panggilan",
+  "callDurationSuffix": " • {seconds}s",
+  "@callDurationSuffix": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "callReportedSuffix": " • Dilaporkan",
+  "callBlock": "Sekat",
+  "callUnblock": "Nyahsekat",
+  "callRemoveReport": "Buang laporan",
+  "callBlockAndReport": "Sekat & Lapor",
+
+  "reportPhone": "Telefon",
+  "reportUnknownApp": "Apl tidak diketahui",
+  "reportSent": "Laporan dihantar",
+  "reportNotSent": "Laporan tidak dihantar — titik akhir pelaporan belum dikonfigurasi",
+  "reportAddAppFirst": "Tambah aplikasi dahulu.",
+  "reportAsScam": "Lapor mesej ini sebagai penipuan?",
+  "reportSuspiciousMessages": "Mesej mencurigakan",
+  "reportTapHint": "Ketik “Lapor ini” pada apa sahaja yang kelihatan seperti penipuan.",
+  "reportNothingSuspicious": "Tiada yang mencurigakan sekarang",
+  "reportVerdictSummary": "{label} · {pct}% pasti",
+  "@reportVerdictSummary": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "pct": { "type": "int" }
+    }
+  },
+  "reportRecentCalls": "Panggilan terkini",
+  "reportNoCalls": "Belum ada panggilan direkod",
+  "reportSomethingElse": "Lapor perkara lain",
+  "reportWriteOwn": "Tulis laporan anda sendiri",
+  "reportNumberOptional": "Nombor (pilihan)",
+  "reportAppRequired": "Aplikasi (diperlukan)",
+  "reportAppHint": "WhatsApp, Telegram, Telefon…",
+  "reportMarkAs": "Tanda sebagai",
+  "reportSpam": "Spam",
+  "reportScam": "Penipuan",
+  "reportOther": "Lain-lain",
+  "reportReason": "Sebab",
+  "reportReasonHint": "Apa yang mereka lakukan atau katakan?",
+  "reportOtherComments": "Komen lain",
+  "reportOtherCommentsHint": "Apa-apa lagi yang kami perlu tahu (pilihan)",
+  "reportSubmit": "Hantar laporan",
+  "reportSubjectTitle": "Lapor {subject}?",
+  "@reportSubjectTitle": {
+    "placeholders": { "subject": { "type": "String" } }
+  },
+  "reportReasonOptional": "Sebab (pilihan)",
+
+  "shieldTurnOnToRun": "Hidupkan perlindungan untuk menjalankan model",
+  "shieldCheckingMessage": "Menyemak mesej...",
+  "shieldScamAi": "AI Penipuan",
+  "shieldModelReady": "Model pada peranti sedia",
+  "shieldNoModel": "Tiada model pada peranti dipasang",
+  "shieldStats": "Menyemak {evaluated} mesej, membangkitkan {alerts} amaran",
+  "@shieldStats": {
+    "placeholders": {
+      "evaluated": { "type": "int" },
+      "alerts": { "type": "int" }
+    }
+  },
+  "shieldTryMessage": "Cuba satu mesej",
+  "shieldPasteHint": "Tampal mesej mencurigakan...",
+  "shieldCheck": "Semak",
+
+  "permDenied": "Kebenaran dinafikan",
+  "permConfirmScreening": "Sahkan Call Manager untuk penyaringan panggilan",
+  "permScreeningUnavailable": "Penyaringan panggilan tidak tersedia pada peranti ini",
+  "permNotificationAccess": "Akses pemberitahuan",
+  "permNotificationAccessSub": "Membaca mesej daripada pemberitahuan",
+  "permOverlay": "Papar di atas apl lain",
+  "permOverlaySub": "Menunjukkan amaran penipuan semasa panggilan berdering",
+  "permAlerts": "Amaran dibenarkan",
+  "permAlertsSub": "Menyiarkan amaran penipuan sebagai pemberitahuan",
+  "permGranted": "Diberikan",
+  "permGrant": "Beri",
+  "permScreeningRole": "Peranan penyaringan panggilan",
+  "permScreeningRoleSub": "Membolehkan apl menyaring panggilan masuk dan menyekat nombor yang anda tandakan sebagai spam.",
+  "permScreeningActive": "Penyaringan aktif",
+  "permEnableScreening": "Dayakan penyaringan panggilan",
+  "permScreeningNotGranted": "Penyaringan panggilan belum diberikan",
+  "permScreeningTapHint": "Ketik \"Dayakan penyaringan panggilan\" di atas, jika tidak panggilan masih akan berdering masuk.",
+  "permTitle": "Kebenaran",
+  "permGrantFollowing": "Beri kebenaran berikut untuk akses penuh.",
+  "permPhoneCallLog": "Telefon & Log Panggilan",
+  "permPhoneGranted": "Kebenaran telefon diberikan",
+  "permContacts": "Kenalan",
+  "permContactsGranted": "Kebenaran kenalan diberikan",
+  "permNotifications": "Pemberitahuan",
+  "permNotificationsGranted": "Kebenaran pemberitahuan diberikan",
+  "permStillNotWorking": "Masih tidak berfungsi?",
+  "permOpenSettingsBody": "Buka tetapan sistem untuk apl ini untuk menetapkan peranan penyaringan panggilan dan kebenaran secara manual.",
+  "permOpenAppSettings": "Buka Tetapan Apl",
+  "permNotChecked": "Belum disemak",
+  "permStatusDenied": "Dinafikan",
+  "permPermanentlyDenied": "Dinafikan secara kekal",
+  "permNotGranted": "Tidak diberikan",
+
+  "contactsPermRequired": "Kebenaran kenalan diperlukan untuk melihat kenalan",
+  "contactsLoadFailed": "Gagal memuatkan kenalan: {error}",
+  "@contactsLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "contactsTitle": "Kenalan",
+  "contactsOpenMenu": "Buka menu",
+  "contactsSearchHint": "Cari kenalan...",
+  "contactsCouldNotLoad": "Tidak dapat memuatkan kenalan",
+  "contactsNoneFound": "Tiada kenalan dijumpai",
+  "contactsNoDetails": "Tiada butiran",
+  "contactsCouldNotCall": "Tidak dapat memulakan panggilan",
+  "contactsCouldNotCallError": "Tidak dapat memulakan panggilan: {error}",
+  "@contactsCouldNotCallError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "safetyTitle": "Keselamatan",
+  "safetyRecentAlerts": "Amaran terkini",
+  "safetyProtectedOn": "Anda dilindungi",
+  "safetyProtectedOff": "Perlindungan dimatikan",
+  "safetyDownloadFirstPeriod": "Muat turun model dalam tab Tetapan dahulu.",
+  "safetyWeCheck": "Kami menyemak mesej anda untuk penipuan.",
+  "safetyTurnOnToCheck": "Hidupkan ini untuk menyemak mesej untuk penipuan.",
+  "safetyTurnOff": "Matikan perlindungan",
+  "safetyTurnOn": "Hidupkan perlindungan",
+  "safetyNoScams": "Tiada penipuan dijumpai",
+  "safetyNoScamsBody": "Mesej mencurigakan akan dipaparkan di sini.",
+
+  "protectionChecked": "Disemak",
+  "protectionAlerts": "Amaran",
+  "protectionOn": "Perlindungan dihidupkan",
+  "protectionOff": "Perlindungan dimatikan",
+  "protectionReadsNotifications": "Membaca pemberitahuan daripada apl pemesejan",
+
+  "activityAll": "Semua ({count})",
+  "@activityAll": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityScams": "Penipuan ({count})",
+  "@activityScams": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityUnchecked": "Belum disemak ({count})",
+  "@activityUnchecked": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityNoMessages": "Belum ada mesej ditangkap.",
+  "activityNotCheckedSuffix": " · belum disemak",
+  "activityCloudSuffix": " · awan",
+  "activityNotCheckedYet": "Belum disemak.",
+  "activityVerdict": "Keputusan",
+  "activityConfidence": "Keyakinan",
+  "activityCheckedBy": "Disemak oleh",
+  "activityEscalatedSuffix": "{wire} (ditingkatkan)",
+  "@activityEscalatedSuffix": {
+    "placeholders": { "wire": { "type": "String" } }
+  },
+  "activityReason": "Sebab",
+  "activityAiThinking": "Pemikiran AI",
+  "activityNoOutput": "(model tidak menghasilkan output yang boleh dibaca)",
+
+  "blockedNumbersTitle": "Nombor Disekat",
+  "blockedNoNumbers": "Tiada nombor disekat",
+
+  "notificationsTitle": "Pemberitahuan",
+
+  "settingsScreenModelInstalled": "{name} dipasang",
+  "@settingsScreenModelInstalled": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsScreenTitle": "Tetapan",
+  "settingsScreenModelTab": "Model",
+  "settingsScreenPermissionsTab": "Kebenaran",
+
+  "loginAppName": "Call Manager",
+  "loginTagline": "Melindungi anda daripada panggilan dan mesej penipuan.",
+  "loginGetStarted": "Mulakan",
+
+  "onboardingTitle": "Kebenaran",
+  "onboardingContinue": "Teruskan",
+
+  "authEnterEmail": "Sila masukkan e-mel anda.",
+  "authValidEmail": "Sila masukkan e-mel yang sah.",
+  "authEnterPassword": "Sila masukkan kata laluan anda.",
+  "authPasswordLength": "Gunakan sekurang-kurangnya 8 aksara.",
+  "authEnterName": "Sila masukkan nama anda.",
+  "authCreateAccount": "Cipta akaun",
+  "authSignIn": "Log masuk",
+  "authRegisterIntro": "Sertai komuniti untuk berkongsi dan belajar tentang penipuan.",
+  "authLoginIntro": "Log masuk untuk menyiarkan dan menyertai perbincangan.",
+  "authYourName": "Nama anda",
+  "authYourNameHint": "Masukkan nama anda",
+  "authEmail": "E-mel",
+  "authEmailHint": "Masukkan e-mel anda",
+  "authPassword": "Kata laluan",
+  "authPasswordHint": "Masukkan kata laluan anda",
+  "authToggleToLogin": "Sudah ada akaun? Log masuk",
+  "authToggleToRegister": "Baru di sini? Cipta akaun",
+
+  "communityTitle": "Komuniti",
+  "communityShareScam": "Kongsi penipuan",
+  "communityAll": "Semua",
+  "communityNoPostsBody": "Laporan penipuan yang dikongsi oleh komuniti akan dipaparkan di sini.",
+
+  "createChooseType": "Sila pilih jenis penipuan.",
+  "createAddTitle": "Sila tambah tajuk.",
+  "createAddMessage": "Sila tambah teks mesej.",
+
+  "reportTabTitle": "Lapor penipuan",
+  "reportTabThankYou": "Dikongsi dengan komuniti. Terima kasih!",
+  "reportTabTrackIt": "Dikongsi dengan komuniti. Semak Siaran saya untuk menjejakinya.",
+
+  "myPostsTitle": "Siaran saya",
+  "myPostsNoneBody": "Penipuan yang anda laporkan akan dipaparkan di sini supaya anda boleh menjejakinya.",
+
+  "postDetailThankYou": "Terima kasih. Pasukan kami akan menyemak siaran ini.",
+  "postDetailTitle": "Siaran",
+  "postDetailReportTooltip": "Lapor siaran ini",
+  "postDetailComments": "Komen ({count})",
+  "@postDetailComments": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "postDetailNoComments": "Belum ada komen.",
+  "postDetailWriteComment": "Tulis komen",
+  "postDetailPostComment": "Siarkan komen",
+  "postDetailFlagPersonalInfo": "Menunjukkan maklumat peribadi",
+  "postDetailFlagHarmful": "Berbahaya atau merbahaya",
+  "postDetailFlagSpam": "Spam",
+  "postDetailFlagMisinfo": "Maklumat salah",
+  "postDetailFlagOther": "Lain-lain",
+
+  "guidanceClickedLink": "Saya klik pautan",
+  "guidanceGotMessage": "Saya baru terima mesej",
+  "guidanceSharedPassword": "Saya kongsi kata laluan saya",
+  "guidanceSentMoney": "Saya hantar wang",
+  "guidanceCouldNotOpenLink": "Tidak dapat membuka pautan.",
+  "guidanceCouldNotCall": "Tidak dapat memulakan panggilan.",
+  "guidanceTitle": "Dapatkan bantuan",
+  "guidanceWhatHappened": "Apa yang berlaku?",
+  "guidanceWhoToContact": "Siapa untuk dihubungi",
+  "guidanceShowAll": "Tunjuk semua",
+  "guidanceOpenWebsite": "Buka laman web",
+  "guidanceNoAdvice": "Belum ada nasihat",
+  "guidanceNoAdviceBody": "Pilih apa yang berlaku di atas untuk melihat langkah yang boleh anda ambil.",
+
+  "tourCallsTitle": "Panggilan",
+  "tourCallsBody": "Di sinilah panggilan daripada nombor tidak diketahui muncul. Ketik panggilan untuk melihat butiran, dan gunakan ikon sekat di penjuru atas untuk mengurus nombor yang anda tidak mahu dengar lagi.",
+  "tourSafetyTitle": "Keselamatan",
+  "tourSafetyBody": "Hidupkan perlindungan di sini. Setelah model dimuat turun, Scam Shield membaca mesej masuk pada peranti anda dan memberi amaran tentang kemungkinan penipuan.",
+  "tourReportTitle": "Lapor",
+  "tourReportBody": "Nampak penipuan? Kongsikannya dengan komuniti dari tab ini supaya orang lain dapat mengenali helah yang sama dan kekal selamat.",
+  "tourMyPostsTitle": "Siaran Saya",
+  "tourMyPostsBody": "Segala yang anda laporkan muncul di sini. Jejaki perbincangan dan lihat bila moderator telah menyemak siaran anda.",
+  "tourSettingsTitle": "Tetapan",
+  "tourSettingsBody": "Muat turun model perlindungan, urus kebenaran, dan main semula lawatan ini bila-bila masa dari bahagian Akaun.",
+
+  "tourStepCounter": "{current} daripada {total}",
+  "@tourStepCounter": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tourSkip": "Langkau",
+  "tourDone": "Selesai",
+  "tourNext": "Seterusnya"
+}

@@ -1,0 +1,436 @@
+{
+  "@@locale": "en",
+
+  "commonReport": "Report",
+  "commonCancel": "Cancel",
+  "commonRetry": "Retry",
+  "commonRefresh": "Refresh",
+  "commonReviewed": "Reviewed",
+  "commonClear": "Clear",
+  "commonUnknown": "Unknown",
+  "commonReportThis": "Report this",
+  "commonNoPostsYet": "No posts yet",
+  "commonShareWithCommunity": "Share with community",
+  "commonSharing": "Sharing...",
+  "commonDownloadModelFirst": "Download a model in the Settings tab first",
+  "commonTitle": "Title",
+  "commonTitleHint": "A short summary",
+  "commonMessage": "Message",
+  "commonMessageHint": "Paste the scam message here",
+  "commonWhatKindOfScam": "What kind of scam?",
+  "commonTagsOptional": "Tags (optional)",
+  "commonShareIntro": "Help others by sharing a scam you received. Remove any personal details first.",
+
+  "settingsDetectionModel": "Detection model",
+  "settingsProtection": "Protection",
+  "settingsClearNotifications": "Clear captured notifications",
+  "settingsStopProtection": "Stop background protection",
+  "settingsServiceRunning": "Service running",
+  "settingsServiceStopped": "Service stopped",
+  "settingsAccount": "Account",
+  "settingsShowTutorial": "Show tutorial again",
+  "settingsReplayTour": "Replay the app feature overview",
+  "settingsLogOut": "Log out",
+  "settingsSignOutSubtitle": "Sign out of your account",
+  "settingsAdvanced": "Advanced",
+  "settingsAdvancedSubtitle": "Developer and model-tuning options",
+  "settingsModelFromDevice": "Model from this device (testing)",
+  "settingsScanForModels": "Scan for model files",
+  "settingsScanningStorage": "Scanning storage…",
+  "settingsScanSubtitle": "Finds .litertlm and .task files in Downloads and Documents",
+  "settingsModelFilePath": "Model file path",
+  "settingsModelFilePathHelper": "Typed paths work too. The file is used in place — it is never copied.",
+  "settingsContextWindow": "Context window (tokens)",
+  "settingsContextWindowHelper": "Context to request when loading. Must not exceed what your conversion baked in as kv_cache_max_len (MiniCPM5-2B supports up to {max}). Larger windows cost roughly 40 KB of RAM per token.",
+  "@settingsContextWindowHelper": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsContextRange": "Enter between 1024 and {max}",
+  "@settingsContextRange": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsThinking": "Thinking (reasoning)",
+  "settingsThinkingHelper": "Lets the model reason before answering. Uses more tokens and is slower; needs a 3000+ token context to be useful.",
+  "settingsLoadModelFromFile": "Load model from file",
+  "settingsCloudThreshold": "Cloud escalation threshold — escalate below {pct}%",
+  "@settingsCloudThreshold": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsCloudReview": "Cloud review",
+  "settingsForceCloud": "Force cloud",
+  "settingsForceCloudHelper": "Send every message to the cloud model and skip the on-device model. Falls back to on-device only if the cloud is unreachable.",
+  "settingsEndpoint": "Endpoint",
+  "settingsEndpointHint": "https://.../v1/chat/completions (empty = disabled)",
+  "settingsModelName": "Model name",
+  "settingsOnDeviceModel": "On-device model — {name}",
+  "@settingsOnDeviceModel": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsReadyKept": "Ready · {mb} MB · kept in Downloads (survives reinstall)",
+  "@settingsReadyKept": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsReadyOffline": "Ready · {mb} MB · runs offline",
+  "@settingsReadyOffline": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsInstallingBundled": "Installing bundled model {pct}%",
+  "@settingsInstallingBundled": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsDownloadingPct": "Downloading {pct}%",
+  "@settingsDownloadingPct": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsBundledPreparing": "Bundled with the app · preparing",
+  "settingsNotDownloaded": "Not downloaded ({mb} MB)",
+  "@settingsNotDownloaded": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsRemove": "Remove",
+  "settingsPercent": "{pct}%",
+  "@settingsPercent": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsInstall": "Install",
+  "settingsDownload": "Download",
+  "settingsNoFilePicked": "No file picked yet",
+  "settingsScanHint": "Scan for a model file that is already on this phone.",
+  "settingsCustomModelMeta": "{path} · {mb} MB · {tokens} tokens",
+  "@settingsCustomModelMeta": {
+    "placeholders": {
+      "path": { "type": "String" },
+      "mb": { "type": "int" },
+      "tokens": { "type": "int" }
+    }
+  },
+  "settingsForget": "Forget",
+  "settingsAllFilesAccess": "Allow \"All files access\" for Scam Shield in Android settings, then scan again.",
+  "settingsNoModelFiles": "No .litertlm or .task files found.\n\nPut the model in Downloads (or type its path below) and scan again.",
+  "settingsFileSizeMb": "{mb} MB",
+  "@settingsFileSizeMb": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsEnterPathFirst": "Enter a model file path first",
+  "settingsModelLoaded": "{name} loaded",
+  "@settingsModelLoaded": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsModelForgotten": "Picked model forgotten — file kept on device",
+  "settingsSizeFromDevice": "~{mb} MB · from this device",
+  "@settingsSizeFromDevice": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeBundled": "~{mb} MB · bundled",
+  "@settingsSizeBundled": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeDownload": "~{mb} MB · download",
+  "@settingsSizeDownload": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsFieldSaved": "{label} saved",
+  "@settingsFieldSaved": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "settingsSave": "Save",
+  "settingsLanguage": "Language",
+  "settingsLanguageSystem": "System default",
+
+  "callIncoming": "Incoming call: {who}",
+  "@callIncoming": {
+    "placeholders": { "who": { "type": "String" } }
+  },
+  "callBlocked": "Blocked {number}",
+  "@callBlocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callUnblocked": "Unblocked {number}",
+  "@callUnblocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callReported": "Reported {number}",
+  "@callReported": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callRemovedReport": "Removed report for {number}",
+  "@callRemovedReport": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callOutgoing": "Outgoing",
+  "callAnswered": "Answered",
+  "callRejected": "Rejected",
+  "callMissed": "Missed",
+  "callBlockedLabel": "Blocked",
+  "callHistoryTitle": "Call History",
+  "callBlockedNumbers": "Blocked numbers",
+  "callNoUnknown": "No unknown-number calls found",
+  "callPhonePermNeeded": "Phone permission needed",
+  "callPhonePermBody": "Call Manager needs the Phone permission to read your call history.",
+  "callGrantPhone": "Grant phone permission",
+  "callCouldNotLoad": "Could not load call history",
+  "callDurationSuffix": " • {seconds}s",
+  "@callDurationSuffix": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "callReportedSuffix": " • Reported",
+  "callBlock": "Block",
+  "callUnblock": "Unblock",
+  "callRemoveReport": "Remove report",
+  "callBlockAndReport": "Block & Report",
+
+  "reportPhone": "Phone",
+  "reportUnknownApp": "Unknown app",
+  "reportSent": "Report sent",
+  "reportNotSent": "Report not sent — reporting endpoint is not configured yet",
+  "reportAddAppFirst": "Add an application first.",
+  "reportAsScam": "Report this message as a scam?",
+  "reportSuspiciousMessages": "Suspicious messages",
+  "reportTapHint": "Tap “Report this” on anything that looks like a scam.",
+  "reportNothingSuspicious": "Nothing suspicious right now",
+  "reportVerdictSummary": "{label} · {pct}% sure",
+  "@reportVerdictSummary": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "pct": { "type": "int" }
+    }
+  },
+  "reportRecentCalls": "Recent calls",
+  "reportNoCalls": "No calls recorded yet",
+  "reportSomethingElse": "Report something else",
+  "reportWriteOwn": "Write your own report",
+  "reportNumberOptional": "Number (optional)",
+  "reportAppRequired": "Application (required)",
+  "reportAppHint": "WhatsApp, Telegram, Phone…",
+  "reportMarkAs": "Mark as",
+  "reportSpam": "Spam",
+  "reportScam": "Scam",
+  "reportOther": "Other",
+  "reportReason": "Reason",
+  "reportReasonHint": "What did they do or say?",
+  "reportOtherComments": "Other comments",
+  "reportOtherCommentsHint": "Anything else we should know (optional)",
+  "reportSubmit": "Submit report",
+  "reportSubjectTitle": "Report {subject}?",
+  "@reportSubjectTitle": {
+    "placeholders": { "subject": { "type": "String" } }
+  },
+  "reportReasonOptional": "Reason (optional)",
+
+  "shieldTurnOnToRun": "Turn on protection to run the model",
+  "shieldCheckingMessage": "Checking the message...",
+  "shieldScamAi": "Scam AI",
+  "shieldModelReady": "On-device model ready",
+  "shieldNoModel": "No on-device model installed",
+  "shieldStats": "Checked {evaluated} messages, raised {alerts} alerts",
+  "@shieldStats": {
+    "placeholders": {
+      "evaluated": { "type": "int" },
+      "alerts": { "type": "int" }
+    }
+  },
+  "shieldTryMessage": "Try a message",
+  "shieldPasteHint": "Paste a suspicious message...",
+  "shieldCheck": "Check",
+
+  "permDenied": "Permission denied",
+  "permConfirmScreening": "Confirm Call Manager for call screening",
+  "permScreeningUnavailable": "Call screening is not available on this device",
+  "permNotificationAccess": "Notification access",
+  "permNotificationAccessSub": "Reads messages from notifications",
+  "permOverlay": "Display over other apps",
+  "permOverlaySub": "Shows the scam alert while a call is ringing",
+  "permAlerts": "Alerts allowed",
+  "permAlertsSub": "Posts scam alerts as notifications",
+  "permGranted": "Granted",
+  "permGrant": "Grant",
+  "permScreeningRole": "Call screening role",
+  "permScreeningRoleSub": "Lets the app screen incoming calls and block numbers you mark as spam.",
+  "permScreeningActive": "Screening active",
+  "permEnableScreening": "Enable call screening",
+  "permScreeningNotGranted": "Call screening is not granted yet",
+  "permScreeningTapHint": "Tap \"Enable call screening\" above, otherwise calls will still ring through.",
+  "permTitle": "Permissions",
+  "permGrantFollowing": "Grant the following permissions for full access.",
+  "permPhoneCallLog": "Phone & Call Log",
+  "permPhoneGranted": "Phone permission granted",
+  "permContacts": "Contacts",
+  "permContactsGranted": "Contacts permission granted",
+  "permNotifications": "Notifications",
+  "permNotificationsGranted": "Notification permission granted",
+  "permStillNotWorking": "Still not working?",
+  "permOpenSettingsBody": "Open the system settings for this app to manually assign the call screening role and permissions.",
+  "permOpenAppSettings": "Open App Settings",
+  "permNotChecked": "Not checked",
+  "permStatusDenied": "Denied",
+  "permPermanentlyDenied": "Permanently denied",
+  "permNotGranted": "Not granted",
+
+  "contactsPermRequired": "Contacts permission is required to view contacts",
+  "contactsLoadFailed": "Failed to load contacts: {error}",
+  "@contactsLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "contactsTitle": "Contacts",
+  "contactsOpenMenu": "Open menu",
+  "contactsSearchHint": "Search contacts...",
+  "contactsCouldNotLoad": "Could not load contacts",
+  "contactsNoneFound": "No contacts found",
+  "contactsNoDetails": "No details",
+  "contactsCouldNotCall": "Could not initiate call",
+  "contactsCouldNotCallError": "Could not initiate call: {error}",
+  "@contactsCouldNotCallError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "safetyTitle": "Safety",
+  "safetyRecentAlerts": "Recent alerts",
+  "safetyProtectedOn": "You are protected",
+  "safetyProtectedOff": "Protection is off",
+  "safetyDownloadFirstPeriod": "Download a model in the Settings tab first.",
+  "safetyWeCheck": "We check your messages for scams.",
+  "safetyTurnOnToCheck": "Turn this on to check messages for scams.",
+  "safetyTurnOff": "Turn protection off",
+  "safetyTurnOn": "Turn protection on",
+  "safetyNoScams": "No scams found",
+  "safetyNoScamsBody": "Suspicious messages will show up here.",
+
+  "protectionChecked": "Checked",
+  "protectionAlerts": "Alerts",
+  "protectionOn": "Protection is on",
+  "protectionOff": "Protection is off",
+  "protectionReadsNotifications": "Reads notifications from messaging apps",
+
+  "activityAll": "All ({count})",
+  "@activityAll": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityScams": "Scams ({count})",
+  "@activityScams": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityUnchecked": "Unchecked ({count})",
+  "@activityUnchecked": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityNoMessages": "No messages captured yet.",
+  "activityNotCheckedSuffix": " · not checked",
+  "activityCloudSuffix": " · cloud",
+  "activityNotCheckedYet": "Not checked yet.",
+  "activityVerdict": "Verdict",
+  "activityConfidence": "Confidence",
+  "activityCheckedBy": "Checked by",
+  "activityEscalatedSuffix": "{wire} (escalated)",
+  "@activityEscalatedSuffix": {
+    "placeholders": { "wire": { "type": "String" } }
+  },
+  "activityReason": "Reason",
+  "activityAiThinking": "AI thinking",
+  "activityNoOutput": "(the model produced no readable output)",
+
+  "blockedNumbersTitle": "Blocked Numbers",
+  "blockedNoNumbers": "No blocked numbers",
+
+  "notificationsTitle": "Notifications",
+
+  "settingsScreenModelInstalled": "{name} installed",
+  "@settingsScreenModelInstalled": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsScreenTitle": "Settings",
+  "settingsScreenModelTab": "Model",
+  "settingsScreenPermissionsTab": "Permissions",
+
+  "loginAppName": "Call Manager",
+  "loginTagline": "Keeps you safe from scam calls and messages.",
+  "loginGetStarted": "Get Started",
+
+  "onboardingTitle": "Permissions",
+  "onboardingContinue": "Continue",
+
+  "authEnterEmail": "Please enter your email.",
+  "authValidEmail": "Please enter a valid email.",
+  "authEnterPassword": "Please enter your password.",
+  "authPasswordLength": "Use at least 8 characters.",
+  "authEnterName": "Please enter your name.",
+  "authCreateAccount": "Create account",
+  "authSignIn": "Sign in",
+  "authRegisterIntro": "Join the community to share and learn about scams.",
+  "authLoginIntro": "Sign in to post and join discussions.",
+  "authYourName": "Your name",
+  "authYourNameHint": "Enter your name",
+  "authEmail": "Email",
+  "authEmailHint": "Enter your email",
+  "authPassword": "Password",
+  "authPasswordHint": "Enter your password",
+  "authToggleToLogin": "Already have an account? Sign in",
+  "authToggleToRegister": "New here? Create an account",
+
+  "communityTitle": "Community",
+  "communityShareScam": "Share a scam",
+  "communityAll": "All",
+  "communityNoPostsBody": "Scam reports shared by the community will show up here.",
+
+  "createChooseType": "Please choose a scam type.",
+  "createAddTitle": "Please add a title.",
+  "createAddMessage": "Please add the message text.",
+
+  "reportTabTitle": "Report a scam",
+  "reportTabThankYou": "Shared with the community. Thank you!",
+  "reportTabTrackIt": "Shared with the community. Check My posts to track it.",
+
+  "myPostsTitle": "My posts",
+  "myPostsNoneBody": "Scams you report will show up here so you can track them.",
+
+  "postDetailThankYou": "Thank you. Our team will review this post.",
+  "postDetailTitle": "Post",
+  "postDetailReportTooltip": "Report this post",
+  "postDetailComments": "Comments ({count})",
+  "@postDetailComments": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "postDetailNoComments": "No comments yet.",
+  "postDetailWriteComment": "Write a comment",
+  "postDetailPostComment": "Post comment",
+  "postDetailFlagPersonalInfo": "Shows personal information",
+  "postDetailFlagHarmful": "Harmful or dangerous",
+  "postDetailFlagSpam": "Spam",
+  "postDetailFlagMisinfo": "Misinformation",
+  "postDetailFlagOther": "Other",
+
+  "guidanceClickedLink": "I clicked a link",
+  "guidanceGotMessage": "I just got a message",
+  "guidanceSharedPassword": "I shared my password",
+  "guidanceSentMoney": "I sent money",
+  "guidanceCouldNotOpenLink": "Could not open the link.",
+  "guidanceCouldNotCall": "Could not start the call.",
+  "guidanceTitle": "Get help",
+  "guidanceWhatHappened": "What happened?",
+  "guidanceWhoToContact": "Who to contact",
+  "guidanceShowAll": "Show all",
+  "guidanceOpenWebsite": "Open website",
+  "guidanceNoAdvice": "No advice yet",
+  "guidanceNoAdviceBody": "Pick what happened above to see steps you can take.",
+
+  "tourCallsTitle": "Calls",
+  "tourCallsBody": "This is where calls from unknown numbers show up. Tap a call to see details, and use the block icon in the top corner to manage numbers you never want to hear from again.",
+  "tourSafetyTitle": "Safety",
+  "tourSafetyBody": "Turn on protection here. Once a model is downloaded, Scam Shield reads incoming messages on your device and warns you about likely scams.",
+  "tourReportTitle": "Report",
+  "tourReportBody": "Spotted a scam? Share it with the community from this tab so other people can recognise the same trick and stay safe.",
+  "tourMyPostsTitle": "My Posts",
+  "tourMyPostsBody": "Everything you report lands here. Track the discussion and see when a moderator has reviewed your post.",
+  "tourSettingsTitle": "Settings",
+  "tourSettingsBody": "Download a protection model, manage permissions, and replay this tour any time from the Account section.",
+
+  "tourStepCounter": "{current} of {total}",
+  "@tourStepCounter": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tourSkip": "Skip",
+  "tourDone": "Done",
+  "tourNext": "Next"
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../services/scamshield_channels.dart';
 
@@ -26,22 +27,23 @@ class _ProtectionTabState extends State<ProtectionTab> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     final status = widget.status;
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _protectionCard(scheme),
+          _protectionCard(scheme, l10n),
           const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: _statTile('Checked', '${status.evaluated}', Icons.forum_outlined),
+                child: _statTile(l10n.protectionChecked, '${status.evaluated}', Icons.forum_outlined),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _statTile('Alerts', '${status.alertsRaised}', Icons.warning_amber_rounded),
+                child: _statTile(l10n.protectionAlerts, '${status.alertsRaised}', Icons.warning_amber_rounded),
               ),
             ],
           ),
@@ -50,7 +52,7 @@ class _ProtectionTabState extends State<ProtectionTab> {
     );
   }
 
-  Widget _protectionCard(ColorScheme scheme) {
+  Widget _protectionCard(ColorScheme scheme, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -67,15 +69,15 @@ class _ProtectionTabState extends State<ProtectionTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.protectionEnabled ? 'Protection is on' : 'Protection is off',
+                    widget.protectionEnabled ? l10n.protectionOn : l10n.protectionOff,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 4),
                   Text(
                     !widget.modelInstalled
-                        ? 'Download a model in the Settings tab first'
+                        ? l10n.commonDownloadModelFirst
                         : widget.status.lastMessage.isEmpty
-                            ? 'Reads notifications from messaging apps'
+                            ? l10n.protectionReadsNotifications
                             : widget.status.lastMessage,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),

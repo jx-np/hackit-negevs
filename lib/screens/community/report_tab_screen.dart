@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
@@ -70,7 +71,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_scamType == null) {
-      setState(() => _error = 'Please choose a scam type.');
+      setState(() => _error = AppLocalizations.of(context).createChooseType);
       return;
     }
     setState(() {
@@ -96,7 +97,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       });
       _formKey.currentState?.reset();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Shared with the community. Thank you!')),
+        SnackBar(content: Text(AppLocalizations.of(context).reportTabThankYou)),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -108,22 +109,27 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   }
 
   String? _validateTitle(String? value) {
-    if ((value ?? '').trim().isEmpty) return 'Please add a title.';
+    if ((value ?? '').trim().isEmpty) {
+      return AppLocalizations.of(context).createAddTitle;
+    }
     return null;
   }
 
   String? _validateText(String? value) {
-    if ((value ?? '').trim().isEmpty) return 'Please add the message text.';
+    if ((value ?? '').trim().isEmpty) {
+      return AppLocalizations.of(context).createAddMessage;
+    }
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Report a scam',
+          l10n.reportTabTitle,
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
@@ -137,20 +143,20 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Help others by sharing a scam you received. Remove any personal details first.',
+                      l10n.commonShareIntro,
                       style: theme.textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 24),
-                    _FieldLabel('Title'),
+                    _FieldLabel(l10n.commonTitle),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _titleController,
                       validator: _validateTitle,
                       style: theme.textTheme.titleMedium,
-                      decoration: _fieldDecoration('A short summary'),
+                      decoration: _fieldDecoration(l10n.commonTitleHint),
                     ),
                     const SizedBox(height: 24),
-                    _FieldLabel('Message'),
+                    _FieldLabel(l10n.commonMessage),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _textController,
@@ -158,10 +164,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
                       minLines: 4,
                       maxLines: 10,
                       style: theme.textTheme.bodyLarge,
-                      decoration: _fieldDecoration('Paste the scam message here'),
+                      decoration: _fieldDecoration(l10n.commonMessageHint),
                     ),
                     const SizedBox(height: 24),
-                    _FieldLabel('What kind of scam?'),
+                    _FieldLabel(l10n.commonWhatKindOfScam),
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 10,
@@ -185,7 +191,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
                     ),
                     if (_availableTags.isNotEmpty) ...[
                       const SizedBox(height: 24),
-                      _FieldLabel('Tags (optional)'),
+                      _FieldLabel(l10n.commonTagsOptional),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 10,
@@ -230,7 +236,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Shared with the community. Check My posts to track it.',
+                                l10n.reportTabTrackIt,
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   color: theme.colorScheme.onPrimaryContainer,
                                 ),
@@ -280,7 +286,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
                               )
                             : const Icon(Icons.publish, size: 26),
                         label: Text(
-                          _submitting ? 'Sharing...' : 'Share with community',
+                          _submitting
+                              ? l10n.commonSharing
+                              : l10n.commonShareWithCommunity,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,

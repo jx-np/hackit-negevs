@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../core/contact_directory.dart';
 import '../main.dart' show ReportDeepLinkPayload;
@@ -85,16 +86,17 @@ class ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> prefillFromLink(ReportDeepLinkPayload payload) async {
+    final l10n = AppLocalizations.of(context);
     _linkSender = payload.subject;
     _linkNotificationKey = payload.notificationKey;
     _reasonController.text = payload.content;
 
     if (payload.source == 'call') {
       _numberController.text = payload.subject;
-      _applicationController.text = 'Phone';
+      _applicationController.text = l10n.reportPhone;
     } else {
       _applicationController.text =
-          payload.app.trim().isEmpty ? 'Unknown app' : payload.app.trim();
+          payload.app.trim().isEmpty ? l10n.reportUnknownApp : payload.app.trim();
       final number = await _resolveNumber(payload.subject);
       if (number != null) _numberController.text = number;
     }
@@ -123,12 +125,11 @@ class ReportScreenState extends State<ReportScreen> {
     final ok = await ReportService.submitPayload(payload);
     if (!mounted) return;
     setState(() => _sending = false);
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok
-              ? 'Report sent'
-              : 'Report not sent — reporting endpoint is not configured yet',
+          ok ? l10n.reportSent : l10n.reportNotSent,
         ),
       ),
     );
@@ -176,8 +177,9 @@ class ReportScreenState extends State<ReportScreen> {
     final number = _numberController.text.trim();
     final application = _applicationController.text.trim();
     if (application.isEmpty) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add an application first.')),
+        SnackBar(content: Text(l10n.reportAddAppFirst)),
       );
       return;
     }
@@ -206,13 +208,14 @@ class ReportScreenState extends State<ReportScreen> {
 
   Future<void> _confirmReport(LoggedNotification entry) async {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final content = entry.record.content.trim();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         icon: Icon(Icons.gpp_bad, size: 40, color: theme.colorScheme.error),
         title: Text(
-          'Report this message as a scam?',
+          l10n.reportAsScam,
           style: theme.textTheme.titleLarge,
         ),
         content: content.isEmpty
@@ -229,7 +232,7 @@ class ReportScreenState extends State<ReportScreen> {
             height: 56,
             child: TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text('Cancel', style: theme.textTheme.titleMedium),
+              child: Text(l10n.commonCancel, style: theme.textTheme.titleMedium),
             ),
           ),
           SizedBox(
@@ -240,7 +243,7 @@ class ReportScreenState extends State<ReportScreen> {
                 foregroundColor: theme.colorScheme.onError,
               ),
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text('Report', style: theme.textTheme.titleMedium),
+              child: Text(l10n.commonReport, style: theme.textTheme.titleMedium),
             ),
           ),
         ],
@@ -254,8 +257,9 @@ class ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Report')),
+      appBar: AppBar(title: Text(l10n.commonReport)),
       body: RefreshIndicator(
         onRefresh: _load,
         child: _loading
@@ -264,21 +268,21 @@ class ReportScreenState extends State<ReportScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   Text(
-                    'Suspicious messages',
+                    l10n.reportSuspiciousMessages,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Tap “Report this” on anything that looks like a scam.',
+                    l10n.reportTapHint,
                     style: theme.textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 20),
                   if (_queue.isEmpty)
                     _emptyCard(
                       Icons.verified_user_outlined,
-                      'Nothing suspicious right now',
+                      l10n.reportNothingSuspicious,
                     )
                   else
                     for (final entry in _queue) ...[
@@ -296,6 +300,7 @@ class ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _queueCard(ThemeData theme, LoggedNotification entry) {
+    final l10n = AppLocalizations.of(context);
     final verdict = entry.verdict;
     final title = entry.record.title.isEmpty
         ? entry.record.appLabel
@@ -345,7 +350,10 @@ class ReportScreenState extends State<ReportScreen> {
             if (verdict != null) ...[
               const SizedBox(height: 12),
               Text(
-                '${verdict.label.title} · ${(verdict.confidence * 100).round()}% sure',
+                l10n.reportVerdictSummary(
+                  verdict.label.title,
+                  (verdict.confidence * 100).round(),
+                ),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: theme.colorScheme.error,
@@ -379,7 +387,7 @@ class ReportScreenState extends State<ReportScreen> {
                       )
                     : const Icon(Icons.flag, size: 24),
                 label: Text(
-                  'Report this',
+                  l10n.commonReportThis,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onError,
@@ -394,6 +402,7 @@ class ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _recentCard(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -401,14 +410,14 @@ class ReportScreenState extends State<ReportScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Recent calls',
+              l10n.reportRecentCalls,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 16),
             if (_recentCalls.isEmpty)
-              Text('No calls recorded yet', style: theme.textTheme.bodyLarge)
+              Text(l10n.reportNoCalls, style: theme.textTheme.bodyLarge)
             else
               for (var i = 0; i < _recentCalls.length; i++) ...[
                 if (i > 0) const SizedBox(height: 16),
@@ -434,11 +443,11 @@ class ReportScreenState extends State<ReportScreen> {
                       child: FilledButton(
                         onPressed: () {
                           _numberController.text = _recentCalls[i].rawNumber;
-                          _applicationController.text = 'Phone';
+                          _applicationController.text = l10n.reportPhone;
                           setState(() => _category = ReportPayload.categorySpam);
                         },
                         child: Text(
-                          'Report',
+                          l10n.commonReport,
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: theme.colorScheme.onPrimary,
                           ),
@@ -455,6 +464,7 @@ class ReportScreenState extends State<ReportScreen> {
   }
 
   Widget _composeCard(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
@@ -467,13 +477,13 @@ class ReportScreenState extends State<ReportScreen> {
           color: theme.colorScheme.primary,
         ),
         title: Text(
-          'Report something else',
+          l10n.reportSomethingElse,
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w700,
           ),
         ),
         subtitle: Text(
-          'Write your own report',
+          l10n.reportWriteOwn,
           style: theme.textTheme.bodyLarge,
         ),
         children: [
@@ -482,9 +492,9 @@ class ReportScreenState extends State<ReportScreen> {
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
             style: theme.textTheme.titleMedium,
-            decoration: const InputDecoration(
-              labelText: 'Number (optional)',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.reportNumberOptional,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -492,32 +502,32 @@ class ReportScreenState extends State<ReportScreen> {
             controller: _applicationController,
             textInputAction: TextInputAction.next,
             style: theme.textTheme.titleMedium,
-            decoration: const InputDecoration(
-              labelText: 'Application (required)',
-              hintText: 'WhatsApp, Telegram, Phone…',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.reportAppRequired,
+              hintText: l10n.reportAppHint,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
             initialValue: _category,
             style: theme.textTheme.titleMedium,
-            decoration: const InputDecoration(
-              labelText: 'Mark as',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.reportMarkAs,
+              border: const OutlineInputBorder(),
             ),
-            items: const [
+            items: [
               DropdownMenuItem(
                 value: ReportPayload.categorySpam,
-                child: Text('Spam'),
+                child: Text(l10n.reportSpam),
               ),
               DropdownMenuItem(
                 value: ReportPayload.categoryScam,
-                child: Text('Scam'),
+                child: Text(l10n.reportScam),
               ),
               DropdownMenuItem(
                 value: ReportPayload.categoryOther,
-                child: Text('Other'),
+                child: Text(l10n.reportOther),
               ),
             ],
             onChanged: (value) {
@@ -531,10 +541,10 @@ class ReportScreenState extends State<ReportScreen> {
             maxLines: 4,
             textInputAction: TextInputAction.newline,
             style: theme.textTheme.titleMedium,
-            decoration: const InputDecoration(
-              labelText: 'Reason',
-              hintText: 'What did they do or say?',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.reportReason,
+              hintText: l10n.reportReasonHint,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
@@ -544,10 +554,10 @@ class ReportScreenState extends State<ReportScreen> {
             maxLines: 4,
             textInputAction: TextInputAction.newline,
             style: theme.textTheme.titleMedium,
-            decoration: const InputDecoration(
-              labelText: 'Other comments',
-              hintText: 'Anything else we should know (optional)',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.reportOtherComments,
+              hintText: l10n.reportOtherCommentsHint,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 20),
@@ -564,7 +574,7 @@ class ReportScreenState extends State<ReportScreen> {
                     )
                   : const Icon(Icons.send_outlined, size: 24),
               label: Text(
-                'Submit report',
+                l10n.reportSubmit,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.onPrimary,
@@ -635,11 +645,12 @@ class _CategoryDialogState extends State<_CategoryDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(
         widget.source == 'call'
-            ? 'Report ${widget.subject}?'
-            : 'Report this message as a scam?',
+            ? l10n.reportSubjectTitle(widget.subject)
+            : l10n.reportAsScam,
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -656,19 +667,19 @@ class _CategoryDialogState extends State<_CategoryDialog> {
             ),
           DropdownButtonFormField<String>(
             initialValue: _category,
-            decoration: const InputDecoration(labelText: 'Mark as'),
-            items: const [
+            decoration: InputDecoration(labelText: l10n.reportMarkAs),
+            items: [
               DropdownMenuItem(
                 value: ReportPayload.categorySpam,
-                child: Text('Spam'),
+                child: Text(l10n.reportSpam),
               ),
               DropdownMenuItem(
                 value: ReportPayload.categoryScam,
-                child: Text('Scam'),
+                child: Text(l10n.reportScam),
               ),
               DropdownMenuItem(
                 value: ReportPayload.categoryOther,
-                child: Text('Other'),
+                child: Text(l10n.reportOther),
               ),
             ],
             onChanged: (value) {
@@ -680,9 +691,9 @@ class _CategoryDialogState extends State<_CategoryDialog> {
             controller: _reason,
             minLines: 2,
             maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: 'Reason (optional)',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.reportReasonOptional,
+              border: const OutlineInputBorder(),
             ),
           ),
         ],
@@ -690,14 +701,14 @@ class _CategoryDialogState extends State<_CategoryDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           onPressed: () {
             widget.onDone(_category, _reason.text);
             Navigator.of(context).pop();
           },
-          child: const Text('Report'),
+          child: Text(l10n.commonReport),
         ),
       ],
     );

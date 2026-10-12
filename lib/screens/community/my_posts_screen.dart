@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
@@ -62,16 +63,17 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('My posts')),
+      appBar: AppBar(title: Text(l10n.myPostsTitle)),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: _buildBody(theme),
+        child: _buildBody(theme, l10n),
       ),
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     if (_loading && _posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -79,13 +81,13 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         if (_error != null) _errorCard(theme),
-        if (_posts.isEmpty && _error == null) _emptyCard(theme),
-        for (final post in _posts) _postCard(theme, post),
+        if (_posts.isEmpty && _error == null) _emptyCard(theme, l10n),
+        for (final post in _posts) _postCard(theme, l10n, post),
       ],
     );
   }
 
-  Widget _postCard(ThemeData theme, FeedPost post) {
+  Widget _postCard(ThemeData theme, AppLocalizations l10n, FeedPost post) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
@@ -105,7 +107,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                           ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ),
-                  if (post.isReviewed) _reviewedBadge(theme),
+                  if (post.isReviewed) _reviewedBadge(theme, l10n),
                 ],
               ),
               const SizedBox(height: 8),
@@ -113,14 +115,6 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  if (post.category != null) ...[
-                    Icon(Icons.label_outline,
-                        size: 20, color: theme.colorScheme.primary),
-                    const SizedBox(width: 6),
-                    Text(post.category!.displayName,
-                        style: theme.textTheme.bodyMedium),
-                    const SizedBox(width: 16),
-                  ],
                   Icon(Icons.chat_bubble_outline,
                       size: 20, color: theme.colorScheme.outline),
                   const SizedBox(width: 6),
@@ -135,7 +129,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     );
   }
 
-  Widget _reviewedBadge(ThemeData theme) {
+  Widget _reviewedBadge(ThemeData theme, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
@@ -148,7 +142,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
           Icon(Icons.verified, size: 18, color: theme.colorScheme.primary),
           const SizedBox(width: 4),
           Text(
-            'Reviewed',
+            l10n.commonReviewed,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -160,7 +154,7 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     );
   }
 
-  Widget _emptyCard(ThemeData theme) {
+  Widget _emptyCard(ThemeData theme, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -169,13 +163,13 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
             Icon(Icons.post_add, size: 56, color: theme.colorScheme.primary),
             const SizedBox(height: 12),
             Text(
-              'No posts yet',
+              l10n.commonNoPostsYet,
               style: theme.textTheme.titleLarge
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
             Text(
-              'Scams you report will show up here so you can track them.',
+              l10n.myPostsNoneBody,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge,
             ),

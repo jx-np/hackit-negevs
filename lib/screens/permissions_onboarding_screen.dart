@@ -1,5 +1,6 @@
 import 'package:call_log_app/main.dart';
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import 'permissions_tab.dart';
@@ -43,8 +44,9 @@ class _PermissionsOnboardingScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Permissions')),
+      appBar: AppBar(title: Text(l10n.onboardingTitle)),
       body: Column(
         children: [
           Expanded(child: PermissionsTab(key: ValueKey(_refreshToken))),
@@ -55,7 +57,7 @@ class _PermissionsOnboardingScreenState
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _continue,
-                  child: const Text('Continue'),
+                  child: Text(l10n.onboardingContinue),
                 ),
               ),
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:forui/forui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -42,24 +43,26 @@ class _BlockedNumbersScreenState extends State<BlockedNumbersScreen> {
     setState(() => _blocked.remove(number));
     await _save();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Unblocked $number')),
+      SnackBar(content: Text(l10n.callUnblocked(number))),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final numbers = _blocked.toList()..sort();
     return FScaffold(
       header: FHeader.nested(
-        title: const Text('Blocked Numbers'),
+        title: Text(l10n.blockedNumbersTitle),
         prefixes: [
           FHeaderAction.back(onPress: () => Navigator.of(context).maybePop()),
         ],
         suffixes: [
           FHeaderAction(
             icon: const Icon(Icons.refresh),
-            semanticsLabel: 'Refresh',
+            semanticsLabel: l10n.commonRefresh,
             onPress: _load,
           ),
         ],
@@ -95,6 +98,7 @@ class _BlockedNumbersScreenState extends State<BlockedNumbersScreen> {
   }
 
   Widget _buildEmpty(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -105,7 +109,7 @@ class _BlockedNumbersScreenState extends State<BlockedNumbersScreen> {
             color: context.theme.colors.mutedForeground,
           ),
           const SizedBox(height: 16),
-          const Text('No blocked numbers'),
+          Text(l10n.blockedNoNumbers),
         ],
       ),
     );

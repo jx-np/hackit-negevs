@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
@@ -121,7 +122,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (reason == null) return;
     try {
       await _community.flagPost(postId: widget.postId, reason: reason);
-      _showMessage('Thank you. Our team will review this post.');
+      _showMessage(AppLocalizations.of(context).postDetailThankYou);
     } on ApiException catch (e) {
       _showMessage(e.message);
     }
@@ -135,22 +136,23 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Post'),
+        title: Text(l10n.postDetailTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.flag_outlined, size: 28),
-            tooltip: 'Report this post',
+            tooltip: l10n.postDetailReportTooltip,
             onPressed: _post == null ? null : _flagPost,
           ),
         ],
       ),
-      body: _buildBody(theme),
+      body: _buildBody(theme, l10n),
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -173,16 +175,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         _voteRow(theme, post),
         const SizedBox(height: 20),
         Text(
-          'Comments (${_comments.length})',
+          l10n.postDetailComments(_comments.length),
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
         if (_comments.isEmpty)
-          Text('No comments yet.', style: theme.textTheme.bodyLarge)
+          Text(l10n.postDetailNoComments, style: theme.textTheme.bodyLarge)
         else
           for (final comment in _comments) _commentCard(theme, comment),
         const SizedBox(height: 16),
-        _commentComposer(theme),
+        _commentComposer(theme, l10n),
       ],
     );
   }
@@ -252,7 +254,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  Widget _commentComposer(ThemeData theme) {
+  Widget _commentComposer(ThemeData theme, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -262,7 +264,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           maxLines: 5,
           style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
-            hintText: 'Write a comment',
+            hintText: l10n.postDetailWriteComment,
             filled: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -280,7 +282,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.send),
-            label: const Text('Post comment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            label: Text(l10n.postDetailPostComment, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
         ),
       ],
@@ -296,20 +298,37 @@ class _FlagDialog extends StatefulWidget {
 class _FlagDialogState extends State<_FlagDialog> {
   String _reason = 'harmful';
 
-  static const Map<String, String> _reasons = {
-    'personal_information': 'Shows personal information',
-    'harmful': 'Harmful or dangerous',
-    'spam': 'Spam',
-    'misinformation': 'Misinformation',
-    'other': 'Other',
-  };
+  static const List<String> _reasonSlugs = [
+    'personal_information',
+    'harmful',
+    'spam',
+    'misinformation',
+    'other',
+  ];
+
+  String _reasonLabel(AppLocalizations l10n, String slug) {
+    switch (slug) {
+      case 'personal_information':
+        return l10n.postDetailFlagPersonalInfo;
+      case 'harmful':
+        return l10n.postDetailFlagHarmful;
+      case 'spam':
+        return l10n.postDetailFlagSpam;
+      case 'misinformation':
+        return l10n.postDetailFlagMisinfo;
+      case 'other':
+      default:
+        return l10n.postDetailFlagOther;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
       title: Text(
-        'Report this post',
+        l10n.postDetailReportTooltip,
         style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
       ),
       content: RadioGroup<String>(
@@ -318,10 +337,10 @@ class _FlagDialogState extends State<_FlagDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final entry in _reasons.entries)
+            for (final slug in _reasonSlugs)
               RadioListTile<String>(
-                value: entry.key,
-                title: Text(entry.value, style: theme.textTheme.bodyLarge),
+                value: slug,
+                title: Text(_reasonLabel(l10n, slug), style: theme.textTheme.bodyLarge),
               ),
           ],
         ),
@@ -329,11 +348,11 @@ class _FlagDialogState extends State<_FlagDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel', style: TextStyle(fontSize: 16)),
+          child: Text(l10n.commonCancel, style: const TextStyle(fontSize: 16)),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_reason),
-          child: const Text('Report', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          child: Text(l10n.commonReport, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         ),
       ],
     );

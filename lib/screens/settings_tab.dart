@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
 
 import '../core/model_catalog.dart';
 import '../services/model_controller.dart';
 import '../services/model_store.dart';
 import '../services/protection_settings.dart';
+import '../state/auth_controller.dart';
+import '../state/locale_controller.dart';
+import '../widgets/tour/tour_controller.dart';
 
 class SettingsTab extends StatefulWidget {
   const SettingsTab({
@@ -88,10 +93,11 @@ class _SettingsTabState extends State<SettingsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Detection model', style: Theme.of(context).textTheme.titleLarge),
+        Text(l10n.settingsDetectionModel, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         Card(
           child: Column(
@@ -108,24 +114,55 @@ class _SettingsTabState extends State<SettingsTab> {
         const SizedBox(height: 8),
         _installedModelCard(),
         const SizedBox(height: 24),
-        Text('Protection', style: Theme.of(context).textTheme.titleLarge),
+        Text(l10n.settingsProtection, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 8),
         Card(
           child: Column(
             children: [
               ListTile(
                 leading: const Icon(Icons.delete_sweep_outlined),
-                title: const Text('Clear captured notifications'),
+                title: Text(l10n.settingsClearNotifications),
                 onTap: widget.onClearLog,
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.stop_circle_outlined),
-                title: const Text('Stop background protection'),
+                title: Text(l10n.settingsStopProtection),
                 subtitle: Text(
-                  widget.serviceRunning ? 'Service running' : 'Service stopped',
+                  widget.serviceRunning ? l10n.settingsServiceRunning : l10n.settingsServiceStopped,
                 ),
                 onTap: widget.serviceRunning ? widget.onStopService : null,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(l10n.settingsAccount, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        Card(
+          child: Column(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.school_outlined),
+                title: Text(l10n.settingsShowTutorial),
+                subtitle: Text(l10n.settingsReplayTour),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.read<TourController>().start(),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.language),
+                title: Text(AppLocalizations.of(context).settingsLanguage),
+                subtitle: Text(_languageLabel(context)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: _showLanguagePicker,
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.logout),
+                title: Text(l10n.settingsLogOut),
+                subtitle: Text(l10n.settingsSignOutSubtitle),
+                onTap: () => context.read<AuthController>().logout(),
               ),
             ],
           ),
@@ -137,16 +174,16 @@ class _SettingsTabState extends State<SettingsTab> {
             initiallyExpanded: false,
             leading: const Icon(Icons.tune),
             title: Text(
-              'Advanced',
+              l10n.settingsAdvanced,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            subtitle: const Text('Developer and model-tuning options'),
+            subtitle: Text(l10n.settingsAdvancedSubtitle),
             childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             children: [
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Model from this device (testing)',
+                  l10n.settingsModelFromDevice,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -158,11 +195,11 @@ class _SettingsTabState extends State<SettingsTab> {
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.travel_explore),
-                      title: const Text('Scan for model files'),
+                      title: Text(l10n.settingsScanForModels),
                       subtitle: Text(
                         _scanning
-                            ? 'Scanning storage…'
-                            : 'Finds .litertlm and .task files in Downloads and Documents',
+                            ? l10n.settingsScanningStorage
+                            : l10n.settingsScanSubtitle,
                       ),
                       trailing:
                           _scanning
@@ -183,12 +220,11 @@ class _SettingsTabState extends State<SettingsTab> {
                         enableSuggestions: false,
                         keyboardType: TextInputType.url,
                         textInputAction: TextInputAction.done,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          labelText: 'Model file path',
+                        decoration: InputDecoration(
+                          border: const OutlineInputBorder(),
+                          labelText: l10n.settingsModelFilePath,
                           hintText: '/storage/emulated/0/Download/model.litertlm',
-                          helperText:
-                              'Typed paths work too. The file is used in place — it is never copied.',
+                          helperText: l10n.settingsModelFilePathHelper,
                         ),
                       ),
                     ),
@@ -196,20 +232,20 @@ class _SettingsTabState extends State<SettingsTab> {
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                       child: _SaveableField(
                         controller: _customContextController,
-                        label: 'Context window (tokens)',
+                        label: l10n.settingsContextWindow,
                         hint: kDefaultCustomModelContext.toString(),
-                        helper:
-                            'Context to request when loading. Must not exceed what '
-                            'your conversion baked in as kv_cache_max_len '
-                            '(MiniCPM5-2B supports up to $kMaxCustomModelContext). '
-                            'Larger windows cost roughly 40 KB of RAM per token.',
+                        helper: l10n.settingsContextWindowHelper(
+                          kMaxCustomModelContext,
+                        ),
                         keyboardType: TextInputType.number,
                         onSave: (value) async {
                           final parsed = int.tryParse(value);
                           if (parsed == null ||
                               parsed < 1024 ||
                               parsed > kMaxCustomModelContext) {
-                            return 'Enter between 1024 and $kMaxCustomModelContext';
+                            return l10n.settingsContextRange(
+                              kMaxCustomModelContext,
+                            );
                           }
                           final settings = ProtectionSettings();
                           await settings.setCustomModelContext(parsed);
@@ -220,11 +256,8 @@ class _SettingsTabState extends State<SettingsTab> {
                       ),
                     ),
                     SwitchListTile(
-                      title: const Text('Thinking (reasoning)'),
-                      subtitle: const Text(
-                        'Lets the model reason before answering. Uses more tokens '
-                        'and is slower; needs a 3000+ token context to be useful.',
-                      ),
+                      title: Text(l10n.settingsThinking),
+                      subtitle: Text(l10n.settingsThinkingHelper),
                       value: _customThinking,
                       onChanged: (value) async {
                         setState(() => _customThinking = value);
@@ -242,7 +275,7 @@ class _SettingsTabState extends State<SettingsTab> {
                           onPressed:
                               widget.model.busy ? null : _loadFromTypedPath,
                           icon: const Icon(Icons.upload_file_outlined),
-                          label: const Text('Load model from file'),
+                          label: Text(l10n.settingsLoadModelFromFile),
                         ),
                       ),
                     ),
@@ -253,7 +286,7 @@ class _SettingsTabState extends State<SettingsTab> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Cloud escalation threshold — escalate below ${(_threshold * 100).round()}%',
+                  l10n.settingsCloudThreshold((_threshold * 100).round()),
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -270,7 +303,7 @@ class _SettingsTabState extends State<SettingsTab> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Cloud review',
+                  l10n.settingsCloudReview,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -279,12 +312,8 @@ class _SettingsTabState extends State<SettingsTab> {
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: const Text('Force cloud'),
-                      subtitle: const Text(
-                        'Send every message to the cloud model and skip the '
-                        'on-device model. Falls back to on-device only if the cloud '
-                        'is unreachable.',
-                      ),
+                      title: Text(l10n.settingsForceCloud),
+                      subtitle: Text(l10n.settingsForceCloudHelper),
                       value: widget.forceCloud,
                       onChanged: (value) => widget.onForceCloud(value),
                     ),
@@ -294,8 +323,8 @@ class _SettingsTabState extends State<SettingsTab> {
               const SizedBox(height: 12),
               _SaveableField(
                 controller: _endpointController,
-                label: 'Endpoint',
-                hint: 'https://.../v1/chat/completions (empty = disabled)',
+                label: l10n.settingsEndpoint,
+                hint: l10n.settingsEndpointHint,
                 keyboardType: TextInputType.url,
                 onSave: (value) async {
                   await widget.onEndpoint(value);
@@ -305,7 +334,7 @@ class _SettingsTabState extends State<SettingsTab> {
               const SizedBox(height: 12),
               _SaveableField(
                 controller: _remoteModelController,
-                label: 'Model name',
+                label: l10n.settingsModelName,
                 hint: 'minicpm5-2b',
                 onSave: (value) async {
                   await widget.onRemoteModel(value);
@@ -320,6 +349,7 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   Widget _installedModelCard() {
+    final l10n = AppLocalizations.of(context);
     final model = widget.model;
     final scheme = Theme.of(context).colorScheme;
     final progress = model.progress;
@@ -332,33 +362,33 @@ class _SettingsTabState extends State<SettingsTab> {
               model.installed ? Icons.check_circle : Icons.memory,
               color: model.installed ? Colors.green : scheme.outline,
             ),
-            title: Text('On-device model — ${model.spec.displayName}'),
+            title: Text(l10n.settingsOnDeviceModel(model.spec.displayName)),
             subtitle: Text(
               model.installed
                   ? (model.persistent
-                      ? 'Ready · ${model.spec.approxSizeMb} MB · kept in Downloads (survives reinstall)'
-                      : 'Ready · ${model.spec.approxSizeMb} MB · runs offline')
+                      ? l10n.settingsReadyKept(model.spec.approxSizeMb)
+                      : l10n.settingsReadyOffline(model.spec.approxSizeMb))
                   : downloading
                       ? (model.isBundled
-                          ? 'Installing bundled model $progress%'
-                          : 'Downloading $progress%')
+                          ? l10n.settingsInstallingBundled(progress)
+                          : l10n.settingsDownloadingPct(progress))
                       : model.isBundled
-                          ? 'Bundled with the app · preparing'
-                          : 'Not downloaded (${model.spec.approxSizeMb} MB)',
+                          ? l10n.settingsBundledPreparing
+                          : l10n.settingsNotDownloaded(model.spec.approxSizeMb),
             ),
             trailing: model.installed
                 ? TextButton(
                     onPressed: model.busy ? null : widget.onDeleteModel,
-                    child: const Text('Remove'),
+                    child: Text(l10n.settingsRemove),
                   )
                 : TextButton(
                     onPressed: model.busy ? null : widget.onDownloadModel,
                     child: Text(
                       downloading
-                          ? '$progress%'
+                          ? l10n.settingsPercent(progress)
                           : model.isBundled
-                              ? 'Install'
-                              : 'Download',
+                              ? l10n.settingsInstall
+                              : l10n.settingsDownload,
                     ),
                   ),
           ),
@@ -381,18 +411,22 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   Widget _customModelTile() {
+    final l10n = AppLocalizations.of(context);
     final spec = customModelSpec;
     return ListTile(
       leading: const Icon(Icons.sd_card_outlined),
       title: Text(
-        spec == null ? 'No file picked yet' : spec.displayName,
+        spec == null ? l10n.settingsNoFilePicked : spec.displayName,
         style: Theme.of(context).textTheme.bodyMedium,
       ),
       subtitle: Text(
         spec == null
-            ? 'Scan for a model file that is already on this phone.'
-            : '${spec.filePath} · ${spec.approxSizeMb} MB · '
-                '${spec.contextTokens} tokens',
+            ? l10n.settingsScanHint
+            : l10n.settingsCustomModelMeta(
+                spec.filePath ?? '',
+                spec.approxSizeMb,
+                spec.contextTokens,
+              ),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -401,7 +435,7 @@ class _SettingsTabState extends State<SettingsTab> {
               ? null
               : TextButton(
                   onPressed: widget.model.busy ? null : _forgetCustomModel,
-                  child: const Text('Forget'),
+                  child: Text(l10n.settingsForget),
                 ),
     );
   }
@@ -412,11 +446,8 @@ class _SettingsTabState extends State<SettingsTab> {
       if (!mounted) return;
       setState(() => _scanning = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Allow "All files access" for Scam Shield in Android settings, '
-            'then scan again.',
-          ),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).settingsAllFilesAccess),
         ),
       );
       return;
@@ -434,6 +465,7 @@ class _SettingsTabState extends State<SettingsTab> {
   }
 
   Future<void> _showPicker(List<FoundModelFile> files) async {
+    final l10n = AppLocalizations.of(context);
     final picked = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -444,12 +476,10 @@ class _SettingsTabState extends State<SettingsTab> {
             maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
           ),
           child: files.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(24),
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
                   child: Text(
-                    'No .litertlm or .task files found.\n\n'
-                    'Put the model in Downloads (or type its path below) and '
-                    'scan again.',
+                    l10n.settingsNoModelFiles,
                     textAlign: TextAlign.center,
                   ),
                 )
@@ -460,7 +490,7 @@ class _SettingsTabState extends State<SettingsTab> {
                     return ListTile(
                       leading: const Icon(Icons.insert_drive_file_outlined),
                       title: Text(file.fileName, maxLines: 1),
-                      subtitle: Text('${file.sizeMb} MB'),
+                      subtitle: Text(l10n.settingsFileSizeMb(file.sizeMb)),
                       onTap: () => Navigator.of(sheetContext).pop(file.path),
                     );
                   },
@@ -477,7 +507,9 @@ class _SettingsTabState extends State<SettingsTab> {
     final path = _customPathController.text.trim();
     if (path.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a model file path first')),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).settingsEnterPathFirst),
+        ),
       );
       return;
     }
@@ -502,7 +534,11 @@ class _SettingsTabState extends State<SettingsTab> {
     await widget.onModelChanged();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${widget.model.spec.displayName} loaded')),
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context).settingsModelLoaded(widget.model.spec.displayName),
+        ),
+      ),
     );
   }
 
@@ -513,18 +549,90 @@ class _SettingsTabState extends State<SettingsTab> {
     await widget.onModelChanged();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Picked model forgotten — file kept on device')),
+      SnackBar(
+        content: Text(AppLocalizations.of(context).settingsModelForgotten),
+      ),
     );
   }
 
+  String _languageLabel(BuildContext context) {
+    final code = context.watch<LocaleController>().locale?.languageCode;
+    switch (code) {
+      case 'zh':
+        return '中文';
+      case 'ta':
+        return 'தமிழ்';
+      case 'ms':
+        return 'Melayu';
+      case 'en':
+        return 'English';
+      default:
+        return AppLocalizations.of(context).settingsLanguageSystem;
+    }
+  }
+
+  Future<void> _showLanguagePicker() async {
+    final controller = context.read<LocaleController>();
+    final l10n = AppLocalizations.of(context);
+    final current = controller.locale?.languageCode;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String?>(
+              value: null,
+              groupValue: current,
+              title: Text(l10n.settingsLanguageSystem),
+              onChanged: (_) => Navigator.of(sheetContext).pop('__system__'),
+            ),
+            RadioListTile<String?>(
+              value: 'en',
+              groupValue: current,
+              title: const Text('English'),
+              onChanged: (_) => Navigator.of(sheetContext).pop('en'),
+            ),
+            RadioListTile<String?>(
+              value: 'zh',
+              groupValue: current,
+              title: const Text('中文'),
+              onChanged: (_) => Navigator.of(sheetContext).pop('zh'),
+            ),
+            RadioListTile<String?>(
+              value: 'ta',
+              groupValue: current,
+              title: const Text('தமிழ்'),
+              onChanged: (_) => Navigator.of(sheetContext).pop('ta'),
+            ),
+            RadioListTile<String?>(
+              value: 'ms',
+              groupValue: current,
+              title: const Text('Melayu'),
+              onChanged: (_) => Navigator.of(sheetContext).pop('ms'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null) return;
+    if (selected == '__system__') {
+      await controller.clearLocale();
+    } else {
+      await controller.setLocale(Locale(selected));
+    }
+  }
+
   Widget _modelTile(ScamModelSpec spec) {
+    final l10n = AppLocalizations.of(context);
     final selected = spec.id == widget.model.spec.id;
     final subtitle =
         spec.filePath != null
-            ? '~${spec.approxSizeMb} MB · from this device'
+            ? l10n.settingsSizeFromDevice(spec.approxSizeMb)
             : spec.assetPath != null
-                ? '~${spec.approxSizeMb} MB · bundled'
-                : '~${spec.approxSizeMb} MB · download';
+                ? l10n.settingsSizeBundled(spec.approxSizeMb)
+                : l10n.settingsSizeDownload(spec.approxSizeMb);
     return ListTile(
       leading: Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off),
       title: Text(spec.displayName),
@@ -595,7 +703,9 @@ class _SaveableFieldState extends State<_SaveableField> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${widget.label} saved'),
+        content: Text(
+          AppLocalizations.of(context).settingsFieldSaved(widget.label),
+        ),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -621,7 +731,7 @@ class _SaveableFieldState extends State<_SaveableField> {
         hintText: widget.hint,
         helperText: widget.helper,
         suffixIcon: IconButton(
-          tooltip: 'Save',
+          tooltip: AppLocalizations.of(context).settingsSave,
           onPressed: _save,
           icon: Icon(
             _justSaved ? Icons.check_circle : Icons.save_outlined,

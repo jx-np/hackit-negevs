@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:forui/forui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -38,8 +39,10 @@ class _ContactsScreenState extends State<ContactsScreen> {
     try {
       final granted = await FlutterContacts.requestPermission(readonly: true);
       if (!granted) {
+        if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
         setState(() {
-          _error = 'Contacts permission is required to view contacts';
+          _error = l10n.contactsPermRequired;
           _isLoading = false;
         });
         return;
@@ -59,8 +62,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
         setState(() {
-          _error = 'Failed to load contacts: $e';
+          _error = l10n.contactsLoadFailed(e.toString());
           _isLoading = false;
         });
       }
@@ -89,21 +93,22 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FScaffold(
       header: FHeader.nested(
-        title: const Text('Contacts'),
+        title: Text(l10n.contactsTitle),
         titleAlignment: Alignment.centerLeft,
         prefixes: [
           FHeaderAction(
             icon: const Icon(Icons.menu),
-            semanticsLabel: 'Open menu',
+            semanticsLabel: l10n.contactsOpenMenu,
             onPress: () => Scaffold.of(context).openDrawer(),
           ),
         ],
         suffixes: [
           FHeaderAction(
             icon: const Icon(Icons.refresh),
-            semanticsLabel: 'Refresh',
+            semanticsLabel: l10n.commonRefresh,
             onPress: _loadContacts,
           ),
         ],
@@ -115,7 +120,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
               controller: _searchController,
               onChange: (value) => _filterContacts(value.text),
             ),
-            hint: 'Search contacts...',
+            hint: l10n.contactsSearchHint,
             prefixBuilder: (context, style, variants) =>
                 FTextField.prefixIconBuilder(
                   context,
@@ -132,6 +137,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildBody(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -145,11 +151,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
             children: [
               FAlert(
                 variant: FAlertVariant.destructive,
-                title: const Text('Could not load contacts'),
+                title: Text(l10n.contactsCouldNotLoad),
                 subtitle: Text(_error!),
               ),
               const SizedBox(height: 16),
-              FButton(onPress: _loadContacts, child: const Text('Retry')),
+              FButton(onPress: _loadContacts, child: Text(l10n.commonRetry)),
             ],
           ),
         ),
@@ -157,7 +163,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
 
     if (_filteredContacts.isEmpty) {
-      return const Center(child: Text('No contacts found'));
+      return Center(child: Text(l10n.contactsNoneFound));
     }
 
     return FTileGroup.builder(
@@ -212,7 +218,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
       }
     }
 
-    return details.isNotEmpty ? details.join(' • ') : 'No details';
+    final l10n = AppLocalizations.of(context);
+    return details.isNotEmpty ? details.join(' • ') : l10n.contactsNoDetails;
   }
 
   void _callNumber(String number) async {
@@ -222,14 +229,16 @@ class _ContactsScreenState extends State<ContactsScreen> {
       final result = await launchUrl(uri);
       if (!result) {
         if (!mounted) return;
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not initiate call')),
+          SnackBar(content: Text(l10n.contactsCouldNotCall)),
         );
       }
     } catch (e) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not initiate call: $e')),
+        SnackBar(content: Text(l10n.contactsCouldNotCallError(e.toString()))),
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../services/model_controller.dart';
 import '../services/notification_log.dart';
@@ -81,9 +82,10 @@ class _SafetyScreenState extends State<SafetyScreen> {
 
   Future<void> _toggleProtection(bool value) async {
     if (value && !_modelInstalled) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Download a model in the Settings tab first'),
+        SnackBar(
+          content: Text(l10n.commonDownloadModelFirst),
         ),
       );
       return;
@@ -134,40 +136,41 @@ class _SafetyScreenState extends State<SafetyScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final alerts = _alerts;
     return Scaffold(
-      appBar: AppBar(title: const Text('Safety')),
+      appBar: AppBar(title: Text(l10n.safetyTitle)),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _protectionCard(theme),
+            _protectionCard(theme, l10n),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Recent alerts', style: theme.textTheme.titleLarge),
+                Text(l10n.safetyRecentAlerts, style: theme.textTheme.titleLarge),
                 if (_entries.isNotEmpty)
                   TextButton.icon(
                     onPressed: _clear,
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('Clear'),
+                    label: Text(l10n.commonClear),
                   ),
               ],
             ),
             const SizedBox(height: 8),
             if (alerts.isEmpty)
-              _emptyCard(theme)
+              _emptyCard(theme, l10n)
             else
-              for (final entry in alerts) _alertCard(theme, entry),
+              for (final entry in alerts) _alertCard(theme, l10n, entry),
           ],
         ),
       ),
     );
   }
 
-  Widget _protectionCard(ThemeData theme) {
+  Widget _protectionCard(ThemeData theme, AppLocalizations l10n) {
     final scheme = theme.colorScheme;
     final on = _protectionEnabled;
     return Card(
@@ -188,7 +191,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        on ? 'You are protected' : 'Protection is off',
+                        on ? l10n.safetyProtectedOn : l10n.safetyProtectedOff,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
@@ -196,10 +199,10 @@ class _SafetyScreenState extends State<SafetyScreen> {
                       const SizedBox(height: 4),
                       Text(
                         !_modelInstalled
-                            ? 'Download a model in the Settings tab first.'
+                            ? l10n.safetyDownloadFirstPeriod
                             : on
-                                ? 'We check your messages for scams.'
-                                : 'Turn this on to check messages for scams.',
+                                ? l10n.safetyWeCheck
+                                : l10n.safetyTurnOnToCheck,
                         style: theme.textTheme.bodyMedium,
                       ),
                     ],
@@ -217,7 +220,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                     : () => _toggleProtection(!_protectionEnabled),
                 icon: Icon(on ? Icons.toggle_on : Icons.toggle_off, size: 28),
                 label: Text(
-                  on ? 'Turn protection off' : 'Turn protection on',
+                  on ? l10n.safetyTurnOff : l10n.safetyTurnOn,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -228,7 +231,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
     );
   }
 
-  Widget _alertCard(ThemeData theme, LoggedNotification entry) {
+  Widget _alertCard(ThemeData theme, AppLocalizations l10n, LoggedNotification entry) {
     final scheme = theme.colorScheme;
     final record = entry.record;
     final title = record.title.isEmpty ? record.appLabel : record.title;
@@ -266,9 +269,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
               child: FilledButton.icon(
                 onPressed: () => _reportEntry(entry),
                 icon: const Icon(Icons.flag),
-                label: const Text(
-                  'Report this',
-                  style: TextStyle(fontWeight: FontWeight.w700),
+                label: Text(
+                  l10n.commonReportThis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
             ),
@@ -278,7 +281,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
     );
   }
 
-  Widget _emptyCard(ThemeData theme) {
+  Widget _emptyCard(ThemeData theme, AppLocalizations l10n) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -292,13 +295,13 @@ class _SafetyScreenState extends State<SafetyScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'No scams found',
+                l10n.safetyNoScams,
                 style: theme.textTheme.titleMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
               Text(
-                'Suspicious messages will show up here.',
+                l10n.safetyNoScamsBody,
                 style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),

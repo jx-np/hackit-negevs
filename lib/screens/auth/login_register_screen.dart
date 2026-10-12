@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 import '../../state/auth_controller.dart';
@@ -41,53 +42,57 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    final ok = _registerMode
-        ? await controller.register(
+    await (_registerMode
+        ? controller.register(
             email: email,
             password: password,
             displayName: _nameController.text.trim(),
           )
-        : await controller.login(email: email, password: password);
+        : controller.login(email: email, password: password));
 
-    if (!mounted) return;
-    if (ok) {
-      Navigator.of(context).pop();
-    }
+    // On success the AuthController flips status to signedIn and notifies
+    // listeners; the _AuthGate (home) rebuilds and swaps this screen out
+    // automatically. Do NOT pop here — this screen is the root route, and
+    // popping it empties the navigator stack and causes a black screen.
   }
 
   String? _validateEmail(String? value) {
+    final l10n = AppLocalizations.of(context);
     final text = value?.trim() ?? '';
-    if (text.isEmpty) return 'Please enter your email.';
+    if (text.isEmpty) return l10n.authEnterEmail;
     if (!text.contains('@') || !text.contains('.')) {
-      return 'Please enter a valid email.';
+      return l10n.authValidEmail;
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
+    final l10n = AppLocalizations.of(context);
     final text = value ?? '';
-    if (text.isEmpty) return 'Please enter your password.';
+    if (text.isEmpty) return l10n.authEnterPassword;
     if (_registerMode && text.length < 8) {
-      return 'Use at least 8 characters.';
+      return l10n.authPasswordLength;
     }
     return null;
   }
 
   String? _validateName(String? value) {
     if (!_registerMode) return null;
-    if ((value?.trim() ?? '').isEmpty) return 'Please enter your name.';
+    final l10n = AppLocalizations.of(context);
+    if ((value?.trim() ?? '').isEmpty) return l10n.authEnterName;
     return null;
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final controller = context.watch<AuthController>();
     final busy = controller.busy;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_registerMode ? 'Create account' : 'Sign in'),
+        title: Text(_registerMode ? l10n.authCreateAccount : l10n.authSignIn),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -106,42 +111,42 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 const SizedBox(height: 16),
                 Text(
                   _registerMode
-                      ? 'Join the community to share and learn about scams.'
-                      : 'Sign in to post and join discussions.',
+                      ? l10n.authRegisterIntro
+                      : l10n.authLoginIntro,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 28),
                 if (_registerMode) ...[
-                  _FieldLabel(text: 'Your name'),
+                  _FieldLabel(text: l10n.authYourName),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _nameController,
                     textCapitalization: TextCapitalization.words,
                     style: theme.textTheme.titleMedium,
-                    decoration: _fieldDecoration('Enter your name'),
+                    decoration: _fieldDecoration(l10n.authYourNameHint),
                     validator: _validateName,
                   ),
                   const SizedBox(height: 20),
                 ],
-                _FieldLabel(text: 'Email'),
+                _FieldLabel(text: l10n.authEmail),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
                   style: theme.textTheme.titleMedium,
-                  decoration: _fieldDecoration('Enter your email'),
+                  decoration: _fieldDecoration(l10n.authEmailHint),
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 20),
-                _FieldLabel(text: 'Password'),
+                _FieldLabel(text: l10n.authPassword),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   style: theme.textTheme.titleMedium,
-                  decoration: _fieldDecoration('Enter your password').copyWith(
+                  decoration: _fieldDecoration(l10n.authPasswordHint).copyWith(
                     suffixIcon: IconButton(
                       iconSize: 28,
                       icon: Icon(
@@ -196,7 +201,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2.5),
                           )
                         : Text(
-                            _registerMode ? 'Create account' : 'Sign in',
+                            _registerMode ? l10n.authCreateAccount : l10n.authSignIn,
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
@@ -211,8 +216,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     onPressed: busy ? null : _toggleMode,
                     child: Text(
                       _registerMode
-                          ? 'Already have an account? Sign in'
-                          : 'New here? Create an account',
+                          ? l10n.authToggleToLogin
+                          : l10n.authToggleToRegister,
                       style: const TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,

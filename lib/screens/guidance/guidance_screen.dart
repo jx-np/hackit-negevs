@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/api_client.dart';
@@ -24,12 +25,27 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   List<HelpResource> _resources = const [];
   String? _activeScenario;
 
-  static const List<_Scenario> _scenarios = [
-    _Scenario('clicked_link', 'I clicked a link'),
-    _Scenario('just_received', 'I just got a message'),
-    _Scenario('shared_credentials', 'I shared my password'),
-    _Scenario('sent_money', 'I sent money'),
+  static const List<String> _scenarioSlugs = [
+    'clicked_link',
+    'just_received',
+    'shared_credentials',
+    'sent_money',
   ];
+
+  String _scenarioLabel(AppLocalizations l10n, String slug) {
+    switch (slug) {
+      case 'clicked_link':
+        return l10n.guidanceClickedLink;
+      case 'just_received':
+        return l10n.guidanceGotMessage;
+      case 'shared_credentials':
+        return l10n.guidanceSharedPassword;
+      case 'sent_money':
+        return l10n.guidanceSentMoney;
+      default:
+        return slug;
+    }
+  }
 
   @override
   void initState() {
@@ -77,8 +93,9 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
     if (uri == null) return;
     final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the link.')),
+        SnackBar(content: Text(l10n.guidanceCouldNotOpenLink)),
       );
     }
   }
@@ -89,8 +106,9 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
     final uri = Uri(scheme: 'tel', path: digits);
     final ok = await launchUrl(uri);
     if (!ok && mounted) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not start the call.')),
+        SnackBar(content: Text(l10n.guidanceCouldNotCall)),
       );
     }
   }
@@ -98,8 +116,9 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Get help')),
+      appBar: AppBar(title: Text(l10n.guidanceTitle)),
       body: RefreshIndicator(
         onRefresh: _load,
         child: _buildBody(theme),
@@ -108,6 +127,7 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   }
 
   Widget _buildBody(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     if (_loading && _items.isEmpty && _resources.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -115,7 +135,7 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         Text(
-          'What happened?',
+          l10n.guidanceWhatHappened,
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 12),
@@ -127,7 +147,7 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
         if (_resources.isNotEmpty) ...[
           const SizedBox(height: 12),
           Text(
-            'Who to contact',
+            l10n.guidanceWhoToContact,
             style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
@@ -138,23 +158,24 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   }
 
   Widget _scenarioChips(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: [
         ChoiceChip(
-          label: const Text('Show all'),
+          label: Text(l10n.guidanceShowAll),
           labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           selected: _activeScenario == null,
           onSelected: (_) => _selectScenario(null),
         ),
-        for (final scenario in _scenarios)
+        for (final slug in _scenarioSlugs)
           ChoiceChip(
-            label: Text(scenario.label),
+            label: Text(_scenarioLabel(l10n, slug)),
             labelStyle:
                 const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            selected: _activeScenario == scenario.slug,
-            onSelected: (_) => _selectScenario(scenario.slug),
+            selected: _activeScenario == slug,
+            onSelected: (_) => _selectScenario(slug),
           ),
       ],
     );
@@ -230,6 +251,7 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   }
 
   Widget _resourceActions(ThemeData theme, HelpResource resource) {
+    final l10n = AppLocalizations.of(context);
     final buttons = <Widget>[];
     if (resource.hasContact) {
       buttons.add(
@@ -253,9 +275,9 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
           child: OutlinedButton.icon(
             onPressed: () => _openUrl(resource.url!),
             icon: const Icon(Icons.open_in_new, size: 24),
-            label: const Text(
-              'Open website',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+            label: Text(
+              l10n.guidanceOpenWebsite,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
           ),
         ),
@@ -266,6 +288,7 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   }
 
   Widget _emptyGuidance(ThemeData theme) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -275,13 +298,13 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
                 size: 56, color: theme.colorScheme.primary),
             const SizedBox(height: 12),
             Text(
-              'No advice yet',
+              l10n.guidanceNoAdvice,
               style: theme.textTheme.titleLarge
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Pick what happened above to see steps you can take.',
+              l10n.guidanceNoAdviceBody,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge,
             ),
@@ -314,11 +337,4 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
       ),
     );
   }
-}
-
-class _Scenario {
-  const _Scenario(this.slug, this.label);
-
-  final String slug;
-  final String label;
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:call_log/call_log.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:forui/forui.dart';
@@ -56,12 +57,15 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   void _listenToCallEvents() {
     _callEventSub = CallEventService.events.listen((event) {
       if (event.isIncoming && mounted) {
+        final l10n = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.red.shade700,
             duration: const Duration(seconds: 4),
             content: Text(
-              'Incoming call: ${event.name ?? event.number ?? "Unknown"}',
+              l10n.callIncoming(
+                event.name ?? event.number ?? l10n.commonUnknown,
+              ),
             ),
           ),
         );
@@ -226,8 +230,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     setState(() => _blockedNumbers.add(record.normalizedNumber));
     await _saveBlockedNumbers();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Blocked ${record.rawNumber}')),
+      SnackBar(content: Text(l10n.callBlocked(record.rawNumber))),
     );
   }
 
@@ -235,8 +240,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     setState(() => _blockedNumbers.remove(record.normalizedNumber));
     await _saveBlockedNumbers();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Unblocked ${record.rawNumber}')),
+      SnackBar(content: Text(l10n.callUnblocked(record.rawNumber))),
     );
   }
 
@@ -244,8 +250,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     await ReportService.submitReport(record, reason: 'user_reported');
     await _refreshFromDb();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Reported ${record.rawNumber}')),
+      SnackBar(content: Text(l10n.callReported(record.rawNumber))),
     );
   }
 
@@ -253,8 +260,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     await ReportService.withdrawReport(record);
     await _refreshFromDb();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Removed report for ${record.rawNumber}')),
+      SnackBar(content: Text(l10n.callRemovedReport(record.rawNumber))),
     );
   }
 
@@ -291,7 +299,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   }
 
   String _formatTimestamp(int timestamp) {
-    if (timestamp <= 0) return 'Unknown';
+    if (timestamp <= 0) return AppLocalizations.of(context).commonUnknown;
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
@@ -299,18 +307,21 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   }
 
   String _statusLabel(CallRecord record) {
-    if (record.direction == CallRecord.directionOutgoing) return 'Outgoing';
+    final l10n = AppLocalizations.of(context);
+    if (record.direction == CallRecord.directionOutgoing) {
+      return l10n.callOutgoing;
+    }
     switch (record.status) {
       case CallRecord.statusAnswered:
-        return 'Answered';
+        return l10n.callAnswered;
       case CallRecord.statusRejected:
-        return 'Rejected';
+        return l10n.callRejected;
       case CallRecord.statusMissed:
-        return 'Missed';
+        return l10n.callMissed;
       case CallRecord.statusBlocked:
-        return 'Blocked';
+        return l10n.callBlockedLabel;
       default:
-        return 'Unknown';
+        return l10n.commonUnknown;
     }
   }
 
@@ -350,19 +361,20 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FScaffold(
       header: FHeader.nested(
-        title: const Text('Call History'),
+        title: Text(l10n.callHistoryTitle),
         titleAlignment: Alignment.centerLeft,
         suffixes: [
           FHeaderAction(
             icon: const Icon(Icons.block),
-            semanticsLabel: 'Blocked numbers',
+            semanticsLabel: l10n.callBlockedNumbers,
             onPress: _openBlockedNumbers,
           ),
           FHeaderAction(
             icon: const Icon(Icons.refresh),
-            semanticsLabel: 'Refresh',
+            semanticsLabel: l10n.commonRefresh,
             onPress: _loadHistory,
           ),
         ],
@@ -374,39 +386,13 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
           : _error != null
           ? _buildError()
           : _records.isEmpty
-          ? const Center(child: Text('No unknown-number calls found'))
+          ? Center(child: Text(l10n.callNoUnknown))
           : _buildList(context),
     );
   }
 
   Widget _buildPermissionGate() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const FAlert(
-              variant: FAlertVariant.destructive,
-              title: Text('Phone permission needed'),
-              subtitle: Text(
-                'Call Manager needs the Phone permission to read your call '
-                'history.',
-              ),
-            ),
-            const SizedBox(height: 16),
-            FButton(
-              onPress: _grantPhonePermission,
-              prefix: const Icon(Icons.phone),
-              child: const Text('Grant phone permission'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildError() {
+    final l10n = AppLocalizations.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -415,11 +401,36 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
           children: [
             FAlert(
               variant: FAlertVariant.destructive,
-              title: const Text('Could not load call history'),
+              title: Text(l10n.callPhonePermNeeded),
+              subtitle: Text(l10n.callPhonePermBody),
+            ),
+            const SizedBox(height: 16),
+            FButton(
+              onPress: _grantPhonePermission,
+              prefix: const Icon(Icons.phone),
+              child: Text(l10n.callGrantPhone),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError() {
+    final l10n = AppLocalizations.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FAlert(
+              variant: FAlertVariant.destructive,
+              title: Text(l10n.callCouldNotLoad),
               subtitle: Text(_error!),
             ),
             const SizedBox(height: 16),
-            FButton(onPress: _loadHistory, child: const Text('Retry')),
+            FButton(onPress: _loadHistory, child: Text(l10n.commonRetry)),
           ],
         ),
       ),
@@ -430,6 +441,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     return FTileGroup.builder(
       count: _records.length,
       tileBuilder: (context, index) {
+        final l10n = AppLocalizations.of(context);
         final record = _records[index];
         final isBlocked = _blockedNumbers.contains(record.normalizedNumber);
         return FTile(
@@ -457,10 +469,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
                 ),
                 if (record.status == CallRecord.statusAnswered &&
                     record.durationSeconds > 0)
-                  TextSpan(text: ' • ${record.durationSeconds}s'),
+                  TextSpan(text: l10n.callDurationSuffix(record.durationSeconds)),
                 if (record.reported)
                   TextSpan(
-                    text: ' • Reported',
+                    text: l10n.callReportedSuffix,
                     style: TextStyle(
                       color: context.theme.colors.primary,
                       fontWeight: FontWeight.w600,
@@ -477,6 +489,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   }
 
   Widget _buildMenu(CallRecord record, bool isBlocked) {
+    final l10n = AppLocalizations.of(context);
     return FPopoverMenu.tiles(
       builder: (context, controller, _) => FButton.icon(
         onPress: controller.toggle,
@@ -491,32 +504,32 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
               FTile(
                 variant: FItemVariant.destructive,
                 prefix: const Icon(Icons.block),
-                title: const Text('Block'),
+                title: Text(l10n.callBlock),
                 onPress: () => _runMenu(controller, 'block', record),
               ),
             if (isBlocked)
               FTile(
                 prefix: const Icon(Icons.lock_open),
-                title: const Text('Unblock'),
+                title: Text(l10n.callUnblock),
                 onPress: () => _runMenu(controller, 'unblock', record),
               ),
             if (!record.reported)
               FTile(
                 prefix: const Icon(Icons.flag),
-                title: const Text('Report'),
+                title: Text(l10n.commonReport),
                 onPress: () => _runMenu(controller, 'report', record),
               ),
             if (record.reported)
               FTile(
                 prefix: const Icon(Icons.flag_outlined),
-                title: const Text('Remove report'),
+                title: Text(l10n.callRemoveReport),
                 onPress: () => _runMenu(controller, 'unreport', record),
               ),
             if (!isBlocked && !record.reported)
               FTile(
                 variant: FItemVariant.destructive,
                 prefix: const Icon(Icons.report),
-                title: const Text('Block & Report'),
+                title: Text(l10n.callBlockAndReport),
                 onPress: () => _runMenu(controller, 'block_report', record),
               ),
           ],

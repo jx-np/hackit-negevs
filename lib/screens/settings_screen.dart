@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../services/model_controller.dart';
 import '../services/protection_settings.dart';
@@ -68,9 +69,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await _model.download();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     messenger.showSnackBar(
       SnackBar(
-        content: Text(ok ? '${_model.spec.displayName} installed' : _model.error),
+        content: Text(
+          ok
+              ? l10n.settingsScreenModelInstalled(_model.spec.displayName)
+              : _model.error,
+        ),
       ),
     );
     if (ok) await ScamShieldController.syncSettings();
@@ -85,15 +91,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Settings'),
-          bottom: const TabBar(
+          title: Text(l10n.settingsScreenTitle),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Model'),
-              Tab(text: 'Permissions'),
+              Tab(text: l10n.settingsScreenModelTab),
+              Tab(text: l10n.settingsScreenPermissionsTab),
             ],
           ),
         ),

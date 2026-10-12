@@ -5,6 +5,7 @@ import 'package:call_log_app/screens/permissions_onboarding_screen.dart';
 import 'package:call_log_app/services/role_service.dart';
 import 'package:call_log_app/services/scamshield_channels.dart';
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -23,11 +24,14 @@ class _LoginScreenState extends State<LoginScreen> {
     final ready = await _allPermissionsGranted();
     if (!mounted) return;
     setState(() => _busy = false);
+
+    // The first-launch feature tour now runs as an interactive coach-mark
+    // overlay started by HomePage (it checks the seen_tutorial flag itself), so
+    // this screen just advances into the app.
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
-        builder: (context) => ready
-            ? const HomePage()
-            : const PermissionsOnboardingScreen(),
+        builder: (context) =>
+            ready ? const HomePage() : const PermissionsOnboardingScreen(),
       ),
     );
   }
@@ -57,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -67,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Icon(Icons.shield, size: 96, color: theme.colorScheme.primary),
               const SizedBox(height: 24),
               Text(
-                'Call Manager',
+                l10n.loginAppName,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
@@ -75,7 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Keeps you safe from scam calls and messages.',
+                l10n.loginTagline,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge,
               ),
@@ -91,9 +96,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 24,
                           child: CircularProgressIndicator(strokeWidth: 2.5),
                         )
-                      : const Text(
-                          'Get Started',
-                          style: TextStyle(
+                      : Text(
+                          l10n.loginGetStarted,
+                          style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
                           ),

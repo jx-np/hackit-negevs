@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../core/scam_verdict.dart';
 import '../services/notification_log.dart';
@@ -39,6 +40,7 @@ class _ActivityTabState extends State<ActivityTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final entries = _visible;
     return Column(
       children: [
@@ -51,20 +53,24 @@ class _ActivityTabState extends State<ActivityTab> {
                   spacing: 8,
                   children: [
                     ChoiceChip(
-                      label: Text('All (${widget.entries.length})'),
+                      label: Text(l10n.activityAll(widget.entries.length)),
                       selected: _filter == _Filter.all,
                       onSelected: (_) => setState(() => _filter = _Filter.all),
                     ),
                     ChoiceChip(
                       label: Text(
-                        'Scams (${widget.entries.where((e) => e.verdict?.shouldAlert ?? false).length})',
+                        l10n.activityScams(widget.entries
+                            .where((e) => e.verdict?.shouldAlert ?? false)
+                            .length),
                       ),
                       selected: _filter == _Filter.scams,
                       onSelected: (_) => setState(() => _filter = _Filter.scams),
                     ),
                     ChoiceChip(
                       label: Text(
-                        'Unchecked (${widget.entries.where((e) => !e.isChecked).length})',
+                        l10n.activityUnchecked(widget.entries
+                            .where((e) => !e.isChecked)
+                            .length),
                       ),
                       selected: _filter == _Filter.unchecked,
                       onSelected: (_) =>
@@ -74,7 +80,7 @@ class _ActivityTabState extends State<ActivityTab> {
                 ),
               ),
               IconButton(
-                tooltip: 'Clear',
+                tooltip: l10n.commonClear,
                 onPressed: widget.entries.isEmpty ? null : widget.onClear,
                 icon: const Icon(Icons.delete_outline),
               ),
@@ -86,9 +92,9 @@ class _ActivityTabState extends State<ActivityTab> {
             onRefresh: widget.onRefresh,
             child: entries.isEmpty
                 ? ListView(
-                    children: const [
-                      SizedBox(height: 120),
-                      Center(child: Text('No messages captured yet.')),
+                    children: [
+                      const SizedBox(height: 120),
+                      Center(child: Text(l10n.activityNoMessages)),
                     ],
                   )
                 : ListView.separated(
@@ -118,6 +124,7 @@ class _ActivityTileState extends State<_ActivityTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final entry = widget.entry;
     final verdict = entry.verdict;
     final scam = verdict?.shouldAlert ?? false;
@@ -134,10 +141,10 @@ class _ActivityTileState extends State<_ActivityTile> {
     final meta = StringBuffer()
       ..write('${entry.record.appLabel} · ${_time(entry.capturedAt)}');
     if (verdict == null) {
-      meta.write(' · not checked');
+      meta.write(l10n.activityNotCheckedSuffix);
     } else {
       meta.write(' · ${verdict.label.title}');
-      if (verdict.escalated) meta.write(' · cloud');
+      if (verdict.escalated) meta.write(l10n.activityCloudSuffix);
       meta.write(' · ${(verdict.confidence * 100).round()}%');
     }
     return Column(
@@ -174,37 +181,39 @@ class _ActivityTileState extends State<_ActivityTile> {
   }
 
   Widget _details(BuildContext context, ScamVerdict? verdict) {
+    final l10n = AppLocalizations.of(context);
     if (verdict == null) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
         child: Text(
-          'Not checked yet.',
+          l10n.activityNotCheckedYet,
           style: Theme.of(context).textTheme.bodySmall,
         ),
       );
     }
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _row(theme, 'Verdict', verdict.label.title),
+          _row(theme, l10n.activityVerdict, verdict.label.title),
           _row(
             theme,
-            'Confidence',
+            l10n.activityConfidence,
             '${(verdict.confidence * 100).round()}%',
           ),
           _row(
             theme,
-            'Checked by',
+            l10n.activityCheckedBy,
             verdict.escalated
-                ? '${verdict.source.wire} (escalated)'
+                ? l10n.activityEscalatedSuffix(verdict.source.wire)
                 : verdict.source.wire,
           ),
-          _row(theme, 'Reason', verdict.reason),
+          _row(theme, l10n.activityReason, verdict.reason),
           const SizedBox(height: 8),
-          Text('AI thinking', style: theme.textTheme.labelLarge),
+          Text(l10n.activityAiThinking, style: theme.textTheme.labelLarge),
           const SizedBox(height: 4),
           Container(
             width: double.infinity,
@@ -215,7 +224,7 @@ class _ActivityTileState extends State<_ActivityTile> {
             ),
             child: SelectableText(
               verdict.raw.trim().isEmpty
-                  ? '(the model produced no readable output)'
+                  ? l10n.activityNoOutput
                   : verdict.raw.trim(),
               style: theme.textTheme.bodySmall?.copyWith(
                 fontFamily: 'monospace',

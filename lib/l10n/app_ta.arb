@@ -1,0 +1,436 @@
+{
+  "@@locale": "ta",
+
+  "commonReport": "புகாரளி",
+  "commonCancel": "ரத்து",
+  "commonRetry": "மீண்டும் முயற்சி",
+  "commonRefresh": "புதுப்பி",
+  "commonReviewed": "பரிசீலிக்கப்பட்டது",
+  "commonClear": "அழி",
+  "commonUnknown": "தெரியாதது",
+  "commonReportThis": "இதைப் புகாரளி",
+  "commonNoPostsYet": "இன்னும் இடுகைகள் இல்லை",
+  "commonShareWithCommunity": "சமூகத்துடன் பகிர்",
+  "commonSharing": "பகிரப்படுகிறது...",
+  "commonDownloadModelFirst": "முதலில் அமைப்புகள் தாவலில் ஒரு மாதிரியைப் பதிவிறக்கவும்",
+  "commonTitle": "தலைப்பு",
+  "commonTitleHint": "ஒரு சுருக்கமான சுருக்கம்",
+  "commonMessage": "செய்தி",
+  "commonMessageHint": "மோசடி செய்தியை இங்கே ஒட்டவும்",
+  "commonWhatKindOfScam": "எந்த வகையான மோசடி?",
+  "commonTagsOptional": "குறிச்சொற்கள் (விருப்பத்திற்குரியது)",
+  "commonShareIntro": "நீங்கள் பெற்ற மோசடியைப் பகிர்ந்து மற்றவர்களுக்கு உதவுங்கள். முதலில் தனிப்பட்ட விவரங்களை நீக்கவும்.",
+
+  "settingsDetectionModel": "கண்டறிதல் மாதிரி",
+  "settingsProtection": "பாதுகாப்பு",
+  "settingsClearNotifications": "பிடிக்கப்பட்ட அறிவிப்புகளை அழி",
+  "settingsStopProtection": "பின்னணி பாதுகாப்பை நிறுத்து",
+  "settingsServiceRunning": "சேவை இயங்குகிறது",
+  "settingsServiceStopped": "சேவை நிறுத்தப்பட்டது",
+  "settingsAccount": "கணக்கு",
+  "settingsShowTutorial": "பயிற்சியை மீண்டும் காட்டு",
+  "settingsReplayTour": "செயலி அம்ச மேலோட்டத்தை மீண்டும் இயக்கு",
+  "settingsLogOut": "வெளியேறு",
+  "settingsSignOutSubtitle": "உங்கள் கணக்கிலிருந்து வெளியேறு",
+  "settingsAdvanced": "மேம்பட்டவை",
+  "settingsAdvancedSubtitle": "டெவலப்பர் மற்றும் மாதிரி-சரிசெய்தல் விருப்பங்கள்",
+  "settingsModelFromDevice": "இந்த சாதனத்திலிருந்து மாதிரி (சோதனை)",
+  "settingsScanForModels": "மாதிரி கோப்புகளை ஸ்கேன் செய்",
+  "settingsScanningStorage": "சேமிப்பகத்தை ஸ்கேன் செய்கிறது…",
+  "settingsScanSubtitle": "பதிவிறக்கங்கள் மற்றும் ஆவணங்களில் .litertlm மற்றும் .task கோப்புகளைக் கண்டறியும்",
+  "settingsModelFilePath": "மாதிரி கோப்பு பாதை",
+  "settingsModelFilePathHelper": "தட்டச்சு செய்த பாதைகளும் வேலை செய்யும். கோப்பு அப்படியே பயன்படுத்தப்படுகிறது — அது ஒருபோதும் நகலெடுக்கப்படாது.",
+  "settingsContextWindow": "சூழல் சாளரம் (டோக்கன்கள்)",
+  "settingsContextWindowHelper": "ஏற்றும்போது கோரும் சூழல். உங்கள் மாற்றம் kv_cache_max_len ஆக அமைத்ததை மீறக்கூடாது (MiniCPM5-2B {max} வரை ஆதரிக்கிறது). பெரிய சாளரங்கள் ஒரு டோக்கனுக்கு சுமார் 40 KB RAM செலவாகும்.",
+  "@settingsContextWindowHelper": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsContextRange": "1024 மற்றும் {max} இடையே உள்ளிடவும்",
+  "@settingsContextRange": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsThinking": "சிந்தனை (பகுத்தறிவு)",
+  "settingsThinkingHelper": "பதிலளிப்பதற்கு முன் மாதிரி பகுத்தறிய அனுமதிக்கிறது. அதிக டோக்கன்களைப் பயன்படுத்துகிறது மற்றும் மெதுவாக உள்ளது; பயனுள்ளதாக இருக்க 3000+ டோக்கன் சூழல் தேவை.",
+  "settingsLoadModelFromFile": "கோப்பிலிருந்து மாதிரியை ஏற்று",
+  "settingsCloudThreshold": "கிளவுட் அதிகரிப்பு வரம்பு — {pct}% க்கு கீழே அதிகரிக்கவும்",
+  "@settingsCloudThreshold": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsCloudReview": "கிளவுட் மதிப்பாய்வு",
+  "settingsForceCloud": "கிளவுட்டை கட்டாயப்படுத்து",
+  "settingsForceCloudHelper": "ஒவ்வொரு செய்தியையும் கிளவுட் மாதிரிக்கு அனுப்பி சாதனத்தில் உள்ள மாதிரியைத் தவிர்க்கவும். கிளவுட் அணுக முடியாவிட்டால் மட்டுமே சாதனத்தில் உள்ள மாதிரிக்கு மாறும்.",
+  "settingsEndpoint": "இறுதிப்புள்ளி",
+  "settingsEndpointHint": "https://.../v1/chat/completions (காலியானது = முடக்கப்பட்டது)",
+  "settingsModelName": "மாதிரியின் பெயர்",
+  "settingsOnDeviceModel": "சாதனத்தில் உள்ள மாதிரி — {name}",
+  "@settingsOnDeviceModel": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsReadyKept": "தயார் · {mb} MB · பதிவிறக்கங்களில் வைக்கப்பட்டுள்ளது (மறுநிறுவலுக்குப் பிறகும் இருக்கும்)",
+  "@settingsReadyKept": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsReadyOffline": "தயார் · {mb} MB · ஆஃப்லைனில் இயங்கும்",
+  "@settingsReadyOffline": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsInstallingBundled": "தொகுக்கப்பட்ட மாதிரியை நிறுவுகிறது {pct}%",
+  "@settingsInstallingBundled": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsDownloadingPct": "பதிவிறக்குகிறது {pct}%",
+  "@settingsDownloadingPct": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsBundledPreparing": "செயலியுடன் தொகுக்கப்பட்டது · தயாராகிறது",
+  "settingsNotDownloaded": "பதிவிறக்கப்படவில்லை ({mb} MB)",
+  "@settingsNotDownloaded": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsRemove": "அகற்று",
+  "settingsPercent": "{pct}%",
+  "@settingsPercent": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsInstall": "நிறுவு",
+  "settingsDownload": "பதிவிறக்கு",
+  "settingsNoFilePicked": "இன்னும் கோப்பு தேர்ந்தெடுக்கப்படவில்லை",
+  "settingsScanHint": "இந்த தொலைபேசியில் ஏற்கனவே உள்ள மாதிரி கோப்பை ஸ்கேன் செய்யவும்.",
+  "settingsCustomModelMeta": "{path} · {mb} MB · {tokens} டோக்கன்கள்",
+  "@settingsCustomModelMeta": {
+    "placeholders": {
+      "path": { "type": "String" },
+      "mb": { "type": "int" },
+      "tokens": { "type": "int" }
+    }
+  },
+  "settingsForget": "மற",
+  "settingsAllFilesAccess": "Android அமைப்புகளில் Scam Shield க்கு \"அனைத்து கோப்புகளுக்கான அணுகல்\" அனுமதிக்கவும், பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.",
+  "settingsNoModelFiles": ".litertlm அல்லது .task கோப்புகள் எதுவும் இல்லை.\n\nமாதிரியை பதிவிறக்கங்களில் வைக்கவும் (அல்லது கீழே அதன் பாதையை தட்டச்சு செய்யவும்) பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.",
+  "settingsFileSizeMb": "{mb} MB",
+  "@settingsFileSizeMb": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsEnterPathFirst": "முதலில் ஒரு மாதிரி கோப்பு பாதையை உள்ளிடவும்",
+  "settingsModelLoaded": "{name} ஏற்றப்பட்டது",
+  "@settingsModelLoaded": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsModelForgotten": "தேர்ந்தெடுத்த மாதிரி மறக்கப்பட்டது — கோப்பு சாதனத்தில் வைக்கப்பட்டுள்ளது",
+  "settingsSizeFromDevice": "~{mb} MB · இந்த சாதனத்திலிருந்து",
+  "@settingsSizeFromDevice": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeBundled": "~{mb} MB · தொகுக்கப்பட்டது",
+  "@settingsSizeBundled": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeDownload": "~{mb} MB · பதிவிறக்கம்",
+  "@settingsSizeDownload": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsFieldSaved": "{label} சேமிக்கப்பட்டது",
+  "@settingsFieldSaved": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "settingsSave": "சேமி",
+  "settingsLanguage": "மொழி",
+  "settingsLanguageSystem": "கணினி இயல்புநிலை",
+
+  "callIncoming": "உள்வரும் அழைப்பு: {who}",
+  "@callIncoming": {
+    "placeholders": { "who": { "type": "String" } }
+  },
+  "callBlocked": "{number} தடுக்கப்பட்டது",
+  "@callBlocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callUnblocked": "{number} தடை நீக்கப்பட்டது",
+  "@callUnblocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callReported": "{number} புகாரளிக்கப்பட்டது",
+  "@callReported": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callRemovedReport": "{number} க்கான புகார் அகற்றப்பட்டது",
+  "@callRemovedReport": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callOutgoing": "வெளிச்செல்லும்",
+  "callAnswered": "பதிலளிக்கப்பட்டது",
+  "callRejected": "நிராகரிக்கப்பட்டது",
+  "callMissed": "தவறவிட்டது",
+  "callBlockedLabel": "தடுக்கப்பட்டது",
+  "callHistoryTitle": "அழைப்பு வரலாறு",
+  "callBlockedNumbers": "தடுக்கப்பட்ட எண்கள்",
+  "callNoUnknown": "தெரியாத எண் அழைப்புகள் எதுவும் இல்லை",
+  "callPhonePermNeeded": "தொலைபேசி அனுமதி தேவை",
+  "callPhonePermBody": "உங்கள் அழைப்பு வரலாற்றைப் படிக்க Call Manager க்கு தொலைபேசி அனுமதி தேவை.",
+  "callGrantPhone": "தொலைபேசி அனுமதி வழங்கு",
+  "callCouldNotLoad": "அழைப்பு வரலாற்றை ஏற்ற முடியவில்லை",
+  "callDurationSuffix": " • {seconds}வி",
+  "@callDurationSuffix": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "callReportedSuffix": " • புகாரளிக்கப்பட்டது",
+  "callBlock": "தடு",
+  "callUnblock": "தடை நீக்கு",
+  "callRemoveReport": "புகாரை அகற்று",
+  "callBlockAndReport": "தடுத்து புகாரளி",
+
+  "reportPhone": "தொலைபேசி",
+  "reportUnknownApp": "தெரியாத செயலி",
+  "reportSent": "புகார் அனுப்பப்பட்டது",
+  "reportNotSent": "புகார் அனுப்பப்படவில்லை — புகார் இறுதிப்புள்ளி இன்னும் கட்டமைக்கப்படவில்லை",
+  "reportAddAppFirst": "முதலில் ஒரு செயலியைச் சேர்க்கவும்.",
+  "reportAsScam": "இந்த செய்தியை மோசடி என புகாரளிக்கவா?",
+  "reportSuspiciousMessages": "சந்தேகத்திற்குரிய செய்திகள்",
+  "reportTapHint": "மோசடி போல் தோன்றும் எதையும் “இதைப் புகாரளி” என்பதைத் தட்டவும்.",
+  "reportNothingSuspicious": "இப்போது சந்தேகத்திற்குரியது எதுவும் இல்லை",
+  "reportVerdictSummary": "{label} · {pct}% உறுதி",
+  "@reportVerdictSummary": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "pct": { "type": "int" }
+    }
+  },
+  "reportRecentCalls": "சமீபத்திய அழைப்புகள்",
+  "reportNoCalls": "இன்னும் அழைப்புகள் பதிவு செய்யப்படவில்லை",
+  "reportSomethingElse": "வேறு ஏதாவது புகாரளி",
+  "reportWriteOwn": "உங்கள் சொந்த புகாரை எழுதுங்கள்",
+  "reportNumberOptional": "எண் (விருப்பத்திற்குரியது)",
+  "reportAppRequired": "செயலி (தேவை)",
+  "reportAppHint": "WhatsApp, Telegram, தொலைபேசி…",
+  "reportMarkAs": "இப்படி குறி",
+  "reportSpam": "ஸ்பேம்",
+  "reportScam": "மோசடி",
+  "reportOther": "மற்றவை",
+  "reportReason": "காரணம்",
+  "reportReasonHint": "அவர்கள் என்ன செய்தார்கள் அல்லது சொன்னார்கள்?",
+  "reportOtherComments": "பிற கருத்துகள்",
+  "reportOtherCommentsHint": "நாங்கள் தெரிந்து கொள்ள வேண்டிய வேறு ஏதாவது (விருப்பத்திற்குரியது)",
+  "reportSubmit": "புகாரைச் சமர்ப்பி",
+  "reportSubjectTitle": "{subject} புகாரளிக்கவா?",
+  "@reportSubjectTitle": {
+    "placeholders": { "subject": { "type": "String" } }
+  },
+  "reportReasonOptional": "காரணம் (விருப்பத்திற்குரியது)",
+
+  "shieldTurnOnToRun": "மாதிரியை இயக்க பாதுகாப்பை இயக்கவும்",
+  "shieldCheckingMessage": "செய்தியைச் சரிபார்க்கிறது...",
+  "shieldScamAi": "மோசடி AI",
+  "shieldModelReady": "சாதனத்தில் உள்ள மாதிரி தயார்",
+  "shieldNoModel": "சாதனத்தில் மாதிரி எதுவும் நிறுவப்படவில்லை",
+  "shieldStats": "{evaluated} செய்திகள் சரிபார்க்கப்பட்டன, {alerts} எச்சரிக்கைகள் எழுப்பப்பட்டன",
+  "@shieldStats": {
+    "placeholders": {
+      "evaluated": { "type": "int" },
+      "alerts": { "type": "int" }
+    }
+  },
+  "shieldTryMessage": "ஒரு செய்தியை முயற்சிக்கவும்",
+  "shieldPasteHint": "சந்தேகத்திற்குரிய செய்தியை ஒட்டவும்...",
+  "shieldCheck": "சரிபார்",
+
+  "permDenied": "அனுமதி மறுக்கப்பட்டது",
+  "permConfirmScreening": "அழைப்பு திரையிடலுக்கு Call Manager ஐ உறுதிப்படுத்தவும்",
+  "permScreeningUnavailable": "இந்த சாதனத்தில் அழைப்பு திரையிடல் கிடைக்கவில்லை",
+  "permNotificationAccess": "அறிவிப்பு அணுகல்",
+  "permNotificationAccessSub": "அறிவிப்புகளிலிருந்து செய்திகளைப் படிக்கிறது",
+  "permOverlay": "பிற செயலிகளுக்கு மேல் காட்டு",
+  "permOverlaySub": "அழைப்பு ஒலிக்கும்போது மோசடி எச்சரிக்கையைக் காட்டுகிறது",
+  "permAlerts": "எச்சரிக்கைகள் அனுமதிக்கப்பட்டன",
+  "permAlertsSub": "மோசடி எச்சரிக்கைகளை அறிவிப்புகளாக இடுகிறது",
+  "permGranted": "வழங்கப்பட்டது",
+  "permGrant": "வழங்கு",
+  "permScreeningRole": "அழைப்பு திரையிடல் பங்கு",
+  "permScreeningRoleSub": "உள்வரும் அழைப்புகளைத் திரையிட்டு, ஸ்பேம் என நீங்கள் குறிக்கும் எண்களைத் தடுக்க செயலியை அனுமதிக்கிறது.",
+  "permScreeningActive": "திரையிடல் செயலில் உள்ளது",
+  "permEnableScreening": "அழைப்பு திரையிடலை இயக்கு",
+  "permScreeningNotGranted": "அழைப்பு திரையிடல் இன்னும் வழங்கப்படவில்லை",
+  "permScreeningTapHint": "மேலே உள்ள \"அழைப்பு திரையிடலை இயக்கு\" என்பதைத் தட்டவும், இல்லையெனில் அழைப்புகள் தொடர்ந்து ஒலிக்கும்.",
+  "permTitle": "அனுமதிகள்",
+  "permGrantFollowing": "முழு அணுகலுக்கு பின்வரும் அனுமதிகளை வழங்கவும்.",
+  "permPhoneCallLog": "தொலைபேசி & அழைப்பு பதிவு",
+  "permPhoneGranted": "தொலைபேசி அனுமதி வழங்கப்பட்டது",
+  "permContacts": "தொடர்புகள்",
+  "permContactsGranted": "தொடர்பு அனுமதி வழங்கப்பட்டது",
+  "permNotifications": "அறிவிப்புகள்",
+  "permNotificationsGranted": "அறிவிப்பு அனுமதி வழங்கப்பட்டது",
+  "permStillNotWorking": "இன்னும் வேலை செய்யவில்லையா?",
+  "permOpenSettingsBody": "அழைப்பு திரையிடல் பங்கு மற்றும் அனுமதிகளை கைமுறையாக ஒதுக்க இந்த செயலிக்கான கணினி அமைப்புகளைத் திறக்கவும்.",
+  "permOpenAppSettings": "செயலி அமைப்புகளைத் திற",
+  "permNotChecked": "சரிபார்க்கப்படவில்லை",
+  "permStatusDenied": "மறுக்கப்பட்டது",
+  "permPermanentlyDenied": "நிரந்தரமாக மறுக்கப்பட்டது",
+  "permNotGranted": "வழங்கப்படவில்லை",
+
+  "contactsPermRequired": "தொடர்புகளைப் பார்க்க தொடர்பு அனுமதி தேவை",
+  "contactsLoadFailed": "தொடர்புகளை ஏற்ற முடியவில்லை: {error}",
+  "@contactsLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "contactsTitle": "தொடர்புகள்",
+  "contactsOpenMenu": "மெனுவைத் திற",
+  "contactsSearchHint": "தொடர்புகளைத் தேடு...",
+  "contactsCouldNotLoad": "தொடர்புகளை ஏற்ற முடியவில்லை",
+  "contactsNoneFound": "தொடர்புகள் எதுவும் இல்லை",
+  "contactsNoDetails": "விவரங்கள் இல்லை",
+  "contactsCouldNotCall": "அழைப்பைத் தொடங்க முடியவில்லை",
+  "contactsCouldNotCallError": "அழைப்பைத் தொடங்க முடியவில்லை: {error}",
+  "@contactsCouldNotCallError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "safetyTitle": "பாதுகாப்பு",
+  "safetyRecentAlerts": "சமீபத்திய எச்சரிக்கைகள்",
+  "safetyProtectedOn": "நீங்கள் பாதுகாக்கப்படுகிறீர்கள்",
+  "safetyProtectedOff": "பாதுகாப்பு அணைக்கப்பட்டுள்ளது",
+  "safetyDownloadFirstPeriod": "முதலில் அமைப்புகள் தாவலில் ஒரு மாதிரியைப் பதிவிறக்கவும்.",
+  "safetyWeCheck": "உங்கள் செய்திகளில் மோசடிகளை நாங்கள் சரிபார்க்கிறோம்.",
+  "safetyTurnOnToCheck": "செய்திகளில் மோசடிகளைச் சரிபார்க்க இதை இயக்கவும்.",
+  "safetyTurnOff": "பாதுகாப்பை அணை",
+  "safetyTurnOn": "பாதுகாப்பை இயக்கு",
+  "safetyNoScams": "மோசடிகள் எதுவும் இல்லை",
+  "safetyNoScamsBody": "சந்தேகத்திற்குரிய செய்திகள் இங்கே தோன்றும்.",
+
+  "protectionChecked": "சரிபார்க்கப்பட்டது",
+  "protectionAlerts": "எச்சரிக்கைகள்",
+  "protectionOn": "பாதுகாப்பு இயக்கத்தில் உள்ளது",
+  "protectionOff": "பாதுகாப்பு அணைக்கப்பட்டுள்ளது",
+  "protectionReadsNotifications": "செய்தியிடல் செயலிகளிலிருந்து அறிவிப்புகளைப் படிக்கிறது",
+
+  "activityAll": "அனைத்தும் ({count})",
+  "@activityAll": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityScams": "மோசடிகள் ({count})",
+  "@activityScams": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityUnchecked": "சரிபார்க்கப்படாதவை ({count})",
+  "@activityUnchecked": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityNoMessages": "இன்னும் செய்திகள் எதுவும் பிடிக்கப்படவில்லை.",
+  "activityNotCheckedSuffix": " · சரிபார்க்கப்படவில்லை",
+  "activityCloudSuffix": " · கிளவுட்",
+  "activityNotCheckedYet": "இன்னும் சரிபார்க்கப்படவில்லை.",
+  "activityVerdict": "தீர்ப்பு",
+  "activityConfidence": "நம்பிக்கை",
+  "activityCheckedBy": "சரிபார்த்தவர்",
+  "activityEscalatedSuffix": "{wire} (அதிகரிக்கப்பட்டது)",
+  "@activityEscalatedSuffix": {
+    "placeholders": { "wire": { "type": "String" } }
+  },
+  "activityReason": "காரணம்",
+  "activityAiThinking": "AI சிந்தனை",
+  "activityNoOutput": "(மாதிரி படிக்கக்கூடிய வெளியீட்டை உருவாக்கவில்லை)",
+
+  "blockedNumbersTitle": "தடுக்கப்பட்ட எண்கள்",
+  "blockedNoNumbers": "தடுக்கப்பட்ட எண்கள் இல்லை",
+
+  "notificationsTitle": "அறிவிப்புகள்",
+
+  "settingsScreenModelInstalled": "{name} நிறுவப்பட்டது",
+  "@settingsScreenModelInstalled": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsScreenTitle": "அமைப்புகள்",
+  "settingsScreenModelTab": "மாதிரி",
+  "settingsScreenPermissionsTab": "அனுமதிகள்",
+
+  "loginAppName": "Call Manager",
+  "loginTagline": "மோசடி அழைப்புகள் மற்றும் செய்திகளிலிருந்து உங்களைப் பாதுகாக்கிறது.",
+  "loginGetStarted": "தொடங்கு",
+
+  "onboardingTitle": "அனுமதிகள்",
+  "onboardingContinue": "தொடர்",
+
+  "authEnterEmail": "உங்கள் மின்னஞ்சலை உள்ளிடவும்.",
+  "authValidEmail": "சரியான மின்னஞ்சலை உள்ளிடவும்.",
+  "authEnterPassword": "உங்கள் கடவுச்சொல்லை உள்ளிடவும்.",
+  "authPasswordLength": "குறைந்தது 8 எழுத்துகளைப் பயன்படுத்தவும்.",
+  "authEnterName": "உங்கள் பெயரை உள்ளிடவும்.",
+  "authCreateAccount": "கணக்கை உருவாக்கு",
+  "authSignIn": "உள்நுழை",
+  "authRegisterIntro": "மோசடிகள் பற்றி பகிர்ந்து கற்றுக்கொள்ள சமூகத்தில் சேரவும்.",
+  "authLoginIntro": "இடுகையிட மற்றும் விவாதங்களில் சேர உள்நுழையவும்.",
+  "authYourName": "உங்கள் பெயர்",
+  "authYourNameHint": "உங்கள் பெயரை உள்ளிடவும்",
+  "authEmail": "மின்னஞ்சல்",
+  "authEmailHint": "உங்கள் மின்னஞ்சலை உள்ளிடவும்",
+  "authPassword": "கடவுச்சொல்",
+  "authPasswordHint": "உங்கள் கடவுச்சொல்லை உள்ளிடவும்",
+  "authToggleToLogin": "ஏற்கனவே கணக்கு உள்ளதா? உள்நுழை",
+  "authToggleToRegister": "புதியவரா? கணக்கை உருவாக்கு",
+
+  "communityTitle": "சமூகம்",
+  "communityShareScam": "ஒரு மோசடியைப் பகிர்",
+  "communityAll": "அனைத்தும்",
+  "communityNoPostsBody": "சமூகத்தால் பகிரப்பட்ட மோசடி புகார்கள் இங்கே தோன்றும்.",
+
+  "createChooseType": "ஒரு மோசடி வகையைத் தேர்ந்தெடுக்கவும்.",
+  "createAddTitle": "ஒரு தலைப்பைச் சேர்க்கவும்.",
+  "createAddMessage": "செய்தி உரையைச் சேர்க்கவும்.",
+
+  "reportTabTitle": "ஒரு மோசடியைப் புகாரளி",
+  "reportTabThankYou": "சமூகத்துடன் பகிரப்பட்டது. நன்றி!",
+  "reportTabTrackIt": "சமூகத்துடன் பகிரப்பட்டது. கண்காணிக்க எனது இடுகைகளைப் பார்க்கவும்.",
+
+  "myPostsTitle": "எனது இடுகைகள்",
+  "myPostsNoneBody": "நீங்கள் புகாரளிக்கும் மோசடிகள் இங்கே தோன்றும், அதனால் அவற்றைக் கண்காணிக்கலாம்.",
+
+  "postDetailThankYou": "நன்றி. எங்கள் குழு இந்த இடுகையை மதிப்பாய்வு செய்யும்.",
+  "postDetailTitle": "இடுகை",
+  "postDetailReportTooltip": "இந்த இடுகையைப் புகாரளி",
+  "postDetailComments": "கருத்துகள் ({count})",
+  "@postDetailComments": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "postDetailNoComments": "இன்னும் கருத்துகள் இல்லை.",
+  "postDetailWriteComment": "ஒரு கருத்தை எழுது",
+  "postDetailPostComment": "கருத்தை இடு",
+  "postDetailFlagPersonalInfo": "தனிப்பட்ட தகவலைக் காட்டுகிறது",
+  "postDetailFlagHarmful": "தீங்கு விளைவிக்கும் அல்லது ஆபத்தானது",
+  "postDetailFlagSpam": "ஸ்பேம்",
+  "postDetailFlagMisinfo": "தவறான தகவல்",
+  "postDetailFlagOther": "மற்றவை",
+
+  "guidanceClickedLink": "நான் ஒரு இணைப்பைக் கிளிக் செய்தேன்",
+  "guidanceGotMessage": "எனக்கு இப்போது ஒரு செய்தி வந்தது",
+  "guidanceSharedPassword": "நான் எனது கடவுச்சொல்லைப் பகிர்ந்தேன்",
+  "guidanceSentMoney": "நான் பணம் அனுப்பினேன்",
+  "guidanceCouldNotOpenLink": "இணைப்பைத் திறக்க முடியவில்லை.",
+  "guidanceCouldNotCall": "அழைப்பைத் தொடங்க முடியவில்லை.",
+  "guidanceTitle": "உதவி பெறு",
+  "guidanceWhatHappened": "என்ன நடந்தது?",
+  "guidanceWhoToContact": "யாரைத் தொடர்பு கொள்வது",
+  "guidanceShowAll": "அனைத்தையும் காட்டு",
+  "guidanceOpenWebsite": "இணையதளத்தைத் திற",
+  "guidanceNoAdvice": "இன்னும் ஆலோசனை இல்லை",
+  "guidanceNoAdviceBody": "நீங்கள் எடுக்கக்கூடிய நடவடிக்கைகளைப் பார்க்க மேலே என்ன நடந்தது என்பதைத் தேர்ந்தெடுக்கவும்.",
+
+  "tourCallsTitle": "அழைப்புகள்",
+  "tourCallsBody": "தெரியாத எண்களிலிருந்து வரும் அழைப்புகள் இங்கே தோன்றும். விவரங்களைப் பார்க்க ஒரு அழைப்பைத் தட்டவும், மேலும் நீங்கள் மீண்டும் கேட்க விரும்பாத எண்களை நிர்வகிக்க மேல் மூலையில் உள்ள தடை ஐகானைப் பயன்படுத்தவும்.",
+  "tourSafetyTitle": "பாதுகாப்பு",
+  "tourSafetyBody": "இங்கே பாதுகாப்பை இயக்கவும். ஒரு மாதிரி பதிவிறக்கப்பட்டவுடன், Scam Shield உங்கள் சாதனத்தில் உள்வரும் செய்திகளைப் படித்து மோசடிகள் குறித்து எச்சரிக்கிறது.",
+  "tourReportTitle": "புகாரளி",
+  "tourReportBody": "ஒரு மோசடியைக் கண்டறிந்தீர்களா? இந்த தாவலிலிருந்து அதை சமூகத்துடன் பகிர்ந்து கொள்ளுங்கள், அதனால் மற்றவர்கள் அதே தந்திரத்தை அடையாளம் கண்டு பாதுகாப்பாக இருக்கலாம்.",
+  "tourMyPostsTitle": "எனது இடுகைகள்",
+  "tourMyPostsBody": "நீங்கள் புகாரளிக்கும் அனைத்தும் இங்கே வரும். விவாதத்தைக் கண்காணித்து, ஒரு மதிப்பீட்டாளர் உங்கள் இடுகையை மதிப்பாய்வு செய்தபோது பார்க்கவும்.",
+  "tourSettingsTitle": "அமைப்புகள்",
+  "tourSettingsBody": "ஒரு பாதுகாப்பு மாதிரியைப் பதிவிறக்கவும், அனுமதிகளை நிர்வகிக்கவும், கணக்கு பிரிவிலிருந்து எந்த நேரத்திலும் இந்த சுற்றுப்பயணத்தை மீண்டும் இயக்கவும்.",
+
+  "tourStepCounter": "{total} இல் {current}",
+  "@tourStepCounter": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tourSkip": "தவிர்",
+  "tourDone": "முடிந்தது",
+  "tourNext": "அடுத்து"
+}

@@ -1,0 +1,436 @@
+{
+  "@@locale": "zh",
+
+  "commonReport": "举报",
+  "commonCancel": "取消",
+  "commonRetry": "重试",
+  "commonRefresh": "刷新",
+  "commonReviewed": "已审核",
+  "commonClear": "清除",
+  "commonUnknown": "未知",
+  "commonReportThis": "举报此项",
+  "commonNoPostsYet": "暂无帖子",
+  "commonShareWithCommunity": "分享到社区",
+  "commonSharing": "正在分享…",
+  "commonDownloadModelFirst": "请先在“设置”选项卡中下载模型",
+  "commonTitle": "标题",
+  "commonTitleHint": "简短摘要",
+  "commonMessage": "信息内容",
+  "commonMessageHint": "在此粘贴诈骗信息",
+  "commonWhatKindOfScam": "是哪种诈骗？",
+  "commonTagsOptional": "标签（可选）",
+  "commonShareIntro": "分享你收到的诈骗信息，帮助他人。请先删除所有个人信息。",
+
+  "settingsDetectionModel": "检测模型",
+  "settingsProtection": "防护",
+  "settingsClearNotifications": "清除已捕获的通知",
+  "settingsStopProtection": "停止后台防护",
+  "settingsServiceRunning": "服务运行中",
+  "settingsServiceStopped": "服务已停止",
+  "settingsAccount": "账户",
+  "settingsShowTutorial": "再次查看教程",
+  "settingsReplayTour": "重新播放应用功能概览",
+  "settingsLogOut": "退出登录",
+  "settingsSignOutSubtitle": "退出你的账户",
+  "settingsAdvanced": "高级",
+  "settingsAdvancedSubtitle": "开发者与模型调校选项",
+  "settingsModelFromDevice": "来自本设备的模型（测试）",
+  "settingsScanForModels": "扫描模型文件",
+  "settingsScanningStorage": "正在扫描存储…",
+  "settingsScanSubtitle": "在“下载”和“文档”中查找 .litertlm 和 .task 文件",
+  "settingsModelFilePath": "模型文件路径",
+  "settingsModelFilePathHelper": "也可手动输入路径。文件将就地使用，绝不会被复制。",
+  "settingsContextWindow": "上下文窗口（词元）",
+  "settingsContextWindowHelper": "加载时请求的上下文长度。不得超过转换时设定的 kv_cache_max_len（MiniCPM5-2B 最高支持 {max}）。更大的窗口每个词元约占用 40 KB 内存。",
+  "@settingsContextWindowHelper": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsContextRange": "请输入 1024 到 {max} 之间的值",
+  "@settingsContextRange": {
+    "placeholders": { "max": { "type": "int" } }
+  },
+  "settingsThinking": "思考（推理）",
+  "settingsThinkingHelper": "让模型在回答前先推理。会使用更多词元且速度较慢；需要 3000 以上词元的上下文才有效。",
+  "settingsLoadModelFromFile": "从文件加载模型",
+  "settingsCloudThreshold": "云端升级阈值 — 低于 {pct}% 时升级",
+  "@settingsCloudThreshold": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsCloudReview": "云端审查",
+  "settingsForceCloud": "强制使用云端",
+  "settingsForceCloudHelper": "将每条信息都发送到云端模型并跳过本地模型。仅在云端无法连接时才回退到本地模型。",
+  "settingsEndpoint": "接口地址",
+  "settingsEndpointHint": "https://.../v1/chat/completions（留空 = 停用）",
+  "settingsModelName": "模型名称",
+  "settingsOnDeviceModel": "本地模型 — {name}",
+  "@settingsOnDeviceModel": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsReadyKept": "就绪 · {mb} MB · 保存在“下载”中（重装后仍保留）",
+  "@settingsReadyKept": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsReadyOffline": "就绪 · {mb} MB · 离线运行",
+  "@settingsReadyOffline": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsInstallingBundled": "正在安装内置模型 {pct}%",
+  "@settingsInstallingBundled": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsDownloadingPct": "正在下载 {pct}%",
+  "@settingsDownloadingPct": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsBundledPreparing": "随应用捆绑 · 准备中",
+  "settingsNotDownloaded": "尚未下载（{mb} MB）",
+  "@settingsNotDownloaded": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsRemove": "移除",
+  "settingsPercent": "{pct}%",
+  "@settingsPercent": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "settingsInstall": "安装",
+  "settingsDownload": "下载",
+  "settingsNoFilePicked": "尚未选择文件",
+  "settingsScanHint": "扫描本手机上已有的模型文件。",
+  "settingsCustomModelMeta": "{path} · {mb} MB · {tokens} 词元",
+  "@settingsCustomModelMeta": {
+    "placeholders": {
+      "path": { "type": "String" },
+      "mb": { "type": "int" },
+      "tokens": { "type": "int" }
+    }
+  },
+  "settingsForget": "忘记",
+  "settingsAllFilesAccess": "请在 Android 设置中为 Scam Shield 授予“所有文件访问权限”，然后重新扫描。",
+  "settingsNoModelFiles": "未找到 .litertlm 或 .task 文件。\n\n请将模型放入“下载”文件夹（或在下方输入其路径），然后重新扫描。",
+  "settingsFileSizeMb": "{mb} MB",
+  "@settingsFileSizeMb": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsEnterPathFirst": "请先输入模型文件路径",
+  "settingsModelLoaded": "{name} 已加载",
+  "@settingsModelLoaded": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsModelForgotten": "已忘记所选模型 — 文件仍保留在设备上",
+  "settingsSizeFromDevice": "~{mb} MB · 来自本设备",
+  "@settingsSizeFromDevice": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeBundled": "~{mb} MB · 内置",
+  "@settingsSizeBundled": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsSizeDownload": "~{mb} MB · 下载",
+  "@settingsSizeDownload": {
+    "placeholders": { "mb": { "type": "int" } }
+  },
+  "settingsFieldSaved": "{label} 已保存",
+  "@settingsFieldSaved": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "settingsSave": "保存",
+  "settingsLanguage": "语言",
+  "settingsLanguageSystem": "系统默认",
+
+  "callIncoming": "来电：{who}",
+  "@callIncoming": {
+    "placeholders": { "who": { "type": "String" } }
+  },
+  "callBlocked": "已拦截 {number}",
+  "@callBlocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callUnblocked": "已取消拦截 {number}",
+  "@callUnblocked": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callReported": "已举报 {number}",
+  "@callReported": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callRemovedReport": "已撤销对 {number} 的举报",
+  "@callRemovedReport": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callOutgoing": "呼出",
+  "callAnswered": "已接听",
+  "callRejected": "已拒接",
+  "callMissed": "未接",
+  "callBlockedLabel": "已拦截",
+  "callHistoryTitle": "通话记录",
+  "callBlockedNumbers": "已拦截号码",
+  "callNoUnknown": "未找到陌生号码来电",
+  "callPhonePermNeeded": "需要电话权限",
+  "callPhonePermBody": "Call Manager 需要电话权限才能读取你的通话记录。",
+  "callGrantPhone": "授予电话权限",
+  "callCouldNotLoad": "无法加载通话记录",
+  "callDurationSuffix": " • {seconds} 秒",
+  "@callDurationSuffix": {
+    "placeholders": { "seconds": { "type": "int" } }
+  },
+  "callReportedSuffix": " • 已举报",
+  "callBlock": "拦截",
+  "callUnblock": "取消拦截",
+  "callRemoveReport": "撤销举报",
+  "callBlockAndReport": "拦截并举报",
+
+  "reportPhone": "电话",
+  "reportUnknownApp": "未知应用",
+  "reportSent": "举报已发送",
+  "reportNotSent": "举报未发送 — 举报接口尚未配置",
+  "reportAddAppFirst": "请先添加一个应用。",
+  "reportAsScam": "将此信息举报为诈骗？",
+  "reportSuspiciousMessages": "可疑信息",
+  "reportTapHint": "对任何看起来像诈骗的信息点按“举报此项”。",
+  "reportNothingSuspicious": "目前没有可疑内容",
+  "reportVerdictSummary": "{label} · {pct}% 确定",
+  "@reportVerdictSummary": {
+    "placeholders": {
+      "label": { "type": "String" },
+      "pct": { "type": "int" }
+    }
+  },
+  "reportRecentCalls": "最近通话",
+  "reportNoCalls": "尚无通话记录",
+  "reportSomethingElse": "举报其他内容",
+  "reportWriteOwn": "撰写你自己的举报",
+  "reportNumberOptional": "号码（可选）",
+  "reportAppRequired": "应用（必填）",
+  "reportAppHint": "WhatsApp、Telegram、电话…",
+  "reportMarkAs": "标记为",
+  "reportSpam": "垃圾信息",
+  "reportScam": "诈骗",
+  "reportOther": "其他",
+  "reportReason": "原因",
+  "reportReasonHint": "他们做了或说了什么？",
+  "reportOtherComments": "其他备注",
+  "reportOtherCommentsHint": "还有什么我们该知道的（可选）",
+  "reportSubmit": "提交举报",
+  "reportSubjectTitle": "举报 {subject}？",
+  "@reportSubjectTitle": {
+    "placeholders": { "subject": { "type": "String" } }
+  },
+  "reportReasonOptional": "原因（可选）",
+
+  "shieldTurnOnToRun": "开启防护以运行模型",
+  "shieldCheckingMessage": "正在检查信息…",
+  "shieldScamAi": "诈骗 AI",
+  "shieldModelReady": "本地模型已就绪",
+  "shieldNoModel": "未安装本地模型",
+  "shieldStats": "已检查 {evaluated} 条信息，发出 {alerts} 次警报",
+  "@shieldStats": {
+    "placeholders": {
+      "evaluated": { "type": "int" },
+      "alerts": { "type": "int" }
+    }
+  },
+  "shieldTryMessage": "试试一条信息",
+  "shieldPasteHint": "粘贴一条可疑信息…",
+  "shieldCheck": "检查",
+
+  "permDenied": "权限被拒绝",
+  "permConfirmScreening": "确认由 Call Manager 进行来电筛查",
+  "permScreeningUnavailable": "此设备不支持来电筛查",
+  "permNotificationAccess": "通知访问权限",
+  "permNotificationAccessSub": "从通知中读取信息",
+  "permOverlay": "显示在其他应用之上",
+  "permOverlaySub": "在来电响铃时显示诈骗警报",
+  "permAlerts": "允许警报",
+  "permAlertsSub": "以通知形式发布诈骗警报",
+  "permGranted": "已授予",
+  "permGrant": "授予",
+  "permScreeningRole": "来电筛查角色",
+  "permScreeningRoleSub": "让应用筛查来电并拦截你标记为垃圾的号码。",
+  "permScreeningActive": "筛查已启用",
+  "permEnableScreening": "启用来电筛查",
+  "permScreeningNotGranted": "尚未授予来电筛查权限",
+  "permScreeningTapHint": "请点按上方的“启用来电筛查”，否则来电仍会正常响铃。",
+  "permTitle": "权限",
+  "permGrantFollowing": "授予以下权限以获得完整功能。",
+  "permPhoneCallLog": "电话与通话记录",
+  "permPhoneGranted": "已授予电话权限",
+  "permContacts": "通讯录",
+  "permContactsGranted": "已授予通讯录权限",
+  "permNotifications": "通知",
+  "permNotificationsGranted": "已授予通知权限",
+  "permStillNotWorking": "仍然无法使用？",
+  "permOpenSettingsBody": "打开此应用的系统设置，手动分配来电筛查角色和权限。",
+  "permOpenAppSettings": "打开应用设置",
+  "permNotChecked": "未检查",
+  "permStatusDenied": "已拒绝",
+  "permPermanentlyDenied": "已永久拒绝",
+  "permNotGranted": "未授予",
+
+  "contactsPermRequired": "查看通讯录需要通讯录权限",
+  "contactsLoadFailed": "加载通讯录失败：{error}",
+  "@contactsLoadFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "contactsTitle": "通讯录",
+  "contactsOpenMenu": "打开菜单",
+  "contactsSearchHint": "搜索通讯录…",
+  "contactsCouldNotLoad": "无法加载通讯录",
+  "contactsNoneFound": "未找到联系人",
+  "contactsNoDetails": "无详情",
+  "contactsCouldNotCall": "无法发起通话",
+  "contactsCouldNotCallError": "无法发起通话：{error}",
+  "@contactsCouldNotCallError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "safetyTitle": "安全",
+  "safetyRecentAlerts": "最近警报",
+  "safetyProtectedOn": "你已受到保护",
+  "safetyProtectedOff": "防护已关闭",
+  "safetyDownloadFirstPeriod": "请先在“设置”选项卡中下载模型。",
+  "safetyWeCheck": "我们会检查你的信息是否为诈骗。",
+  "safetyTurnOnToCheck": "开启此项以检查信息是否为诈骗。",
+  "safetyTurnOff": "关闭防护",
+  "safetyTurnOn": "开启防护",
+  "safetyNoScams": "未发现诈骗",
+  "safetyNoScamsBody": "可疑信息将显示在这里。",
+
+  "protectionChecked": "已检查",
+  "protectionAlerts": "警报",
+  "protectionOn": "防护已开启",
+  "protectionOff": "防护已关闭",
+  "protectionReadsNotifications": "读取来自信息应用的通知",
+
+  "activityAll": "全部（{count}）",
+  "@activityAll": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityScams": "诈骗（{count}）",
+  "@activityScams": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityUnchecked": "未检查（{count}）",
+  "@activityUnchecked": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "activityNoMessages": "尚未捕获任何信息。",
+  "activityNotCheckedSuffix": " · 未检查",
+  "activityCloudSuffix": " · 云端",
+  "activityNotCheckedYet": "尚未检查。",
+  "activityVerdict": "判定",
+  "activityConfidence": "置信度",
+  "activityCheckedBy": "检查方",
+  "activityEscalatedSuffix": "{wire}（已升级）",
+  "@activityEscalatedSuffix": {
+    "placeholders": { "wire": { "type": "String" } }
+  },
+  "activityReason": "原因",
+  "activityAiThinking": "AI 思考过程",
+  "activityNoOutput": "（模型未产生可读的输出）",
+
+  "blockedNumbersTitle": "已拦截号码",
+  "blockedNoNumbers": "没有已拦截的号码",
+
+  "notificationsTitle": "通知",
+
+  "settingsScreenModelInstalled": "{name} 已安装",
+  "@settingsScreenModelInstalled": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "settingsScreenTitle": "设置",
+  "settingsScreenModelTab": "模型",
+  "settingsScreenPermissionsTab": "权限",
+
+  "loginAppName": "Call Manager",
+  "loginTagline": "保护你远离诈骗电话和信息。",
+  "loginGetStarted": "开始使用",
+
+  "onboardingTitle": "权限",
+  "onboardingContinue": "继续",
+
+  "authEnterEmail": "请输入你的电子邮箱。",
+  "authValidEmail": "请输入有效的电子邮箱。",
+  "authEnterPassword": "请输入你的密码。",
+  "authPasswordLength": "请至少使用 8 个字符。",
+  "authEnterName": "请输入你的姓名。",
+  "authCreateAccount": "创建账户",
+  "authSignIn": "登录",
+  "authRegisterIntro": "加入社区，分享并了解诈骗信息。",
+  "authLoginIntro": "登录以发帖并参与讨论。",
+  "authYourName": "你的姓名",
+  "authYourNameHint": "输入你的姓名",
+  "authEmail": "电子邮箱",
+  "authEmailHint": "输入你的电子邮箱",
+  "authPassword": "密码",
+  "authPasswordHint": "输入你的密码",
+  "authToggleToLogin": "已有账户？登录",
+  "authToggleToRegister": "初次使用？创建账户",
+
+  "communityTitle": "社区",
+  "communityShareScam": "分享诈骗",
+  "communityAll": "全部",
+  "communityNoPostsBody": "社区分享的诈骗举报将显示在这里。",
+
+  "createChooseType": "请选择诈骗类型。",
+  "createAddTitle": "请添加标题。",
+  "createAddMessage": "请添加信息内容。",
+
+  "reportTabTitle": "举报诈骗",
+  "reportTabThankYou": "已分享到社区。谢谢你！",
+  "reportTabTrackIt": "已分享到社区。可在“我的帖子”中追踪。",
+
+  "myPostsTitle": "我的帖子",
+  "myPostsNoneBody": "你举报的诈骗将显示在这里，方便你追踪。",
+
+  "postDetailThankYou": "谢谢你。我们的团队将审核此帖。",
+  "postDetailTitle": "帖子",
+  "postDetailReportTooltip": "举报此帖",
+  "postDetailComments": "评论（{count}）",
+  "@postDetailComments": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "postDetailNoComments": "暂无评论。",
+  "postDetailWriteComment": "撰写评论",
+  "postDetailPostComment": "发表评论",
+  "postDetailFlagPersonalInfo": "显示个人信息",
+  "postDetailFlagHarmful": "有害或危险",
+  "postDetailFlagSpam": "垃圾信息",
+  "postDetailFlagMisinfo": "虚假信息",
+  "postDetailFlagOther": "其他",
+
+  "guidanceClickedLink": "我点了一个链接",
+  "guidanceGotMessage": "我刚收到一条信息",
+  "guidanceSharedPassword": "我泄露了密码",
+  "guidanceSentMoney": "我转了钱",
+  "guidanceCouldNotOpenLink": "无法打开该链接。",
+  "guidanceCouldNotCall": "无法发起通话。",
+  "guidanceTitle": "获取帮助",
+  "guidanceWhatHappened": "发生了什么？",
+  "guidanceWhoToContact": "该联系谁",
+  "guidanceShowAll": "显示全部",
+  "guidanceOpenWebsite": "打开网站",
+  "guidanceNoAdvice": "暂无建议",
+  "guidanceNoAdviceBody": "在上方选择发生的情况，查看你可以采取的步骤。",
+
+  "tourCallsTitle": "通话",
+  "tourCallsBody": "陌生号码的来电会显示在这里。点按某条通话可查看详情，使用右上角的拦截图标来管理你再也不想接到的号码。",
+  "tourSafetyTitle": "安全",
+  "tourSafetyBody": "在这里开启防护。下载模型后，Scam Shield 会在你的设备上读取收到的信息，并对可能的诈骗发出警告。",
+  "tourReportTitle": "举报",
+  "tourReportBody": "发现诈骗了？在此选项卡将它分享到社区，让其他人也能识别同样的伎俩并保持警惕。",
+  "tourMyPostsTitle": "我的帖子",
+  "tourMyPostsBody": "你举报的所有内容都会汇总到这里。追踪讨论，查看版主何时审核了你的帖子。",
+  "tourSettingsTitle": "设置",
+  "tourSettingsBody": "下载防护模型、管理权限，并可随时从“账户”区域重新播放本导览。",
+
+  "tourStepCounter": "第 {current} / {total} 步",
+  "@tourStepCounter": {
+    "placeholders": {
+      "current": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "tourSkip": "跳过",
+  "tourDone": "完成",
+  "tourNext": "下一步"
+}

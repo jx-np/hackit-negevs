@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../services/model_controller.dart';
 import '../services/protection_settings.dart';
@@ -66,9 +67,10 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
   Future<void> _toggleProtection(bool value) async {
     if (value && !_model.installed) {
       if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Download a model in the Settings tab first'),
+        SnackBar(
+          content: Text(l10n.commonDownloadModelFirst),
         ),
       );
       return;
@@ -87,10 +89,11 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
   Future<void> _runTest(String text) async {
     if (text.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     if (!_model.installed) {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Download a model in the Settings tab first'),
+        SnackBar(
+          content: Text(l10n.commonDownloadModelFirst),
         ),
       );
       return;
@@ -98,29 +101,30 @@ class _ScamShieldScreenState extends State<ScamShieldScreen> {
     final running = await ScamShieldController.ensureServiceRunning();
     if (!running) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Turn on protection to run the model')),
+        SnackBar(content: Text(l10n.shieldTurnOnToRun)),
       );
       return;
     }
     await ScamShieldController.testEvaluate(text);
     if (!mounted) return;
     messenger.showSnackBar(
-      const SnackBar(content: Text('Checking the message...')),
+      SnackBar(content: Text(l10n.shieldCheckingMessage)),
     );
     await _refresh();
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return DefaultTabController(
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Scam AI'),
-          bottom: const TabBar(
+          title: Text(l10n.shieldScamAi),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Protection'),
-              Tab(text: 'Scam AI'),
+              Tab(text: l10n.settingsProtection),
+              Tab(text: l10n.shieldScamAi),
             ],
           ),
         ),
@@ -175,6 +179,7 @@ class _ScamAiTabState extends State<ScamAiTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: ListView(
@@ -197,8 +202,8 @@ class _ScamAiTabState extends State<ScamAiTab> {
                       Expanded(
                         child: Text(
                           widget.modelInstalled
-                              ? 'On-device model ready'
-                              : 'No on-device model installed',
+                              ? l10n.shieldModelReady
+                              : l10n.shieldNoModel,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
@@ -207,8 +212,7 @@ class _ScamAiTabState extends State<ScamAiTab> {
                   const SizedBox(height: 4),
                   Text(
                     widget.status.lastMessage.isEmpty
-                        ? 'Checked ${widget.status.evaluated} messages, '
-                            'raised ${widget.status.alertsRaised} alerts'
+                        ? l10n.shieldStats(widget.status.evaluated, widget.status.alertsRaised)
                         : widget.status.lastMessage,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
@@ -223,15 +227,15 @@ class _ScamAiTabState extends State<ScamAiTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Try a message', style: Theme.of(context).textTheme.titleMedium),
+                  Text(l10n.shieldTryMessage, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _testController,
                     minLines: 2,
                     maxLines: 4,
-                    decoration: const InputDecoration(
-                      hintText: 'Paste a suspicious message...',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      hintText: l10n.shieldPasteHint,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -240,7 +244,7 @@ class _ScamAiTabState extends State<ScamAiTab> {
                     child: FilledButton.icon(
                       onPressed: () => widget.onTestMessage(_testController.text.trim()),
                       icon: const Icon(Icons.play_arrow),
-                      label: const Text('Check'),
+                      label: Text(l10n.shieldCheck),
                     ),
                   ),
                 ],

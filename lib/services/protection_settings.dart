@@ -52,6 +52,7 @@ class ProtectionSettings {
   static const String _kCustomName = 'custom_model_name';
   static const String _kCustomContext = 'custom_model_context';
   static const String _kCustomThinking = 'custom_model_thinking';
+  static const String _kSeenTutorial = 'seen_tutorial';
   static const int _maxHistory = 60;
 
   final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
@@ -61,6 +62,12 @@ class ProtectionSettings {
 
   Future<void> setProtectionEnabled(bool value) =>
       _prefs.setBool(_kEnabled, value);
+
+  Future<bool> seenTutorial() async =>
+      await _prefs.getBool(_kSeenTutorial) ?? false;
+
+  Future<void> setSeenTutorial(bool value) =>
+      _prefs.setBool(_kSeenTutorial, value);
 
   Future<String> selectedModelId() async =>
       await _prefs.getString(_kModelId) ?? modelCatalog.first.id;

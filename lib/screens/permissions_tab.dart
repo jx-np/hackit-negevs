@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:forui/forui.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -92,9 +93,10 @@ class _PermissionsTabState extends State<PermissionsTab>
   ) async {
     final status = await permission.request();
     if (mounted) {
+      final l10n = AppLocalizations.of(context);
       setState(() {
         _permissions[permission] = status;
-        _statusMessage = status.isGranted ? grantedMessage : 'Permission denied';
+        _statusMessage = status.isGranted ? grantedMessage : l10n.permDenied;
       });
     }
     await _refreshAll();
@@ -103,10 +105,11 @@ class _PermissionsTabState extends State<PermissionsTab>
   Future<void> _enableCallScreening() async {
     final launched = await RoleService.requestCallScreening();
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
     setState(() {
       _statusMessage = launched
-          ? 'Confirm Call Manager for call screening'
-          : 'Call screening is not available on this device';
+          ? l10n.permConfirmScreening
+          : l10n.permScreeningUnavailable;
     });
     await _refreshAll();
   }
@@ -154,26 +157,27 @@ class _PermissionsTabState extends State<PermissionsTab>
   }
 
   Widget _buildServiceCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Card(
       child: Column(
         children: [
           _checkTile(
-            'Notification access',
-            'Reads messages from notifications',
+            l10n.permNotificationAccess,
+            l10n.permNotificationAccessSub,
             _notificationAccess,
             _requestNotificationAccess,
           ),
           const Divider(height: 1),
           _checkTile(
-            'Display over other apps',
-            'Shows the scam alert while a call is ringing',
+            l10n.permOverlay,
+            l10n.permOverlaySub,
             _overlayGranted,
             _requestOverlay,
           ),
           const Divider(height: 1),
           _checkTile(
-            'Alerts allowed',
-            'Posts scam alerts as notifications',
+            l10n.permAlerts,
+            l10n.permAlertsSub,
             _notificationPermission,
             _requestAlerts,
           ),
@@ -188,6 +192,7 @@ class _PermissionsTabState extends State<PermissionsTab>
     bool ok,
     Future<void> Function() onFix,
   ) {
+    final l10n = AppLocalizations.of(context);
     return ListTile(
       leading: Icon(
         ok ? Icons.check_circle : Icons.error_outline,
@@ -196,13 +201,14 @@ class _PermissionsTabState extends State<PermissionsTab>
       title: Text(title),
       subtitle: Text(subtitle),
       trailing: ok
-          ? const Text('Granted')
-          : TextButton(onPressed: onFix, child: const Text('Grant')),
+          ? Text(l10n.permGranted)
+          : TextButton(onPressed: onFix, child: Text(l10n.permGrant)),
     );
   }
 
   Widget _buildCallScreeningCard(BuildContext context) {
     final colors = context.theme.colors;
+    final l10n = AppLocalizations.of(context);
     return FCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -213,10 +219,13 @@ class _PermissionsTabState extends State<PermissionsTab>
               children: [
                 const Icon(Icons.phone_in_talk, size: 28),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Call screening role',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    l10n.permScreeningRole,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 Icon(
@@ -228,26 +237,22 @@ class _PermissionsTabState extends State<PermissionsTab>
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Lets the app screen incoming calls and block numbers you mark '
-              'as spam.',
-            ),
+            Text(l10n.permScreeningRoleSub),
             const SizedBox(height: 16),
             FButton(
               onPress: _isCallScreening ? null : _enableCallScreening,
               child: Text(
-                _isCallScreening ? 'Screening active' : 'Enable call screening',
+                _isCallScreening
+                    ? l10n.permScreeningActive
+                    : l10n.permEnableScreening,
               ),
             ),
             if (!_isCallScreening) ...[
               const SizedBox(height: 12),
-              const FAlert(
+              FAlert(
                 variant: FAlertVariant.destructive,
-                title: Text('Call screening is not granted yet'),
-                subtitle: Text(
-                  'Tap "Enable call screening" above, otherwise calls will '
-                  'still ring through.',
-                ),
+                title: Text(l10n.permScreeningNotGranted),
+                subtitle: Text(l10n.permScreeningTapHint),
               ),
             ],
           ],
@@ -257,44 +262,48 @@ class _PermissionsTabState extends State<PermissionsTab>
   }
 
   Widget _buildAppPermissionsCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.settings, size: 28),
-                SizedBox(width: 12),
+                const Icon(Icons.settings, size: 28),
+                const SizedBox(width: 12),
                 Text(
-                  'Permissions',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  l10n.permTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            const Text('Grant the following permissions for full access.'),
+            Text(l10n.permGrantFollowing),
             const SizedBox(height: 8),
             _buildPermissionTile(
               permission: Permission.phone,
               icon: Icons.phone,
-              title: 'Phone & Call Log',
-              grantedMessage: 'Phone permission granted',
+              title: l10n.permPhoneCallLog,
+              grantedMessage: l10n.permPhoneGranted,
             ),
             const FDivider(),
             _buildPermissionTile(
               permission: Permission.contacts,
               icon: Icons.contact_mail,
-              title: 'Contacts',
-              grantedMessage: 'Contacts permission granted',
+              title: l10n.permContacts,
+              grantedMessage: l10n.permContactsGranted,
             ),
             const FDivider(),
             _buildPermissionTile(
               permission: Permission.notification,
               icon: Icons.notifications,
-              title: 'Notifications',
-              grantedMessage: 'Notification permission granted',
+              title: l10n.permNotifications,
+              grantedMessage: l10n.permNotificationsGranted,
             ),
           ],
         ),
@@ -303,26 +312,27 @@ class _PermissionsTabState extends State<PermissionsTab>
   }
 
   Widget _buildTroubleshootCard(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return FCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Still not working?',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              l10n.permStillNotWorking,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Open the system settings for this app to manually assign the '
-              'call screening role and permissions.',
-            ),
+            Text(l10n.permOpenSettingsBody),
             const SizedBox(height: 16),
             FButton(
               onPress: _openAppSettings,
               prefix: const Icon(Icons.settings),
-              child: const Text('Open App Settings'),
+              child: Text(l10n.permOpenAppSettings),
             ),
           ],
         ),
@@ -336,34 +346,35 @@ class _PermissionsTabState extends State<PermissionsTab>
     required String title,
     required String grantedMessage,
   }) {
+    final l10n = AppLocalizations.of(context);
     return FTile(
       prefix: Icon(icon),
       title: Text(title),
       subtitle: Text(
-        _getPermissionStatus(permission),
+        _getPermissionStatus(l10n, permission),
         style: TextStyle(color: _getPermissionColor(permission)),
       ),
       suffix: FButton(
         onPress: () => _requestPermission(permission, grantedMessage),
         size: FButtonSizeVariant.sm,
         mainAxisSize: MainAxisSize.min,
-        child: const Text('Grant'),
+        child: Text(l10n.permGrant),
       ),
     );
   }
 
-  String _getPermissionStatus(Permission permission) {
+  String _getPermissionStatus(AppLocalizations l10n, Permission permission) {
     final status = _permissions[permission];
-    if (status == null) return 'Not checked';
+    if (status == null) return l10n.permNotChecked;
     switch (status) {
       case PermissionStatus.granted:
-        return 'Granted';
+        return l10n.permGranted;
       case PermissionStatus.denied:
-        return 'Denied';
+        return l10n.permStatusDenied;
       case PermissionStatus.permanentlyDenied:
-        return 'Permanently denied';
+        return l10n.permPermanentlyDenied;
       default:
-        return 'Not granted';
+        return l10n.permNotGranted;
     }
   }
 

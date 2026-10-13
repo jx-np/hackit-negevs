@@ -155,7 +155,14 @@ function CommentItem({
   childrenByParent: Map<string, Comment[]>;
 }) {
   const isReply = depth > 0;
+  // Cap reply nesting at 3 levels so reply-to-reply chains don't grow without
+  // bound and waterfall past the container's right edge. Replies at the max
+  // depth can't be replied to further, and indentation stops shifting right.
+  const MAX_DEPTH = 3;
+  const atMaxDepth = depth >= MAX_DEPTH;
+  const nextDepth = Math.min(depth + 1, MAX_DEPTH);
   const removed = comment.status === 'removed' || comment.status === 'hidden';
+  const hasReplies = (childrenByParent.get(comment.id) ?? []).length > 0;
   const { user, isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
   const isAuthor = !!user && user.id === comment.authorId;
@@ -227,9 +234,15 @@ function CommentItem({
     },
   });
 
+  // A deleted comment with no replies is dropped entirely. If it still has
+  // replies, keep the block and show a placeholder so the thread stays intact.
+  if (removed && !hasReplies) {
+    return null;
+  }
+
   return (
-    <div className={isReply ? 'mt-3 ml-5 border-l border-scam-line pl-4' : ''}>
-      <div className="flex items-start gap-3">
+    <div className={isReply ? 'mt-3 border-l border-scam-line pl-4 ml-3 sm:ml-5' : ''}>
+      <div className="flex items-start gap-3 min-w-0">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted">
           {initials(comment.authorLabel)}
         </span>
@@ -281,7 +294,11 @@ function CommentItem({
                 removed ? 'italic text-scam-dim' : 'text-scam-muted'
               }`}
             >
-              {removed ? 'This comment was removed.' : comment.body}
+              {removed
+                ? comment.status === 'removed'
+                  ? 'This comment was deleted by the author.'
+                  : 'This comment was removed.'
+                : comment.body}
             </p>
           )}
 
@@ -391,7 +408,7 @@ function CommentItem({
                 </motion.span>
               </motion.button>
 
-              {isLoggedIn && (
+              {isLoggedIn && !atMaxDepth && (
                 <button
                   type="button"
                   onClick={() => setReplying((r) => !r)}
@@ -468,7 +485,7 @@ function CommentItem({
           key={child.id}
           comment={child}
           postId={postId}
-          depth={depth + 1}
+          depth={nextDepth}
           childrenByParent={childrenByParent}
         />
       ))}

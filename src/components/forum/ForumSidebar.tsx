@@ -37,20 +37,35 @@ import { useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 import { useTags } from '../../hooks/useTags';
 
+/**
+ * Inline panels that can replace the forum feed. `null` means the default
+ * feed (post list) is shown.
+ */
+export type ForumPanel =
+  | 'stay-safe'
+  | 'rules'
+  | 'verified'
+  | 'report-user'
+  | 'help';
+
 interface ForumSidebarProps {
   /** Currently selected tag id, or null for "All records". Single-select. */
   selected: string | null;
   onSelect: (tagId: string | null) => void;
+  /** Panel currently shown in the feed, or null for the default post list. */
+  activePanel: ForumPanel | null;
+  /** Open an inline panel in the feed (or null to return to the post list). */
+  onOpenPanel: (panel: ForumPanel | null) => void;
 }
 
 type IconType = ComponentType<{ size?: number | string; className?: string }>;
 
 /** Primary navigation group at the top of the sidebar. */
-const NAV_ITEMS: { icon: IconType; label: string; to?: string }[] = [
+const NAV_ITEMS: { icon: IconType; label: string; panel?: ForumPanel }[] = [
   { icon: Home, label: 'Home' },
   { icon: Flame, label: 'Trending Scams' },
   { icon: Sparkles, label: 'Newest Reports' },
-  { icon: BookOpen, label: 'How to Stay Safe' },
+  { icon: BookOpen, label: 'How to Stay Safe', panel: 'stay-safe' },
 ];
 
 /**
@@ -87,14 +102,19 @@ function iconForCategory(name: string, slug = ''): IconType {
   return CATEGORY_ICONS.find((c) => c.match.test(haystack))?.icon ?? ShieldAlert;
 }
 
-const COMMUNITY_ITEMS: { icon: IconType; label: string }[] = [
-  { icon: ScrollText, label: 'Rules & Posting Guidelines' },
-  { icon: BadgeCheck, label: 'Verified Scam Database' },
-  { icon: UserX, label: 'Report a User' },
-  { icon: HelpCircle, label: 'Help' },
+const COMMUNITY_ITEMS: { icon: IconType; label: string; panel: ForumPanel }[] = [
+  { icon: ScrollText, label: 'Rules & Posting Guidelines', panel: 'rules' },
+  { icon: BadgeCheck, label: 'Verified Scam Database', panel: 'verified' },
+  { icon: UserX, label: 'Report a User', panel: 'report-user' },
+  { icon: HelpCircle, label: 'Help', panel: 'help' },
 ];
 
-export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
+export function ForumSidebar({
+  selected,
+  onSelect,
+  activePanel,
+  onOpenPanel,
+}: ForumSidebarProps) {
   const { data: tags, isLoading, isError } = useTags();
   const [categoriesOpen, setCategoriesOpen] = useState(true);
 
@@ -105,13 +125,22 @@ export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
     >
       {/* Primary nav */}
       <nav className="flex flex-col gap-0.5" aria-label="Main">
-        {NAV_ITEMS.map(({ icon: Icon, label }, i) => {
-          const active = i === 0 && selected === null;
+        {NAV_ITEMS.map(({ icon: Icon, label, panel }, i) => {
+          const active = panel
+            ? activePanel === panel
+            : i === 0 && activePanel === null && selected === null;
           return (
             <button
               key={label}
               type="button"
-              onClick={() => i === 0 && onSelect(null)}
+              onClick={() => {
+                if (panel) {
+                  onOpenPanel(panel);
+                } else if (i === 0) {
+                  onOpenPanel(null);
+                  onSelect(null);
+                }
+              }}
               aria-current={active ? 'page' : undefined}
               className={`flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm font-medium transition ${
                 active
@@ -207,16 +236,25 @@ export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
       <div className="mt-6 border-t border-scam-line pt-4">
         <span className="block px-3 pb-1 sr-label">Community</span>
         <div className="mt-1 flex flex-col gap-0.5">
-          {COMMUNITY_ITEMS.map(({ icon: Icon, label }) => (
-            <button
-              key={label}
-              type="button"
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
+          {COMMUNITY_ITEMS.map(({ icon: Icon, label, panel }) => {
+            const active = activePanel === panel;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onOpenPanel(panel)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition ${
+                  active
+                    ? 'bg-trust-400/10 text-trust-400'
+                    : 'text-scam-muted hover:bg-scam-800 hover:text-scam-text'
+                }`}
+              >
+                <Icon size={16} />
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -246,6 +246,8 @@ export function ReportModal({
       if (err instanceof ApiError && err.status === 409) {
         // Already reported — treat as success so the user isn't nagged.
         setSubmitted(true);
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError('You need an account to report a post. Please sign in or sign up.');
       } else {
         setError(
           err instanceof ApiError && err.message
@@ -777,29 +779,27 @@ export function PostCard({ post }: { post: Post }) {
       <div className="relative z-20 flex flex-wrap items-center gap-1 border-t border-scam-line px-4 py-2.5 pl-7 text-sm text-scam-muted">
         {/* Vote control — "did this happen to you too?" (social proof) */}
         <div className="flex items-center gap-2 rounded-md border border-scam-line bg-scam-800/60 px-1 py-0.5">
-          {/* Up group: arrow hugs its count */}
-          <div className="flex items-center gap-0.5">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.8 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-              onClick={reaction.upvote}
-              disabled={reaction.pending}
-              aria-label="This happened to me too"
-              aria-pressed={reaction.myVote === 1}
-              className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-750 hover:text-trust-400 disabled:opacity-50 ${
-                reaction.myVote === 1 ? 'text-trust-400' : ''
-              }`}
+          {/* Up group: arrow + count form one button */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            onClick={reaction.upvote}
+            disabled={reaction.pending}
+            aria-label="This happened to me too"
+            aria-pressed={reaction.myVote === 1}
+            className={`flex items-center gap-0.5 rounded-md px-1 py-1 transition hover:bg-scam-750 hover:text-trust-400 disabled:opacity-50 ${
+              reaction.myVote === 1 ? 'text-trust-400' : ''
+            }`}
+          >
+            <motion.span
+              key={reaction.myVote === 1 ? 'up-on' : 'up-off'}
+              initial={{ scale: 0.6 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 12 }}
             >
-              <motion.span
-                key={reaction.myVote === 1 ? 'up-on' : 'up-off'}
-                initial={{ scale: 0.6 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 12 }}
-              >
-                <ArrowBigUp size={18} fill={reaction.myVote === 1 ? 'currentColor' : 'none'} />
-              </motion.span>
-            </motion.button>
+              <ArrowBigUp size={18} fill={reaction.myVote === 1 ? 'currentColor' : 'none'} />
+            </motion.span>
             <motion.span
               key={`up-${reaction.upCount}`}
               initial={{ y: -4, opacity: 0.4 }}
@@ -811,34 +811,32 @@ export function PostCard({ post }: { post: Post }) {
             >
               {reaction.upCount}
             </motion.span>
-          </div>
+          </motion.button>
 
           {/* Divider between the up and down groups */}
           <span className="h-5 w-px bg-scam-line" aria-hidden />
 
-          {/* Down group: arrow hugs its count */}
-          <div className="flex items-center gap-0.5">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.8 }}
-              transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-              onClick={reaction.downvote}
-              disabled={reaction.pending}
-              aria-label="Downvote"
-              aria-pressed={reaction.myVote === -1}
-              className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-750 hover:text-risk-high disabled:opacity-50 ${
-                reaction.myVote === -1 ? 'text-risk-high' : ''
-              }`}
+          {/* Down group: arrow + count form one button */}
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+            onClick={reaction.downvote}
+            disabled={reaction.pending}
+            aria-label="Downvote"
+            aria-pressed={reaction.myVote === -1}
+            className={`flex items-center gap-0.5 rounded-md px-1 py-1 transition hover:bg-scam-750 hover:text-risk-high disabled:opacity-50 ${
+              reaction.myVote === -1 ? 'text-risk-high' : ''
+            }`}
+          >
+            <motion.span
+              key={reaction.myVote === -1 ? 'down-on' : 'down-off'}
+              initial={{ scale: 0.6 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 12 }}
             >
-              <motion.span
-                key={reaction.myVote === -1 ? 'down-on' : 'down-off'}
-                initial={{ scale: 0.6 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 12 }}
-              >
-                <ArrowBigDown size={18} fill={reaction.myVote === -1 ? 'currentColor' : 'none'} />
-              </motion.span>
-            </motion.button>
+              <ArrowBigDown size={18} fill={reaction.myVote === -1 ? 'currentColor' : 'none'} />
+            </motion.span>
             <motion.span
               key={`down-${reaction.downCount}`}
               initial={{ y: -4, opacity: 0.4 }}
@@ -850,7 +848,7 @@ export function PostCard({ post }: { post: Post }) {
             >
               {reaction.downCount}
             </motion.span>
-          </div>
+          </motion.button>
         </div>
 
         {/* Prominent social proof — reassuring on a safety site. */}

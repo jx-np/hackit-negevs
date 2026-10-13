@@ -26,6 +26,7 @@ import type {
   PostsQuery,
   ReactionResult,
   ReviewStatus,
+  SortKey,
   Tag,
 } from '../types';
 import { apiFetch } from './client';
@@ -107,11 +108,31 @@ export async function getPost(id: string): Promise<Post> {
   return mapPostDetail(p);
 }
 
+/**
+ * Order a page of posts by the selected sort key. The backend feed only
+ * guarantees recency ordering, so "comments" and "likes" are applied here
+ * using the fields already present on each mapped post. Sorting is stable
+ * within a page and falls back to recency for ties.
+ */
+function sortPosts(posts: Post[], sort: SortKey): Post[] {
+  if (sort === 'new') return posts;
+  const byNewest = (a: Post, b: Post) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  return [...posts].sort((a, b) => {
+    if (sort === 'comments') {
+      return b.replyCount - a.replyCount || byNewest(a, b);
+    }
+    // sort === 'likes'
+    return b.likeCount - a.likeCount || byNewest(a, b);
+  });
+}
+
 export async function getPosts({
   query = '',
   tagId = null,
   cursor = null,
   limit = DEFAULT_LIMIT,
+  sort = 'new',
 }: PostsQuery): Promise<PostsPage> {
   const params = new URLSearchParams();
   params.set('limit', String(limit));
@@ -133,7 +154,7 @@ export async function getPosts({
   }
 
   const res = await apiFetch<ApiListResponse<ApiFeedItem>>(path);
-  const posts = (res.items ?? []).map(mapFeedItem);
+  const posts = sortPosts((res.items ?? []).map(mapFeedItem), sort);
   return {
     posts,
     nextCursor: res.next_cursor ?? null,

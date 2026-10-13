@@ -122,7 +122,7 @@ function CardSkeleton() {
   );
 }
 
-export function HelpPage() {
+export function HelpContent() {
   const guidance = useGuidance();
   const resources = useResources();
 
@@ -133,12 +133,8 @@ export function HelpPage() {
   );
 
   return (
-    <div
-      className="min-h-screen bg-scam-950 text-scam-text"
-      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
-    >
-      <div className="mx-auto w-full max-w-[900px] px-5 py-10 lg:px-8">
-        <motion.div
+    <>
+      <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -204,6 +200,18 @@ export function HelpPage() {
             </div>
           )}
         </section>
+    </>
+  );
+}
+
+export function HelpPage() {
+  return (
+    <div
+      className="min-h-screen bg-scam-950 text-scam-text"
+      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
+    >
+      <div className="mx-auto w-full max-w-[900px] px-5 py-10 lg:px-8">
+        <HelpContent />
       </div>
     </div>
   );

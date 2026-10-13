@@ -5,8 +5,7 @@ import { useCallback, useSyncExternalStore } from 'react';
  *
  * The backend has no comment reaction endpoint, so likes are persisted locally
  * in localStorage. We store the set of liked comment ids; the displayed count
- * is a per-comment base (seeded deterministically from the id so it looks
- * populated) plus one while the current user has it liked.
+ * is simply one while the current user has it liked and zero otherwise.
  */
 const STORAGE_KEY = 'scamwatch-comment-likes';
 
@@ -52,15 +51,6 @@ function toggle(id: string) {
   emit();
 }
 
-/** Deterministic non-negative base count derived from a comment id. */
-function baseCount(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) {
-    h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  }
-  return h % 12;
-}
-
 export interface CommentLike {
   liked: boolean;
   count: number;
@@ -70,7 +60,7 @@ export interface CommentLike {
 export function useCommentLike(commentId: string): CommentLike {
   const likes = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   const liked = !!likes[commentId];
-  const count = baseCount(commentId) + (liked ? 1 : 0);
+  const count = liked ? 1 : 0;
 
   const toggleLike = useCallback(() => toggle(commentId), [commentId]);
 

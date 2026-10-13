@@ -238,32 +238,30 @@ export function PostDetailPage() {
                 {/* Vote control + social proof */}
                 <div className="mt-5 flex items-center gap-3">
                   <div className="flex items-center gap-2 rounded-md border border-scam-line bg-scam-750 px-1 py-0.5">
-                    {/* Up group: arrow hugs its count */}
-                    <div className="flex items-center gap-0.5">
-                      <motion.button
-                        type="button"
-                        whileTap={{ scale: 0.8 }}
-                        transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                        onClick={reaction.upvote}
-                        disabled={reaction.pending}
-                        aria-label="This happened to me too"
-                        aria-pressed={reaction.myVote === 1}
-                        className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400 disabled:opacity-60 ${
-                          reaction.myVote === 1 ? 'text-trust-400' : ''
-                        }`}
+                    {/* Up group: arrow + count form one button */}
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.9 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                      onClick={reaction.upvote}
+                      disabled={reaction.pending}
+                      aria-label="This happened to me too"
+                      aria-pressed={reaction.myVote === 1}
+                      className={`flex items-center gap-0.5 rounded-md px-1 py-1 transition hover:bg-scam-800 hover:text-trust-400 disabled:opacity-60 ${
+                        reaction.myVote === 1 ? 'text-trust-400' : ''
+                      }`}
+                    >
+                      <motion.span
+                        key={reaction.myVote === 1 ? 'up-on' : 'up-off'}
+                        initial={{ scale: 0.6 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 12 }}
                       >
-                        <motion.span
-                          key={reaction.myVote === 1 ? 'up-on' : 'up-off'}
-                          initial={{ scale: 0.6 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 12 }}
-                        >
-                          <ArrowBigUp
-                            size={18}
-                            fill={reaction.myVote === 1 ? 'currentColor' : 'none'}
-                          />
-                        </motion.span>
-                      </motion.button>
+                        <ArrowBigUp
+                          size={18}
+                          fill={reaction.myVote === 1 ? 'currentColor' : 'none'}
+                        />
+                      </motion.span>
                       <motion.span
                         key={`up-${reaction.upCount}`}
                         initial={{ y: -4, opacity: 0.4 }}
@@ -275,37 +273,35 @@ export function PostDetailPage() {
                       >
                         {reaction.upCount}
                       </motion.span>
-                    </div>
+                    </motion.button>
 
                     {/* Divider between the up and down groups */}
                     <span className="h-5 w-px bg-scam-line" aria-hidden />
 
-                    {/* Down group: arrow hugs its count */}
-                    <div className="flex items-center gap-0.5">
-                      <motion.button
-                        type="button"
-                        whileTap={{ scale: 0.8 }}
-                        transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                        onClick={reaction.downvote}
-                        disabled={reaction.pending}
-                        aria-label="Downvote"
-                        aria-pressed={reaction.myVote === -1}
-                        className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-risk-high disabled:opacity-60 ${
-                          reaction.myVote === -1 ? 'text-risk-high' : ''
-                        }`}
+                    {/* Down group: arrow + count form one button */}
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.9 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                      onClick={reaction.downvote}
+                      disabled={reaction.pending}
+                      aria-label="Downvote"
+                      aria-pressed={reaction.myVote === -1}
+                      className={`flex items-center gap-0.5 rounded-md px-1 py-1 transition hover:bg-scam-800 hover:text-risk-high disabled:opacity-60 ${
+                        reaction.myVote === -1 ? 'text-risk-high' : ''
+                      }`}
+                    >
+                      <motion.span
+                        key={reaction.myVote === -1 ? 'down-on' : 'down-off'}
+                        initial={{ scale: 0.6 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 500, damping: 12 }}
                       >
-                        <motion.span
-                          key={reaction.myVote === -1 ? 'down-on' : 'down-off'}
-                          initial={{ scale: 0.6 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 12 }}
-                        >
-                          <ArrowBigDown
-                            size={18}
-                            fill={reaction.myVote === -1 ? 'currentColor' : 'none'}
-                          />
-                        </motion.span>
-                      </motion.button>
+                        <ArrowBigDown
+                          size={18}
+                          fill={reaction.myVote === -1 ? 'currentColor' : 'none'}
+                        />
+                      </motion.span>
                       <motion.span
                         key={`down-${reaction.downCount}`}
                         initial={{ y: -4, opacity: 0.4 }}
@@ -317,7 +313,7 @@ export function PostDetailPage() {
                       >
                         {reaction.downCount}
                       </motion.span>
-                    </div>
+                    </motion.button>
                   </div>
                   <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk-low">
                     <ShieldCheck size={14} /> {reaction.upCount} confirmed

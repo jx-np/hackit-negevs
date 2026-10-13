@@ -12,11 +12,17 @@ import { AppearanceProvider } from './context/AppearanceContext';
 import { AuthProvider } from './context/AuthContext';
 import { AuthPage } from './routes/AuthPage';
 import { ForumPage } from './routes/ForumPage';
+import { HelpPage } from './routes/HelpPage';
 import { LandingPage } from './routes/LandingPage';
+import { MyPostsPage } from './routes/MyPostsPage';
 import { NotFoundPage } from './routes/NotFoundPage';
 import { NumberCheckPage } from './routes/NumberCheckPage';
 import { PostDetailPage } from './routes/PostDetailPage';
 import { ReportPage } from './routes/ReportPage';
+import { ReportUserPage } from './routes/ReportUserPage';
+import { RulesPage } from './routes/RulesPage';
+import { StaySafePage } from './routes/StaySafePage';
+import { VerifiedDatabasePage } from './routes/VerifiedDatabasePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +50,12 @@ function AnimatedRoutes() {
           <Route path="/forum/:id" element={<PostDetailPage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/check" element={<NumberCheckPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/stay-safe" element={<StaySafePage />} />
+          <Route path="/rules" element={<RulesPage />} />
+          <Route path="/verified" element={<VerifiedDatabasePage />} />
+          <Route path="/report-user" element={<ReportUserPage />} />
+          <Route path="/me/posts" element={<MyPostsPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

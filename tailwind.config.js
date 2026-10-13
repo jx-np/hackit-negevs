@@ -49,7 +49,7 @@ export default {
           950: '#0a0d10',
         },
         paper: '#faf9f6',
-        // ===== ScamReg theme palette (trust-blue + traffic-light risk) =====
+        // ===== ScamWatch theme palette (trust-blue + traffic-light risk) =====
         // Driven by CSS variables so the whole forum flips with light/dark
         // mode. Values are defined in index.css (:root and .dark). The
         // `<alpha-value>` placeholder keeps opacity utilities (e.g.

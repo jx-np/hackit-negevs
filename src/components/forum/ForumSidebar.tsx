@@ -2,14 +2,22 @@ import {
   BadgeCheck,
   Banknote,
   Bell,
+  Bitcoin,
   BookOpen,
   Briefcase,
+  Building2,
   ChevronDown,
+  CreditCard,
   Flame,
+  Gift,
+  Globe,
+  GraduationCap,
+  HeartHandshake,
   HelpCircle,
   Home,
+  Landmark,
   Mail,
-  MessageSquareWarning,
+  MessageSquare,
   Phone,
   PlusCircle,
   ScrollText,
@@ -19,69 +27,120 @@ import {
   Siren,
   Sparkles,
   Star,
+  Truck,
+  UserRoundX,
   UserX,
+  Wallet,
+  Wrench,
 } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 import { useTags } from '../../hooks/useTags';
 
+/**
+ * Inline panels that can replace the forum feed. `null` means the default
+ * feed (post list) is shown.
+ */
+export type ForumPanel =
+  | 'stay-safe'
+  | 'rules'
+  | 'verified'
+  | 'report-user'
+  | 'help';
+
 interface ForumSidebarProps {
   /** Currently selected tag id, or null for "All records". Single-select. */
   selected: string | null;
   onSelect: (tagId: string | null) => void;
+  /** Panel currently shown in the feed, or null for the default post list. */
+  activePanel: ForumPanel | null;
+  /** Open an inline panel in the feed (or null to return to the post list). */
+  onOpenPanel: (panel: ForumPanel | null) => void;
 }
 
 type IconType = ComponentType<{ size?: number | string; className?: string }>;
 
 /** Primary navigation group at the top of the sidebar. */
-const NAV_ITEMS: { icon: IconType; label: string; to?: string }[] = [
+const NAV_ITEMS: { icon: IconType; label: string; panel?: ForumPanel }[] = [
   { icon: Home, label: 'Home' },
   { icon: Flame, label: 'Trending Scams' },
   { icon: Sparkles, label: 'Newest Reports' },
-  { icon: BookOpen, label: 'How to Stay Safe' },
+  { icon: BookOpen, label: 'How to Stay Safe', panel: 'stay-safe' },
 ];
 
-/** Icons mapped by category keyword so backend tags get a sensible glyph. */
+/**
+ * Icons mapped by category keyword so backend tags get a sensible glyph.
+ * Ordered most-specific first so overlapping keywords (e.g. "bank" vs
+ * "impersonation") resolve to the most fitting icon.
+ */
 const CATEGORY_ICONS: { match: RegExp; icon: IconType }[] = [
-  { match: /phish|email/i, icon: Mail },
-  { match: /crypto|invest/i, icon: Banknote },
-  { match: /romance|dating/i, icon: MessageSquareWarning },
-  { match: /tech|support/i, icon: ShieldQuestion },
-  { match: /shop|marketplace|deliver/i, icon: ShoppingBag },
-  { match: /job|employ/i, icon: Briefcase },
-  { match: /impersonat|bank|gov/i, icon: ShieldAlert },
-  { match: /phone|sms|smish|vish/i, icon: Phone },
+  { match: /phish/i, icon: Mail },
+  { match: /vish|call|phone|robocall|telemarket/i, icon: Phone },
+  { match: /smish|sms|text/i, icon: MessageSquare },
+  { match: /crypto|bitcoin|token|wallet|nft|blockchain/i, icon: Bitcoin },
+  { match: /invest|ponzi|pump|trading|stock|forex/i, icon: Banknote },
+  { match: /romance|dating|love|relationship/i, icon: HeartHandshake },
+  { match: /tech|support/i, icon: Wrench },
+  { match: /deliver|parcel|courier|package|shipping/i, icon: Truck },
+  { match: /shop|marketplace|retail|store|ecommerce|e-commerce/i, icon: ShoppingBag },
+  { match: /job|employ|recruit|work.?from.?home|career/i, icon: Briefcase },
+  { match: /bank/i, icon: Landmark },
+  { match: /card|credit|debit|payment/i, icon: CreditCard },
+  { match: /gov|tax|irs|hmrc|benefit|refund/i, icon: Building2 },
+  { match: /impersonat|identity|spoof|fake.?profile/i, icon: UserRoundX },
+  { match: /charity|donat|fundrais|disaster/i, icon: Gift },
+  { match: /loan|debt|credit.?repair|advance.?fee/i, icon: Wallet },
+  { match: /lottery|prize|giveaway|reward|inherit/i, icon: Gift },
+  { match: /education|scholar|student|tuition|visa/i, icon: GraduationCap },
+  { match: /social|message|whatsapp|telegram|chat/i, icon: MessageSquare },
+  { match: /website|phish.?site|clone|url|domain|online/i, icon: Globe },
+  { match: /email|mail|spam/i, icon: Mail },
 ];
 
-function iconForCategory(name: string): IconType {
-  return CATEGORY_ICONS.find((c) => c.match.test(name))?.icon ?? ShieldAlert;
+function iconForCategory(name: string, slug = ''): IconType {
+  const haystack = `${slug} ${name}`;
+  return CATEGORY_ICONS.find((c) => c.match.test(haystack))?.icon ?? ShieldAlert;
 }
 
-const COMMUNITY_ITEMS: { icon: IconType; label: string }[] = [
-  { icon: ScrollText, label: 'Rules & Posting Guidelines' },
-  { icon: BadgeCheck, label: 'Verified Scam Database' },
-  { icon: UserX, label: 'Report a User' },
-  { icon: HelpCircle, label: 'Help' },
+const COMMUNITY_ITEMS: { icon: IconType; label: string; panel: ForumPanel }[] = [
+  { icon: ScrollText, label: 'Rules & Posting Guidelines', panel: 'rules' },
+  { icon: BadgeCheck, label: 'Verified Scam Database', panel: 'verified' },
+  { icon: UserX, label: 'Report a User', panel: 'report-user' },
+  { icon: HelpCircle, label: 'Help', panel: 'help' },
 ];
 
-export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
+export function ForumSidebar({
+  selected,
+  onSelect,
+  activePanel,
+  onOpenPanel,
+}: ForumSidebarProps) {
   const { data: tags, isLoading, isError } = useTags();
   const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   return (
     <aside
-      className="w-full lg:sticky lg:top-20 lg:w-60 lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
+      className="w-full lg:sticky lg:top-[6.5rem] lg:w-60 lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
       aria-label="Forum navigation"
     >
       {/* Primary nav */}
       <nav className="flex flex-col gap-0.5" aria-label="Main">
-        {NAV_ITEMS.map(({ icon: Icon, label }, i) => {
-          const active = i === 0 && selected === null;
+        {NAV_ITEMS.map(({ icon: Icon, label, panel }, i) => {
+          const active = panel
+            ? activePanel === panel
+            : i === 0 && activePanel === null && selected === null;
           return (
             <button
               key={label}
               type="button"
-              onClick={() => i === 0 && onSelect(null)}
+              onClick={() => {
+                if (panel) {
+                  onOpenPanel(panel);
+                } else if (i === 0) {
+                  onOpenPanel(null);
+                  onSelect(null);
+                }
+              }}
               aria-current={active ? 'page' : undefined}
               className={`flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm font-medium transition ${
                 active
@@ -146,7 +205,7 @@ export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
               : tags?.map((tag) => (
                   <CategoryRow
                     key={tag.id}
-                    icon={iconForCategory(tag.name)}
+                    icon={iconForCategory(tag.name, tag.id)}
                     label={tag.name}
                     count={tag.count}
                     active={selected === tag.id}
@@ -177,16 +236,25 @@ export function ForumSidebar({ selected, onSelect }: ForumSidebarProps) {
       <div className="mt-6 border-t border-scam-line pt-4">
         <span className="block px-3 pb-1 sr-label">Community</span>
         <div className="mt-1 flex flex-col gap-0.5">
-          {COMMUNITY_ITEMS.map(({ icon: Icon, label }) => (
-            <button
-              key={label}
-              type="button"
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
-            >
-              <Icon size={16} />
-              {label}
-            </button>
-          ))}
+          {COMMUNITY_ITEMS.map(({ icon: Icon, label, panel }) => {
+            const active = activePanel === panel;
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onOpenPanel(panel)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition ${
+                  active
+                    ? 'bg-trust-400/10 text-trust-400'
+                    : 'text-scam-muted hover:bg-scam-800 hover:text-scam-text'
+                }`}
+              >
+                <Icon size={16} />
+                {label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

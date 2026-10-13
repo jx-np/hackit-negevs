@@ -9,18 +9,24 @@
  *   - incidentDate  → null
  *   - imageUrl      → null
  *   - replyCount    → comment_count
- *   - likeCount     → reactions.up (detail only; 0 on feed items)
+ *   - likeCount     → reactions.up (feed + detail)
  */
 import type {
   ApiCategory,
   ApiFeedItem,
+  ApiFlagResponse,
   ApiListResponse,
   ApiPostDetail,
+  ApiReactionResponse,
+  FlagReason,
+  FlagResult,
   NewPostInput,
   Post,
   PostsPage,
   PostsQuery,
+  ReactionResult,
   ReviewStatus,
+  SortKey,
   Tag,
 } from '../types';
 import { apiFetch } from './client';
@@ -61,11 +67,14 @@ function mapFeedItem(item: ApiFeedItem): Post {
     tags,
     createdAt: item.created_at,
     replyCount: item.comment_count,
-    likeCount: 0,
+    likeCount: item.reactions?.up ?? 0,
+    downCount: item.reactions?.down ?? 0,
+    myVote: item.my_vote ?? 0,
     imageUrl: null,
     risk: null,
     incidentDate: null,
     reviewStatus: item.review_status,
+    isMine: item.is_mine ?? false,
   };
 }
 
@@ -82,10 +91,13 @@ function mapPostDetail(p: ApiPostDetail): Post {
     createdAt: p.created_at,
     replyCount: p.comment_count,
     likeCount: p.reactions?.up ?? 0,
+    downCount: p.reactions?.down ?? 0,
+    myVote: p.my_vote ?? 0,
     imageUrl: null,
     risk: null,
     incidentDate: null,
     reviewStatus: p.review_status,
+    isMine: p.is_mine ?? false,
   };
 }
 
@@ -96,11 +108,31 @@ export async function getPost(id: string): Promise<Post> {
   return mapPostDetail(p);
 }
 
+/**
+ * Order a page of posts by the selected sort key. The backend feed only
+ * guarantees recency ordering, so "comments" and "likes" are applied here
+ * using the fields already present on each mapped post. Sorting is stable
+ * within a page and falls back to recency for ties.
+ */
+function sortPosts(posts: Post[], sort: SortKey): Post[] {
+  if (sort === 'new') return posts;
+  const byNewest = (a: Post, b: Post) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  return [...posts].sort((a, b) => {
+    if (sort === 'comments') {
+      return b.replyCount - a.replyCount || byNewest(a, b);
+    }
+    // sort === 'likes'
+    return b.likeCount - a.likeCount || byNewest(a, b);
+  });
+}
+
 export async function getPosts({
   query = '',
   tagId = null,
   cursor = null,
   limit = DEFAULT_LIMIT,
+  sort = 'new',
 }: PostsQuery): Promise<PostsPage> {
   const params = new URLSearchParams();
   params.set('limit', String(limit));
@@ -122,7 +154,7 @@ export async function getPosts({
   }
 
   const res = await apiFetch<ApiListResponse<ApiFeedItem>>(path);
-  const posts = (res.items ?? []).map(mapFeedItem);
+  const posts = sortPosts((res.items ?? []).map(mapFeedItem), sort);
   return {
     posts,
     nextCursor: res.next_cursor ?? null,
@@ -153,4 +185,114 @@ export async function createPost(input: NewPostInput): Promise<Post> {
     body: JSON.stringify(body),
   });
   return mapPostDetail(p);
+}
+
+function mapReaction(r: ApiReactionResponse): ReactionResult {
+  return {
+    upCount: r.up_count ?? 0,
+    downCount: r.down_count ?? 0,
+    myVote: r.my_vote ?? 0,
+  };
+}
+
+/**
+ * Set or change the caller's vote on a post.
+ * `vote` must be `1` (up) or `-1` (down).
+ */
+export async function setReaction(
+  id: string,
+  vote: 1 | -1,
+): Promise<ReactionResult> {
+  const r = await apiFetch<ApiReactionResponse>(
+    `/community/posts/${encodeURIComponent(id)}/reaction`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ vote }),
+    },
+  );
+  return mapReaction(r);
+}
+
+/** Clear the caller's vote on a post. */
+export async function clearReaction(id: string): Promise<ReactionResult> {
+  const r = await apiFetch<ApiReactionResponse>(
+    `/community/posts/${encodeURIComponent(id)}/reaction`,
+    { method: 'DELETE' },
+  );
+  return mapReaction(r);
+}
+
+/** Fields that can be edited on a post. */
+export interface PostPatch {
+  title?: string;
+  /** Maps to the backend's redacted_text. Editing resets review to unverified. */
+  excerpt?: string;
+  /** Additional tag slugs. */
+  tags?: string[];
+}
+
+/**
+ * Edit a post (author/moderator only). Editing `redacted_text` resets the
+ * backend review_status to `unverified`.
+ */
+export async function updatePost(id: string, patch: PostPatch): Promise<Post> {
+  const body: Record<string, unknown> = {};
+  if (patch.title !== undefined) body.title = patch.title;
+  if (patch.excerpt !== undefined) body.redacted_text = patch.excerpt;
+  if (patch.tags !== undefined) body.tags = patch.tags;
+
+  const p = await apiFetch<ApiPostDetail>(
+    `/community/posts/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+  return mapPostDetail(p);
+}
+
+/** Soft-delete a post (author/moderator only). */
+export async function deletePost(id: string): Promise<void> {
+  await apiFetch<void>(`/community/posts/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+/** Flag a post for moderator review. */
+export async function flagPost(
+  id: string,
+  reason: FlagReason,
+  details?: string,
+): Promise<FlagResult> {
+  const r = await apiFetch<ApiFlagResponse>(
+    `/community/posts/${encodeURIComponent(id)}/flag`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        reason,
+        ...(details ? { details } : {}),
+      }),
+    },
+  );
+  return { flagId: r.flag_id, status: r.status };
+}
+
+/** The caller's own posts ("my posts" history). */
+export async function getMyPosts(
+  cursor: string | null = null,
+  limit = DEFAULT_LIMIT,
+): Promise<PostsPage> {
+  const params = new URLSearchParams();
+  params.set('limit', String(limit));
+  if (cursor) params.set('cursor', cursor);
+
+  const res = await apiFetch<ApiListResponse<ApiFeedItem>>(
+    `/me/posts?${params.toString()}`,
+  );
+  const posts = (res.items ?? []).map(mapFeedItem);
+  return {
+    posts,
+    nextCursor: res.next_cursor ?? null,
+    total: posts.length,
+  };
 }

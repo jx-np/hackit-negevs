@@ -49,27 +49,15 @@ class ScamModelSpec {
 
 const List<ScamModelSpec> modelCatalog = [
   ScamModelSpec(
-    id: 'qwen2.5-0.5b',
-    displayName: 'Qwen2.5 0.5B (download)',
-    url:
-        'https://huggingface.co/litert-community/Qwen2.5-0.5B-Instruct/resolve/main/Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
-    fileName: 'Qwen2.5-0.5B-Instruct_multi-prefill-seq_q8_ekv1280.task',
-    modelType: ModelType.qwen,
-    fileType: ModelFileType.task,
-    approxSizeMb: 521,
-    contextTokens: 1280,
-    note: 'Smallest and fastest. Downloads once, then runs offline.',
-  ),
-  ScamModelSpec(
-    id: 'qwen3-4b-2507',
-    displayName: 'Qwen3 4B Instruct 2507 (download, large)',
-    url:
-        'https://huggingface.co/litert-community/Qwen3-4B-Instruct-2507/resolve/main/qwen3_4b_instruct_2507_mixed_int4.litertlm',
-    fileName: 'qwen3_4b_instruct_2507_mixed_int4.litertlm',
-    modelType: ModelType.qwen3,
+    id: 'gemma-4-e2b',
+    displayName: 'Gemma4 E2B',
+    url: 'https://img.jhh.moe/raw/gemma-4-E2B-it.litertlm',
+    fileName: 'gemma-4-E2B-it.litertlm',
+    modelType: ModelType.gemmaIt,
     fileType: ModelFileType.litertlm,
-    approxSizeMb: 2536,
-    note: 'Most accurate but large (~2.5 GB, INT4). Needs a flagship phone. Downloads once, then runs offline.',
+    approxSizeMb: 3100,
+    contextTokens: 4096,
+    note: 'Runs entirely on your phone. Downloads once, then works offline.',
   ),
 ];
 

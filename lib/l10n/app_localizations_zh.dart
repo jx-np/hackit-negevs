@@ -39,6 +39,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonShareWithCommunity => '分享到社区';
 
   @override
+  String get commonShare => '分享';
+
+  @override
   String get commonSharing => '正在分享…';
 
   @override
@@ -64,6 +67,18 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonShareIntro => '分享你收到的诈骗信息，帮助他人。请先删除所有个人信息。';
+
+  @override
+  String get commonPhotos => '照片（可选）';
+
+  @override
+  String get commonAddPhoto => '添加照片';
+
+  @override
+  String get commonRemovePhoto => '移除照片';
+
+  @override
+  String get commonImageTooLarge => '每张图片不得超过 20 MB。';
 
   @override
   String get settingsDetectionModel => '检测模型';
@@ -304,11 +319,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String callRemovedReport(String number) {
-    return '已撤销对 $number 的举报';
-  }
-
-  @override
   String get callOutgoing => '呼出';
 
   @override
@@ -359,10 +369,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callUnblock => '取消拦截';
 
   @override
-  String get callRemoveReport => '撤销举报';
+  String get callBlockAndReport => '拦截并举报';
 
   @override
-  String get callBlockAndReport => '拦截并举报';
+  String get callBlockNeedsScreening =>
+      'To stop blocked numbers from ringing, choose this app for call screening.';
 
   @override
   String get reportPhone => '电话';
@@ -748,6 +759,108 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingContinue => '继续';
 
   @override
+  String get onboardingBack => '返回';
+
+  @override
+  String get onboardingStart => '开始';
+
+  @override
+  String get onboardingNext => '下一步';
+
+  @override
+  String get onboardingAllow => '允许';
+
+  @override
+  String get onboardingOpenSettings => '打开设置';
+
+  @override
+  String get onboardingNotNow => '以后再说';
+
+  @override
+  String get onboardingFinish => '进入应用';
+
+  @override
+  String onboardingStepCount(int step, int total) {
+    return '第 $step 步，共 $total 步';
+  }
+
+  @override
+  String get onboardingWelcomeTitle => '欢迎';
+
+  @override
+  String get onboardingWelcomeBody =>
+      '本应用帮助您识别诈骗电话和短信。为此，它需要手机授予几项权限。我们会一项一项地完成。';
+
+  @override
+  String get onboardingWelcomeNote => '所有内容都保留在您的手机上。您可以随时在设置中更改这些选择。';
+
+  @override
+  String get onboardingPhoneTitle => '电话';
+
+  @override
+  String get onboardingPhoneBody => '这让应用可以看到谁在给您打电话，从而告诉您这个号码是否与诈骗有关。';
+
+  @override
+  String get onboardingContactsTitle => '联系人';
+
+  @override
+  String get onboardingContactsBody => '这让应用可以识别您认识的人，他们的来电不会被标记为可疑。';
+
+  @override
+  String get onboardingScreeningTitle => '来电检查';
+
+  @override
+  String get onboardingScreeningBody =>
+      '这让应用可以检查来电，并安静地拦截您已屏蔽的号码。手机会请您选择本应用作为来电筛选应用。';
+
+  @override
+  String get onboardingNotificationsTitle => '提醒';
+
+  @override
+  String get onboardingNotificationsBody => '当有内容看起来像诈骗时，应用可以给您发送简短提醒。';
+
+  @override
+  String get onboardingMessagesTitle => '短信检查';
+
+  @override
+  String get onboardingMessagesBody => '这让应用可以在新消息到达时读取它们，以便提醒您注意可疑链接或要钱的请求。';
+
+  @override
+  String get onboardingOverlayTitle => '通话时显示提醒';
+
+  @override
+  String get onboardingOverlayBody => '当可疑来电响铃时，应用可以在屏幕上显示一条小提示。';
+
+  @override
+  String get onboardingSettingsHint => '将打开手机设置。在列表中找到本应用，将其开启，然后返回这里。';
+
+  @override
+  String get onboardingStatusOn => '已开启。';
+
+  @override
+  String get onboardingStatusSkipped => '尚未开启。您可以再试一次，或稍后在设置中开启。';
+
+  @override
+  String get onboardingStatusBlocked => '手机不会再询问。请点击“打开设置”自行开启。';
+
+  @override
+  String get onboardingDoneTitle => '设置完成';
+
+  @override
+  String get onboardingDoneBody => '应用现在会为您留意诈骗电话和短信。';
+
+  @override
+  String get onboardingDonePartialTitle => '快完成了';
+
+  @override
+  String get onboardingDonePartialBody => '部分保护尚未开启。应用仍可使用，您可以稍后在设置中开启其余项目。';
+
+  @override
+  String onboardingGrantedCount(int granted, int total) {
+    return '已开启 $granted 项，共 $total 项';
+  }
+
+  @override
   String get authEnterEmail => '请输入你的电子邮箱。';
 
   @override
@@ -761,6 +874,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authEnterName => '请输入你的姓名。';
+
+  @override
+  String get authNameInvalid => '只能使用字母和数字，两个词之间最多一个空格。';
 
   @override
   String get authCreateAccount => '创建账户';
@@ -835,6 +951,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get myPostsNoneBody => '你举报的诈骗将显示在这里，方便你追踪。';
 
   @override
+  String get myPostsDelete => '删除';
+
+  @override
+  String get myPostsDeleteConfirm => '删除这个帖子？';
+
+  @override
+  String get myPostsDeleteConfirmBody => '这会将其从社区中移除。此操作无法撤销。';
+
+  @override
   String get postDetailThankYou => '谢谢你。我们的团队将审核此帖。';
 
   @override
@@ -871,6 +996,46 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get postDetailFlagOther => '其他';
+
+  @override
+  String get postDetailReply => '回复';
+
+  @override
+  String get postDetailEdit => '编辑';
+
+  @override
+  String get postDetailDelete => '删除';
+
+  @override
+  String get postDetailSave => '保存';
+
+  @override
+  String get postDetailCancel => '取消';
+
+  @override
+  String postDetailReplying(String name) {
+    return '回复 $name';
+  }
+
+  @override
+  String get postDetailWriteReply => '写回复';
+
+  @override
+  String get postDetailDeleteConfirm => '删除这条评论？';
+
+  @override
+  String get postDetailDeleteConfirmBody => '此操作无法撤销。';
+
+  @override
+  String get postDetailEdited => '已编辑';
+
+  @override
+  String get postDetailRemovedComment => '此评论已被移除。';
+
+  @override
+  String postDetailShowMoreReplies(int count) {
+    return 'Show $count more replies';
+  }
 
   @override
   String get guidanceClickedLink => '我点了一个链接';

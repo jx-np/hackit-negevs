@@ -13,6 +13,8 @@ class ServiceStatus {
     required this.modelId,
     required this.modelLoading,
     required this.modelReady,
+    required this.processing,
+    required this.modelError,
     required this.downloadProgress,
     required this.alertsRaised,
     required this.evaluated,
@@ -26,6 +28,8 @@ class ServiceStatus {
       modelId: data['modelId'] as String? ?? '',
       modelLoading: data['modelLoading'] as bool? ?? false,
       modelReady: data['modelReady'] as bool? ?? false,
+      processing: data['processing'] as bool? ?? false,
+      modelError: data['modelError'] as bool? ?? false,
       downloadProgress: data['downloadProgress'] as int? ?? -1,
       alertsRaised: data['alertsRaised'] as int? ?? 0,
       evaluated: data['evaluated'] as int? ?? 0,
@@ -38,6 +42,8 @@ class ServiceStatus {
     modelId: '',
     modelLoading: false,
     modelReady: false,
+    processing: false,
+    modelError: false,
     downloadProgress: -1,
     alertsRaised: 0,
     evaluated: 0,
@@ -48,6 +54,8 @@ class ServiceStatus {
   final String modelId;
   final bool modelLoading;
   final bool modelReady;
+  final bool processing;
+  final bool modelError;
   final int downloadProgress;
   final int alertsRaised;
   final int evaluated;

@@ -1,0 +1,16 @@
+{
+  "ms": [
+    "callBlockNeedsScreening",
+    "postDetailShowMoreReplies"
+  ],
+
+  "ta": [
+    "callBlockNeedsScreening",
+    "postDetailShowMoreReplies"
+  ],
+
+  "zh": [
+    "callBlockNeedsScreening",
+    "postDetailShowMoreReplies"
+  ]
+}

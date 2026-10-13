@@ -75,19 +75,12 @@ class ReportService {
   static ReportBackend backend = HttpReportBackend();
 
   static Future<bool> submitReport(CallRecord record, {String? reason}) async {
-    final id = record.id;
-    if (id != null) {
-      await CallDatabase.instance
-          .setReported(id, reported: true, reason: reason);
-    }
+    await CallDatabase.instance.setReportedByNumber(
+      record.normalizedNumber,
+      reported: true,
+      reason: reason,
+    );
     return backend.send(record, reason);
-  }
-
-  static Future<void> withdrawReport(CallRecord record) async {
-    final id = record.id;
-    if (id != null) {
-      await CallDatabase.instance.setReported(id, reported: false);
-    }
   }
 
   static Future<bool> submitPayload(ReportPayload payload) =>

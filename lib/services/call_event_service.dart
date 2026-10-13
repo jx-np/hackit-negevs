@@ -30,7 +30,7 @@ class CallEvent {
 /// PhoneStateReceiver) to Dart.
 class CallEventService {
   static const EventChannel _events =
-      EventChannel('com.example.call_log_app/call_events');
+      EventChannel('com.scamwatch.negavsinparis/call_events');
 
   /// Emits an event whenever a call is detected or ends.
   /// Returns an empty stream on non-Android platforms.

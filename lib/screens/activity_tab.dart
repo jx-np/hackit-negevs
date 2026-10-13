@@ -192,7 +192,6 @@ class _ActivityTileState extends State<_ActivityTile> {
       );
     }
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
       child: Column(

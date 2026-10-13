@@ -5,10 +5,14 @@ import '../core/scam_prompt.dart';
 import '../core/scam_verdict.dart';
 import 'model_manager.dart';
 import 'model_store.dart';
+import 'protection_settings.dart';
 import 'scam_evaluator.dart';
 
 class LocalLlmEvaluator implements ScamEvaluator {
-  LocalLlmEvaluator(this._models);
+  LocalLlmEvaluator(this._models, {ProtectionSettings? settings})
+      : _settings = settings ?? ProtectionSettings();
+
+  final ProtectionSettings _settings;
 
   static const int _maxOutputTokens = 200;
 
@@ -102,8 +106,12 @@ class LocalLlmEvaluator implements ScamEvaluator {
         'No on-device model installed. Open Scam Shield and download one.',
       );
     }
+    final backend = await _settings.modelBackend();
     _model = await FlutterGemma.getActiveModel(
       maxTokens: _models.spec.contextTokens,
+      preferredBackend: backend == ModelBackend.gpu
+          ? PreferredBackend.gpu
+          : PreferredBackend.cpu,
     ).timeout(_loadTimeout);
   }
 

@@ -1,4 +1,4 @@
-package com.example.call_log_app
+package com.scamwatch.negavsinparis
 
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel

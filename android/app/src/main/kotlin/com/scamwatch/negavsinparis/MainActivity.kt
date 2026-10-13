@@ -1,4 +1,4 @@
-package com.example.call_log_app
+package com.scamwatch.negavsinparis
 
 import android.Manifest
 import android.app.role.RoleManager
@@ -217,8 +217,8 @@ class MainActivity : FlutterActivity() {
     }
 
     companion object {
-        private const val CHANNEL = "com.example.call_log_app/roles"
-        private const val EVENTS_CHANNEL = "com.example.call_log_app/call_events"
+        private const val CHANNEL = "com.scamwatch.negavsinparis/roles"
+        private const val EVENTS_CHANNEL = "com.scamwatch.negavsinparis/call_events"
         private const val SCAM_CHANNEL = "scamshield/ui"
         private const val STORAGE_CHANNEL = "scamshield/storage"
         private const val DEEPLINK_CHANNEL = "report/deeplink"

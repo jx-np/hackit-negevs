@@ -67,7 +67,7 @@ class CommunityService {
     String? checkId,
     required String title,
     required String redactedText,
-    required String scamType,
+    String? scamType,
     List<String> tags = const [],
     String locale = 'en-SG',
   }) async {
@@ -77,7 +77,7 @@ class CommunityService {
         'check_id': ?checkId,
         'title': title,
         'redacted_text': redactedText,
-        'scam_type': scamType,
+        'scam_type': ?scamType,
         'tags': tags,
         'confirm_publication': true,
         'locale': locale,
@@ -136,6 +136,19 @@ class CommunityService {
       },
     );
     return FlagResult.fromJson(response.json);
+  }
+
+  Future<void> reportNumber({
+    required String number,
+    required String reason,
+  }) async {
+    await _client.post(
+      '/community/number-reports',
+      body: {
+        'number': number,
+        'reason': reason,
+      },
+    );
   }
 
   Future<Paginated<ScamCategory>> scamTypes() async {

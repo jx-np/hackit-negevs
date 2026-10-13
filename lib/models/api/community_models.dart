@@ -137,6 +137,7 @@ class PostDetail {
     required this.commentCount,
     required this.reactions,
     required this.myVote,
+    this.images = const [],
   });
 
   final String postId;
@@ -150,6 +151,7 @@ class PostDetail {
   final int commentCount;
   final PostReactions reactions;
   final int myVote;
+  final List<String> images;
 
   bool get isReviewed => reviewStatus == 'reviewed';
 
@@ -172,7 +174,13 @@ class PostDetail {
           ? PostReactions.fromJson(reactions)
           : const PostReactions(up: 0, down: 0),
       myVote: (json['my_vote'] as num?)?.toInt() ?? 0,
+      images: _images(json['images']),
     );
+  }
+
+  static List<String> _images(Object? raw) {
+    if (raw is! List) return const [];
+    return raw.whereType<String>().toList(growable: false);
   }
 }
 

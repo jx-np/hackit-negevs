@@ -60,6 +60,38 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     await _load();
   }
 
+  Future<void> _deletePost(FeedPost post) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.myPostsDeleteConfirm),
+        content: Text(l10n.myPostsDeleteConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.commonCancel, style: const TextStyle(fontSize: 16)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(
+              l10n.myPostsDelete,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _community.deletePost(post.postId);
+      await _load();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -108,6 +140,12 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
                     ),
                   ),
                   if (post.isReviewed) _reviewedBadge(theme, l10n),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 26),
+                    tooltip: l10n.myPostsDelete,
+                    color: theme.colorScheme.error,
+                    onPressed: () => _deletePost(post),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),

@@ -1,14 +1,31 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:call_log_app/l10n/app_localizations.dart';
 
+import '../api/api_client.dart';
 import '../services/model_controller.dart';
 import '../services/notification_log.dart';
 import '../services/protection_settings.dart';
 import '../services/scamshield_channels.dart';
-import 'report_screen.dart';
-import '../main.dart' show ReportDeepLinkPayload;
+import 'notifications_screen.dart';
+import 'community/report_tab_screen.dart';
+
+enum _ShieldState { grey, green, red, shimmer }
+
+_ShieldState _deriveShieldState({
+  required bool enabled,
+  required ServiceStatus status,
+}) {
+  if (!enabled) return _ShieldState.grey;
+  if (status.processing) return _ShieldState.shimmer;
+  if (status.modelError) return _ShieldState.red;
+  if (status.modelReady) return _ShieldState.green;
+  return _ShieldState.grey;
+}
 
 class SafetyScreen extends StatefulWidget {
   const SafetyScreen({super.key});
@@ -17,7 +34,8 @@ class SafetyScreen extends StatefulWidget {
   State<SafetyScreen> createState() => _SafetyScreenState();
 }
 
-class _SafetyScreenState extends State<SafetyScreen> {
+class _SafetyScreenState extends State<SafetyScreen>
+    with SingleTickerProviderStateMixin {
   final ProtectionSettings _settings = ProtectionSettings();
   final NotificationLog _log = NotificationLog();
   late final ModelController _model = ModelController(_settings);
@@ -29,6 +47,15 @@ class _SafetyScreenState extends State<SafetyScreen> {
   ServiceStatus _status = ServiceStatus.idle;
   List<LoggedNotification> _entries = const [];
 
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+  static const Duration _shimmerFloor = Duration(milliseconds: 1400);
+  DateTime? _shimmerUntil;
+  Timer? _shimmerTimer;
+  double _shimmerHue = Random().nextDouble() * 360;
+
   @override
   void initState() {
     super.initState();
@@ -39,8 +66,29 @@ class _SafetyScreenState extends State<SafetyScreen> {
   @override
   void dispose() {
     _poll?.cancel();
+    _shimmerTimer?.cancel();
+    _pulse.dispose();
     _model.dispose();
     super.dispose();
+  }
+
+  bool get _shimmerLatched =>
+      _shimmerUntil != null && DateTime.now().isBefore(_shimmerUntil!);
+
+  void _syncShimmer(bool processing) {
+    if (processing) {
+      _shimmerUntil = DateTime.now().add(_shimmerFloor);
+      _shimmerHue = Random().nextDouble() * 360;
+      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
+      _shimmerTimer?.cancel();
+      _shimmerTimer = Timer(_shimmerFloor, () {
+        if (!mounted) return;
+        setState(() {});
+        if (!_shimmerLatched && _pulse.isAnimating) _pulse.stop();
+      });
+    } else if (!_shimmerLatched && _pulse.isAnimating) {
+      _pulse.stop();
+    }
   }
 
   Future<void> _bootstrap() async {
@@ -73,6 +121,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
       modelInstalled = _model.installed;
     } catch (_) {}
     if (!mounted) return;
+    _syncShimmer(status.processing);
     setState(() {
       _status = status;
       _entries = entries;
@@ -115,16 +164,27 @@ class _SafetyScreenState extends State<SafetyScreen> {
 
   Future<void> _reportEntry(LoggedNotification entry) async {
     final record = entry.record;
-    final payload = ReportDeepLinkPayload(
-      subject: record.title.isEmpty ? record.appLabel : record.title,
-      content: record.content,
-      source: 'notification',
-      app: record.appLabel.isEmpty ? record.packageName : record.appLabel,
-      notificationKey: record.key,
-    );
+    final client = context.read<ApiClient>();
+    final title = record.title.isEmpty ? record.appLabel : record.title;
+    final buffer = StringBuffer(record.content);
+    final verdict = entry.verdict;
+    if (verdict != null) {
+      buffer
+        ..write('\n\n')
+        ..write(verdict.label.title);
+      if (verdict.reason.isNotEmpty) {
+        buffer
+          ..write('\n')
+          ..write(verdict.reason);
+      }
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ReportScreen(initialLink: payload),
+        builder: (_) => ReportTabScreen(
+          client: client,
+          prefillTitle: title,
+          prefillText: buffer.toString(),
+        ),
       ),
     );
     await _refresh();
@@ -139,7 +199,22 @@ class _SafetyScreenState extends State<SafetyScreen> {
     final l10n = AppLocalizations.of(context);
     final alerts = _alerts;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.safetyTitle)),
+      appBar: AppBar(
+        title: Text(l10n.safetyTitle),
+        actions: kDebugMode
+            ? [
+                IconButton(
+                  tooltip: l10n.notificationsTitle,
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NotificationsScreen(),
+                    ),
+                  ),
+                ),
+              ]
+            : null,
+      ),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
@@ -180,11 +255,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  on ? Icons.shield : Icons.shield_outlined,
-                  size: 56,
-                  color: on ? scheme.primary : scheme.outline,
-                ),
+                _shield(scheme),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -228,6 +299,47 @@ class _SafetyScreenState extends State<SafetyScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _shield(ColorScheme scheme) {
+    final state = _deriveShieldState(
+      enabled: _protectionEnabled,
+      status: _status,
+    );
+    final Color fill;
+    switch (state) {
+      case _ShieldState.grey:
+        fill = scheme.outline;
+      case _ShieldState.green:
+        fill = const Color(0xFF2E7D32);
+      case _ShieldState.red:
+        fill = scheme.error;
+      case _ShieldState.shimmer:
+        fill = const Color(0xFF2E7D32);
+    }
+    final shieldStack = Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(Icons.shield, size: 56, color: fill),
+        Icon(Icons.shield_outlined, size: 56, color: scheme.onSurface),
+      ],
+    );
+    if (state != _ShieldState.shimmer) return shieldStack;
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) {
+        final hue = (_shimmerHue + _pulse.value * 360) % 360;
+        final shimmerColor =
+            HSVColor.fromAHSV(1, hue, 0.85, 0.9).toColor();
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(Icons.shield, size: 56, color: shimmerColor),
+            Icon(Icons.shield_outlined, size: 56, color: scheme.onSurface),
+          ],
+        );
+      },
     );
   }
 

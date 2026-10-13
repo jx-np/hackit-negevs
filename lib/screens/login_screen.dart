@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:call_log_app/main.dart';
-import 'package:call_log_app/screens/permissions_onboarding_screen.dart';
+import 'package:call_log_app/screens/onboarding/onboarding_screen.dart';
 import 'package:call_log_app/services/role_service.dart';
 import 'package:call_log_app/services/scamshield_channels.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (context) =>
-            ready ? const HomePage() : const PermissionsOnboardingScreen(),
+            ready ? const HomePage() : const OnboardingScreen(),
       ),
     );
   }

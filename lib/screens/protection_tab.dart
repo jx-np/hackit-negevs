@@ -58,11 +58,7 @@ class _ProtectionTabState extends State<ProtectionTab> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            Icon(
-              widget.protectionEnabled ? Icons.shield : Icons.shield_outlined,
-              color: widget.protectionEnabled ? Colors.green : scheme.outline,
-              size: 36,
-            ),
+            _shield(scheme),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -92,6 +88,28 @@ class _ProtectionTabState extends State<ProtectionTab> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _shield(ColorScheme scheme) {
+    final enabled = widget.protectionEnabled;
+    final status = widget.status;
+    final Color fill;
+    if (!enabled) {
+      fill = scheme.outline;
+    } else if (status.modelError) {
+      fill = scheme.error;
+    } else if (status.modelReady || status.processing) {
+      fill = const Color(0xFF2E7D32);
+    } else {
+      fill = scheme.outline;
+    }
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(Icons.shield, size: 36, color: fill),
+        Icon(Icons.shield_outlined, size: 36, color: scheme.onSurface),
+      ],
     );
   }
 

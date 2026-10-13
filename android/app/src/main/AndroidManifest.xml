@@ -21,7 +21,7 @@
         android:maxSdkVersion="29" />
 
     <application
-        android:label="call_log_app"
+        android:label="ScamWatch"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">

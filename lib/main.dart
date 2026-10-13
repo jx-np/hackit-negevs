@@ -12,9 +12,8 @@ import 'package:call_log_app/screens/community/my_posts_screen.dart';
 import 'package:call_log_app/screens/community/report_tab_screen.dart';
 import 'package:call_log_app/screens/auth/login_register_screen.dart';
 import 'package:call_log_app/screens/login_screen.dart';
-import 'package:call_log_app/screens/report_screen.dart';
 import 'package:call_log_app/screens/safety_screen.dart';
-import 'package:call_log_app/screens/settings_screen.dart';
+import 'package:call_log_app/screens/settings/settings_page.dart';
 import 'package:call_log_app/services/protection_settings.dart';
 import 'package:call_log_app/services/scamshield_channels.dart';
 import 'package:call_log_app/state/auth_controller.dart';
@@ -65,12 +64,54 @@ ThemeData _materialTheme(FColors colors) {
       onSurface: colors.foreground,
     ),
     scaffoldBackgroundColor: colors.background,
+    visualDensity: VisualDensity.standard,
+    textTheme: TextTheme(
+      headlineSmall: TextStyle(
+        color: colors.foreground,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0,
+      ),
+      titleLarge: TextStyle(
+        color: colors.foreground,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0,
+      ),
+      bodyLarge: TextStyle(color: colors.foreground, letterSpacing: 0),
+      bodyMedium: TextStyle(
+        color: colors.foreground,
+        letterSpacing: 0,
+        height: 1.35,
+      ),
+      bodySmall: TextStyle(
+        color: colors.mutedForeground,
+        letterSpacing: 0,
+        height: 1.3,
+      ),
+    ),
     appBarTheme: AppBarTheme(
       backgroundColor: colors.card,
       foregroundColor: colors.foreground,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
     ),
     cardColor: colors.card,
     dividerColor: colors.border,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: colors.card,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: colors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: colors.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: colors.primary, width: 2),
+      ),
+    ),
   );
 }
 
@@ -223,17 +264,32 @@ class _HomePageState extends State<HomePage> {
     if (call.method != 'openReport') return;
     final args = call.arguments as Map?;
     if (args == null) return;
-    final payload = ReportDeepLinkPayload(
-      subject: args['subject'] as String? ?? '',
-      content: args['content'] as String? ?? '',
-      source: args['source'] as String? ?? 'call',
-      app: args['app'] as String? ?? '',
-      notificationKey: args['notificationKey'] as String? ?? '',
-    );
+    final subject = args['subject'] as String? ?? '';
+    final content = args['content'] as String? ?? '';
+    final source = args['source'] as String? ?? 'call';
     if (!mounted) return;
+    final client = context.read<ApiClient>();
+    if (source == 'call') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (context) => ReportTabScreen(
+            client: client,
+            numberReport: true,
+            prefillNumber: subject,
+          ),
+        ),
+      );
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => ReportScreen(initialLink: payload),
+        fullscreenDialog: true,
+        builder: (context) => ReportTabScreen(
+          client: client,
+          prefillTitle: subject,
+          prefillText: content.isEmpty ? subject : content,
+        ),
       ),
     );
   }
@@ -259,7 +315,7 @@ class _HomePageState extends State<HomePage> {
       const SafetyScreen(),
       ReportTabScreen(client: client),
       MyPostsScreen(client: client),
-      const SettingsScreen(),
+      const SettingsPage(),
     ];
     return Scaffold(
       body: CoachMarkOverlay(

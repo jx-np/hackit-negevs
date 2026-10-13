@@ -12,6 +12,11 @@ class LoginRegisterScreen extends StatefulWidget {
 }
 
 class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
+  static final _emailRe = RegExp(
+    r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$',
+  );
+  static final _nameRe = RegExp(r'^[A-Za-z0-9]+( [A-Za-z0-9]+)?$');
+
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -60,9 +65,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     final l10n = AppLocalizations.of(context);
     final text = value?.trim() ?? '';
     if (text.isEmpty) return l10n.authEnterEmail;
-    if (!text.contains('@') || !text.contains('.')) {
-      return l10n.authValidEmail;
-    }
+    if (!_emailRe.hasMatch(text)) return l10n.authValidEmail;
     return null;
   }
 
@@ -79,7 +82,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   String? _validateName(String? value) {
     if (!_registerMode) return null;
     final l10n = AppLocalizations.of(context);
-    if ((value?.trim() ?? '').isEmpty) return l10n.authEnterName;
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return l10n.authEnterName;
+    if (!_nameRe.hasMatch(text)) return l10n.authNameInvalid;
     return null;
   }
 
@@ -125,6 +130,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     textCapitalization: TextCapitalization.words,
                     style: theme.textTheme.titleMedium,
                     decoration: _fieldDecoration(l10n.authYourNameHint),
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
                     validator: _validateName,
                   ),
                   const SizedBox(height: 20),
@@ -137,6 +143,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   autocorrect: false,
                   style: theme.textTheme.titleMedium,
                   decoration: _fieldDecoration(l10n.authEmailHint),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
                   validator: _validateEmail,
                 ),
                 const SizedBox(height: 20),

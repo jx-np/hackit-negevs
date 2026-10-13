@@ -75,4 +75,17 @@ class DetectionService {
     );
     return PhoneTrustScore.fromJson(response.json);
   }
+
+  Future<void> reportPhoneNumber({
+    required String phoneNumber,
+    required String reason,
+  }) async {
+    await _client.post(
+      '/detection/phone-number/report',
+      body: {
+        'phone_number': phoneNumber,
+        'reason': reason,
+      },
+    );
+  }
 }

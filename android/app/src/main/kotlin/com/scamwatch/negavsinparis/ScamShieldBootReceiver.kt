@@ -1,4 +1,4 @@
-package com.example.call_log_app
+package com.scamwatch.negavsinparis
 
 import android.content.BroadcastReceiver
 import android.content.Context

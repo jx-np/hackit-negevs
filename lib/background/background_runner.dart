@@ -28,7 +28,8 @@ class BackgroundRunner {
   final GemmaModelManager _models;
   final NotificationLog _log;
 
-  late final LocalLlmEvaluator _local = LocalLlmEvaluator(_models);
+  late final LocalLlmEvaluator _local =
+      LocalLlmEvaluator(_models, settings: _settings);
   EvaluationRouter? _router;
   bool _forceCloud = false;
 
@@ -43,11 +44,17 @@ class BackgroundRunner {
   bool _modelLoading = false;
   bool _modelReady = false;
   bool _modelInstalled = false;
+  bool _modelError = false;
 
   /// True while an evaluation is in flight. Used to avoid closing the native
   /// model (model switch / unload) mid-generation, which can deadlock it.
   bool _busy = false;
   bool _pendingModelSwitch = false;
+
+  /// Backend the currently loaded model was built with. A change here (CPU
+  /// vs GPU) means the native model has to be rebuilt, so it is treated like
+  /// a selection change.
+  ModelBackend? _loadedBackend;
   bool _relistening = false;
   int _alertsRaised = 0;
   int _evaluated = 0;
@@ -96,12 +103,16 @@ class BackgroundRunner {
     // catalog entry and silently evaluate with the wrong model.
     await _settings.hydrateCustomModel();
     final spec = modelById(await _settings.selectedModelId());
+    final backend = await _settings.modelBackend();
     // A context or thinking change on the same id also needs a reload: the
     // window is requested from the runtime when the weights are opened, so the
-    // already-open model would keep serving the old one.
+    // already-open model would keep serving the old one. A backend change
+    // (CPU vs GPU) also rebuilds the native model.
     final selectionChanged = _models.spec.id != spec.id ||
         _models.spec.contextTokens != spec.contextTokens ||
-        _models.spec.thinking != spec.thinking;
+        _models.spec.thinking != spec.thinking ||
+        (_loadedBackend != null && _loadedBackend != backend);
+    _loadedBackend = backend;
     if (selectionChanged) {
       // Selection changed: drop the old weights before switching. If an
       // evaluation is in flight, closing the native model now can deadlock it,
@@ -142,9 +153,11 @@ class BackgroundRunner {
     try {
       await _local.warmUp().timeout(const Duration(seconds: 75));
       _modelReady = true;
+      _modelError = false;
       _modelInstalled = true;
       _setStatus('Watching for scam messages');
     } catch (error) {
+      _modelError = true;
       _setStatus('Model load failed: $error');
     } finally {
       _modelLoading = false;
@@ -447,6 +460,8 @@ class BackgroundRunner {
         'modelInstalled': _modelInstalled,
         'modelLoading': _modelLoading,
         'modelReady': _modelReady,
+        'modelError': _modelError,
+        'processing': _busy,
         'downloadProgress': -1,
         'alertsRaised': _alertsRaised,
         'evaluated': _evaluated,

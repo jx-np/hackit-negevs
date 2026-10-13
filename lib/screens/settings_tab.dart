@@ -1,3 +1,7 @@
+// DEPRECATED — replaced by lib/screens/settings/settings_page.dart and
+// lib/screens/settings/dev_menu_page.dart. Nothing references this file; it is
+// kept only because the workspace host could not delete it over Live Share.
+// Safe to delete.
 import 'package:flutter/material.dart';
 import 'package:call_log_app/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -579,40 +583,35 @@ class _SettingsTabState extends State<SettingsTab> {
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String?>(
-              value: null,
-              groupValue: current,
-              title: Text(l10n.settingsLanguageSystem),
-              onChanged: (_) => Navigator.of(sheetContext).pop('__system__'),
-            ),
-            RadioListTile<String?>(
-              value: 'en',
-              groupValue: current,
-              title: const Text('English'),
-              onChanged: (_) => Navigator.of(sheetContext).pop('en'),
-            ),
-            RadioListTile<String?>(
-              value: 'zh',
-              groupValue: current,
-              title: const Text('中文'),
-              onChanged: (_) => Navigator.of(sheetContext).pop('zh'),
-            ),
-            RadioListTile<String?>(
-              value: 'ta',
-              groupValue: current,
-              title: const Text('தமிழ்'),
-              onChanged: (_) => Navigator.of(sheetContext).pop('ta'),
-            ),
-            RadioListTile<String?>(
-              value: 'ms',
-              groupValue: current,
-              title: const Text('Melayu'),
-              onChanged: (_) => Navigator.of(sheetContext).pop('ms'),
-            ),
-          ],
+        child: RadioGroup<String?>(
+          groupValue: current,
+          onChanged: (value) =>
+              Navigator.of(sheetContext).pop(value ?? '__system__'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile<String?>(
+                value: null,
+                title: Text(l10n.settingsLanguageSystem),
+              ),
+              RadioListTile<String?>(
+                value: 'en',
+                title: const Text('English'),
+              ),
+              RadioListTile<String?>(
+                value: 'zh',
+                title: const Text('中文'),
+              ),
+              RadioListTile<String?>(
+                value: 'ta',
+                title: const Text('தமிழ்'),
+              ),
+              RadioListTile<String?>(
+                value: 'ms',
+                title: const Text('Melayu'),
+              ),
+            ],
+          ),
         ),
       ),
     );

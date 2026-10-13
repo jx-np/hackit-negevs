@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:call_log_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
@@ -6,6 +7,7 @@ import '../../api/api_exception.dart';
 import '../../models/api/community_models.dart';
 import '../../services/api/community_service.dart';
 import '../../services/api/discussion_service.dart';
+import '../../state/auth_controller.dart';
 
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({super.key, required this.client, required this.postId});
@@ -21,6 +23,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   late final CommunityService _community = CommunityService(widget.client);
   late final DiscussionService _discussion = DiscussionService(widget.client);
   final TextEditingController _commentController = TextEditingController();
+  final TextEditingController _editController = TextEditingController();
 
   bool _loading = true;
   String? _error;
@@ -28,6 +31,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   List<PostComment> _comments = const [];
   bool _postingComment = false;
   bool _voting = false;
+  String? _replyParentId;
+  String? _replyParentLabel;
+  String? _editingCommentId;
+  bool _savingEdit = false;
 
   @override
   void initState() {
@@ -38,8 +45,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   void dispose() {
     _commentController.dispose();
+    _editController.dispose();
     super.dispose();
   }
+
+  String? get _currentUserId => context.read<AuthController>().user?.id;
 
   Future<void> _load() async {
     setState(() {
@@ -48,11 +58,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     });
     try {
       final post = await _community.post(widget.postId);
-      List<PostComment> comments = const [];
-      try {
-        final page = await _discussion.comments(postId: widget.postId);
-        comments = page.items;
-      } catch (_) {}
+      final comments = <PostComment>[];
+      String? cursor;
+      do {
+        final page = await _discussion.comments(
+          postId: widget.postId,
+          limit: 100,
+          cursor: cursor,
+        );
+        comments.addAll(page.items);
+        cursor = page.hasMore ? page.nextCursor : null;
+      } while (cursor != null);
       if (!mounted) return;
       setState(() {
         _post = post;
@@ -90,6 +106,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           commentCount: post.commentCount,
           reactions: PostReactions(up: result.upCount, down: result.downCount),
           myVote: result.myVote,
+          images: post.images,
         );
       });
     } on ApiException catch (e) {
@@ -104,13 +121,109 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (body.isEmpty || _postingComment) return;
     setState(() => _postingComment = true);
     try {
-      await _discussion.addComment(postId: widget.postId, body: body);
+      await _discussion.addComment(
+        postId: widget.postId,
+        body: body,
+        parentId: _replyParentId,
+      );
       _commentController.clear();
+      _replyParentId = null;
+      _replyParentLabel = null;
       await _load();
     } on ApiException catch (e) {
       _showMessage(e.message);
     } finally {
       if (mounted) setState(() => _postingComment = false);
+    }
+  }
+
+  void _startReply(PostComment comment) {
+    setState(() {
+      _editingCommentId = null;
+      _replyParentId = comment.parentId?.isNotEmpty == true ? comment.parentId : comment.commentId;
+      _replyParentLabel = comment.authorLabel;
+    });
+  }
+
+  void _cancelReply() {
+    setState(() {
+      _replyParentId = null;
+      _replyParentLabel = null;
+    });
+  }
+
+  void _startEdit(PostComment comment) {
+    setState(() {
+      _replyParentId = null;
+      _replyParentLabel = null;
+      _editingCommentId = comment.commentId;
+      _editController.text = comment.body;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editingCommentId = null;
+      _editController.clear();
+    });
+  }
+
+  Future<void> _saveEdit(PostComment comment) async {
+    final body = _editController.text.trim();
+    if (body.isEmpty || _savingEdit) return;
+    setState(() => _savingEdit = true);
+    try {
+      await _discussion.editComment(commentId: comment.commentId, body: body);
+      _editingCommentId = null;
+      _editController.clear();
+      await _load();
+    } on ApiException catch (e) {
+      _showMessage(e.message);
+    } finally {
+      if (mounted) setState(() => _savingEdit = false);
+    }
+  }
+
+  Future<void> _deleteComment(PostComment comment) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.postDetailDeleteConfirm),
+        content: Text(l10n.postDetailDeleteConfirmBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.postDetailCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.postDetailDelete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await _discussion.deleteComment(comment.commentId);
+      await _load();
+    } on ApiException catch (e) {
+      _showMessage(e.message);
+    }
+  }
+
+  Future<void> _flagComment(PostComment comment) async {
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (context) => _FlagDialog(),
+    );
+    if (reason == null) return;
+    try {
+      await _discussion.flagComment(commentId: comment.commentId, reason: reason);
+      if (!mounted) return;
+      _showMessage(AppLocalizations.of(context).postDetailThankYou);
+    } on ApiException catch (e) {
+      _showMessage(e.message);
     }
   }
 
@@ -122,6 +235,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (reason == null) return;
     try {
       await _community.flagPost(postId: widget.postId, reason: reason);
+      if (!mounted) return;
       _showMessage(AppLocalizations.of(context).postDetailThankYou);
     } on ApiException catch (e) {
       _showMessage(e.message);
@@ -165,10 +279,28 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
     }
     final post = _post!;
+    final byId = <String, PostComment>{for (final c in _comments) c.commentId: c};
+    final roots = <PostComment>[];
+    final descendantsByRoot = <String, List<PostComment>>{};
+    for (final comment in _comments) {
+      final parentId = comment.parentId;
+      final isRoot = parentId == null || parentId.isEmpty || !byId.containsKey(parentId);
+      if (isRoot) {
+        roots.add(comment);
+      } else {
+        final rootId = _resolveRootId(comment, byId);
+        descendantsByRoot.putIfAbsent(rootId, () => <PostComment>[]).add(comment);
+      }
+    }
+    final userId = _currentUserId;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         Text(post.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+        if (post.images.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _pictureStrip(theme, post.images),
+        ],
         const SizedBox(height: 12),
         Text(post.redactedText, style: theme.textTheme.bodyLarge),
         const SizedBox(height: 20),
@@ -182,9 +314,85 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         if (_comments.isEmpty)
           Text(l10n.postDetailNoComments, style: theme.textTheme.bodyLarge)
         else
-          for (final comment in _comments) _commentCard(theme, comment),
+          for (final root in roots)
+            _commentThread(theme, l10n, root, descendantsByRoot[root.commentId] ?? const [], userId),
         const SizedBox(height: 16),
         _commentComposer(theme, l10n),
+      ],
+    );
+  }
+
+  Widget _pictureStrip(ThemeData theme, List<String> images) {
+    return SizedBox(
+      height: 160,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: images.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              images[index],
+              width: 160,
+              height: 160,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 160,
+                height: 160,
+                color: theme.colorScheme.surfaceContainerHighest,
+                child: Icon(Icons.broken_image_outlined, size: 40, color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  String _resolveRootId(PostComment comment, Map<String, PostComment> byId) {
+    var current = comment;
+    final seen = <String>{current.commentId};
+    while (true) {
+      final parentId = current.parentId;
+      if (parentId == null || parentId.isEmpty) return current.commentId;
+      final parent = byId[parentId];
+      if (parent == null) return current.commentId;
+      if (!seen.add(parent.commentId)) return current.commentId;
+      current = parent;
+    }
+  }
+
+  Widget _commentThread(
+    ThemeData theme,
+    AppLocalizations l10n,
+    PostComment root,
+    List<PostComment> replies,
+    String? userId,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _commentCard(theme, l10n, root, userId, isReply: false),
+        if (replies.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(color: theme.colorScheme.outlineVariant, width: 2),
+                ),
+              ),
+              padding: const EdgeInsets.only(left: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final reply in replies)
+                    _commentCard(theme, l10n, reply, userId, isReply: true),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -234,7 +442,19 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     );
   }
 
-  Widget _commentCard(ThemeData theme, PostComment comment) {
+  Widget _commentCard(
+    ThemeData theme,
+    AppLocalizations l10n,
+    PostComment comment,
+    String? userId, {
+    required bool isReply,
+  }) {
+    final isRemoved = comment.status == 'removed';
+    final isAuthor = userId != null && userId == comment.authorId;
+    final isEditing = _editingCommentId == comment.commentId;
+    final wasEdited = comment.updatedAt != null &&
+        comment.createdAt != null &&
+        comment.updatedAt!.isAfter(comment.createdAt!);
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -242,29 +462,165 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              comment.authorLabel,
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    comment.authorLabel,
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                if (wasEdited && !isRemoved)
+                  Text(
+                    l10n.postDetailEdited,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 6),
-            Text(comment.body, style: theme.textTheme.bodyLarge),
+            if (isRemoved)
+              Text(
+                l10n.postDetailRemovedComment,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+            else if (isEditing)
+              _editField(theme, l10n, comment)
+            else
+              Text(comment.body, style: theme.textTheme.bodyLarge, softWrap: true),
+            if (!isRemoved && !isEditing)
+              _commentActions(theme, l10n, comment, isAuthor),
           ],
         ),
       ),
     );
   }
 
-  Widget _commentComposer(ThemeData theme, AppLocalizations l10n) {
+  Widget _editField(ThemeData theme, AppLocalizations l10n, PostComment comment) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        TextField(
+          controller: _editController,
+          minLines: 2,
+          maxLines: 6,
+          autofocus: true,
+          style: theme.textTheme.bodyLarge,
+          decoration: InputDecoration(
+            filled: true,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: _savingEdit ? null : _cancelEdit,
+              child: Text(l10n.postDetailCancel),
+            ),
+            const SizedBox(width: 4),
+            FilledButton(
+              onPressed: _savingEdit ? null : () => _saveEdit(comment),
+              child: _savingEdit
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(l10n.postDetailSave),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _commentActions(ThemeData theme, AppLocalizations l10n, PostComment comment, bool isAuthor) {
+    final buttonStyle = TextButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      minimumSize: const Size(0, 36),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      foregroundColor: theme.colorScheme.onSurfaceVariant,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 4,
+        children: [
+          TextButton.icon(
+            style: buttonStyle,
+            onPressed: () => _startReply(comment),
+            icon: const Icon(Icons.reply, size: 18),
+            label: Text(l10n.postDetailReply),
+          ),
+          if (isAuthor)
+            TextButton.icon(
+              style: buttonStyle,
+              onPressed: () => _startEdit(comment),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: Text(l10n.postDetailEdit),
+            ),
+          if (isAuthor)
+            TextButton.icon(
+              style: buttonStyle,
+              onPressed: () => _deleteComment(comment),
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: Text(l10n.postDetailDelete),
+            ),
+          if (!isAuthor)
+            TextButton.icon(
+              style: buttonStyle,
+              onPressed: () => _flagComment(comment),
+              icon: const Icon(Icons.flag_outlined, size: 18),
+              label: Text(l10n.postDetailReportTooltip),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _commentComposer(ThemeData theme, AppLocalizations l10n) {
+    final replyingTo = _replyParentLabel;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (replyingTo != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.reply, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.postDetailReplying(replyingTo),
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  tooltip: l10n.postDetailCancel,
+                  onPressed: _cancelReply,
+                ),
+              ],
+            ),
+          ),
         TextField(
           controller: _commentController,
           minLines: 2,
           maxLines: 5,
           style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
-            hintText: l10n.postDetailWriteComment,
+            hintText: replyingTo != null ? l10n.postDetailWriteReply : l10n.postDetailWriteComment,
             filled: true,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

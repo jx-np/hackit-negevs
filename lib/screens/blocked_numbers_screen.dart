@@ -12,6 +12,7 @@ class BlockedNumbersScreen extends StatefulWidget {
 
 class _BlockedNumbersScreenState extends State<BlockedNumbersScreen> {
   static const String _prefsKey = 'spam_blocked_numbers';
+  static const String _protectionEnabledPrefsKey = 'spam_protection_enabled';
 
   final Set<String> _blocked = {};
   bool _isLoading = true;
@@ -37,6 +38,7 @@ class _BlockedNumbersScreenState extends State<BlockedNumbersScreen> {
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsKey, _blocked.join(','));
+    await prefs.setBool(_protectionEnabledPrefsKey, _blocked.isNotEmpty);
   }
 
   Future<void> _unblock(String number) async {

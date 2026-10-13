@@ -39,6 +39,9 @@ class AppLocalizationsTa extends AppLocalizations {
   String get commonShareWithCommunity => 'சமூகத்துடன் பகிர்';
 
   @override
+  String get commonShare => 'பகிர்';
+
+  @override
   String get commonSharing => 'பகிரப்படுகிறது...';
 
   @override
@@ -66,6 +69,19 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get commonShareIntro =>
       'நீங்கள் பெற்ற மோசடியைப் பகிர்ந்து மற்றவர்களுக்கு உதவுங்கள். முதலில் தனிப்பட்ட விவரங்களை நீக்கவும்.';
+
+  @override
+  String get commonPhotos => 'புகைப்படங்கள் (விருப்பத்திற்குரியது)';
+
+  @override
+  String get commonAddPhoto => 'புகைப்படத்தைச் சேர்';
+
+  @override
+  String get commonRemovePhoto => 'புகைப்படத்தை அகற்று';
+
+  @override
+  String get commonImageTooLarge =>
+      'ஒவ்வொரு படமும் 20 MB அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்.';
 
   @override
   String get settingsDetectionModel => 'கண்டறிதல் மாதிரி';
@@ -314,11 +330,6 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String callRemovedReport(String number) {
-    return '$number க்கான புகார் அகற்றப்பட்டது';
-  }
-
-  @override
   String get callOutgoing => 'வெளிச்செல்லும்';
 
   @override
@@ -370,10 +381,11 @@ class AppLocalizationsTa extends AppLocalizations {
   String get callUnblock => 'தடை நீக்கு';
 
   @override
-  String get callRemoveReport => 'புகாரை அகற்று';
+  String get callBlockAndReport => 'தடுத்து புகாரளி';
 
   @override
-  String get callBlockAndReport => 'தடுத்து புகாரளி';
+  String get callBlockNeedsScreening =>
+      'To stop blocked numbers from ringing, choose this app for call screening.';
 
   @override
   String get reportPhone => 'தொலைபேசி';
@@ -779,6 +791,119 @@ class AppLocalizationsTa extends AppLocalizations {
   String get onboardingContinue => 'தொடர்';
 
   @override
+  String get onboardingBack => 'பின்செல்';
+
+  @override
+  String get onboardingStart => 'தொடங்குவோம்';
+
+  @override
+  String get onboardingNext => 'அடுத்து';
+
+  @override
+  String get onboardingAllow => 'அனுமதி';
+
+  @override
+  String get onboardingOpenSettings => 'அமைப்புகளைத் திற';
+
+  @override
+  String get onboardingNotNow => 'இப்போது வேண்டாம்';
+
+  @override
+  String get onboardingFinish => 'செயலிக்குச் செல்';
+
+  @override
+  String onboardingStepCount(int step, int total) {
+    return 'படி $step / $total';
+  }
+
+  @override
+  String get onboardingWelcomeTitle => 'வரவேற்கிறோம்';
+
+  @override
+  String get onboardingWelcomeBody =>
+      'மோசடி அழைப்புகள் மற்றும் செய்திகளைக் கண்டறிய இந்த செயலி உதவுகிறது. இதற்கு உங்கள் தொலைபேசியிலிருந்து சில அனுமதிகள் தேவை. அவற்றை ஒவ்வொன்றாகப் பார்ப்போம்.';
+
+  @override
+  String get onboardingWelcomeNote =>
+      'எல்லாம் உங்கள் தொலைபேசியிலேயே இருக்கும். இந்தத் தேர்வுகளை எப்போது வேண்டுமானாலும் அமைப்புகளில் மாற்றலாம்.';
+
+  @override
+  String get onboardingPhoneTitle => 'தொலைபேசி அழைப்புகள்';
+
+  @override
+  String get onboardingPhoneBody =>
+      'யார் உங்களை அழைக்கிறார்கள் என்பதை செயலி பார்க்க இது உதவுகிறது, அதனால் அந்த எண் மோசடிக்குத் தெரிந்ததா என்று சொல்ல முடியும்.';
+
+  @override
+  String get onboardingContactsTitle => 'தொடர்புகள்';
+
+  @override
+  String get onboardingContactsBody =>
+      'உங்களுக்குத் தெரிந்தவர்களை செயலி அடையாளம் காண இது உதவுகிறது, அதனால் அவர்களின் அழைப்புகள் சந்தேகத்திற்குரியதாகக் குறிக்கப்படாது.';
+
+  @override
+  String get onboardingScreeningTitle => 'அழைப்புச் சரிபார்ப்பு';
+
+  @override
+  String get onboardingScreeningBody =>
+      'உள்வரும் அழைப்புகளைச் சரிபார்த்து, நீங்கள் தடுத்த எண்களை அமைதியாக நிறுத்த இது உதவுகிறது. அழைப்புத் திரையிடலுக்கு இந்த செயலியைத் தேர்ந்தெடுக்க உங்கள் தொலைபேசி கேட்கும்.';
+
+  @override
+  String get onboardingNotificationsTitle => 'எச்சரிக்கைகள்';
+
+  @override
+  String get onboardingNotificationsBody =>
+      'ஏதேனும் மோசடி போலத் தோன்றினால் செயலி உங்களுக்குச் சுருக்கமான எச்சரிக்கையை அனுப்ப இது உதவுகிறது.';
+
+  @override
+  String get onboardingMessagesTitle => 'செய்திச் சரிபார்ப்பு';
+
+  @override
+  String get onboardingMessagesBody =>
+      'புதிய செய்திகள் வரும்போது செயலி அவற்றைப் படிக்க இது உதவுகிறது, அதனால் சந்தேகமான இணைப்புகள் அல்லது பணக் கோரிக்கைகள் பற்றி எச்சரிக்க முடியும்.';
+
+  @override
+  String get onboardingOverlayTitle => 'அழைப்பின் போது எச்சரிக்கைகளைக் காட்டு';
+
+  @override
+  String get onboardingOverlayBody =>
+      'சந்தேகமான அழைப்பு ஒலிக்கும்போது திரையில் ஒரு சிறிய அறிவிப்பைக் காட்ட இது உதவுகிறது.';
+
+  @override
+  String get onboardingSettingsHint =>
+      'உங்கள் தொலைபேசி அமைப்புகள் திறக்கும். பட்டியலில் இந்த செயலியைக் கண்டுபிடித்து இயக்கி, பின் இங்கே திரும்புங்கள்.';
+
+  @override
+  String get onboardingStatusOn => 'இது இயக்கப்பட்டுள்ளது.';
+
+  @override
+  String get onboardingStatusSkipped =>
+      'இது இன்னும் இயக்கப்படவில்லை. மீண்டும் முயற்சிக்கலாம், அல்லது பின்னர் அமைப்புகளில் இயக்கலாம்.';
+
+  @override
+  String get onboardingStatusBlocked =>
+      'உங்கள் தொலைபேசி மீண்டும் கேட்காது. இதை நீங்களே இயக்க \"அமைப்புகளைத் திற\" என்பதைத் தட்டவும்.';
+
+  @override
+  String get onboardingDoneTitle => 'எல்லாம் தயார்';
+
+  @override
+  String get onboardingDoneBody =>
+      'செயலி இப்போது உங்களுக்காக மோசடி அழைப்புகள் மற்றும் செய்திகளைக் கவனித்து வருகிறது.';
+
+  @override
+  String get onboardingDonePartialTitle => 'கிட்டத்தட்ட முடிந்தது';
+
+  @override
+  String get onboardingDonePartialBody =>
+      'சில பாதுகாப்புகள் இன்னும் இயக்கப்படவில்லை. செயலி இன்னும் வேலை செய்யும், மீதமுள்ளவற்றைப் பின்னர் அமைப்புகளில் இயக்கலாம்.';
+
+  @override
+  String onboardingGrantedCount(int granted, int total) {
+    return '$total இல் $granted இயக்கப்பட்டுள்ளது';
+  }
+
+  @override
   String get authEnterEmail => 'உங்கள் மின்னஞ்சலை உள்ளிடவும்.';
 
   @override
@@ -792,6 +917,10 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get authEnterName => 'உங்கள் பெயரை உள்ளிடவும்.';
+
+  @override
+  String get authNameInvalid =>
+      'எழுத்துகள் மற்றும் எண்களை மட்டுமே பயன்படுத்தவும், இரண்டு சொற்களுக்கு இடையே அதிகபட்சம் ஒரு இடைவெளி.';
 
   @override
   String get authCreateAccount => 'கணக்கை உருவாக்கு';
@@ -871,6 +1000,16 @@ class AppLocalizationsTa extends AppLocalizations {
       'நீங்கள் புகாரளிக்கும் மோசடிகள் இங்கே தோன்றும், அதனால் அவற்றைக் கண்காணிக்கலாம்.';
 
   @override
+  String get myPostsDelete => 'நீக்கு';
+
+  @override
+  String get myPostsDeleteConfirm => 'இந்த இடுகையை நீக்கவா?';
+
+  @override
+  String get myPostsDeleteConfirmBody =>
+      'இது சமூகத்திலிருந்து அகற்றப்படும். இதை மீட்டெடுக்க முடியாது.';
+
+  @override
   String get postDetailThankYou =>
       'நன்றி. எங்கள் குழு இந்த இடுகையை மதிப்பாய்வு செய்யும்.';
 
@@ -908,6 +1047,46 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get postDetailFlagOther => 'மற்றவை';
+
+  @override
+  String get postDetailReply => 'பதில்';
+
+  @override
+  String get postDetailEdit => 'திருத்து';
+
+  @override
+  String get postDetailDelete => 'நீக்கு';
+
+  @override
+  String get postDetailSave => 'சேமி';
+
+  @override
+  String get postDetailCancel => 'ரத்து';
+
+  @override
+  String postDetailReplying(String name) {
+    return '$name க்கு பதில்';
+  }
+
+  @override
+  String get postDetailWriteReply => 'பதில் எழுதுங்கள்';
+
+  @override
+  String get postDetailDeleteConfirm => 'இந்தக் கருத்தை நீக்கவா?';
+
+  @override
+  String get postDetailDeleteConfirmBody => 'இதை மீட்டெடுக்க முடியாது.';
+
+  @override
+  String get postDetailEdited => 'திருத்தப்பட்டது';
+
+  @override
+  String get postDetailRemovedComment => 'இந்தக் கருத்து அகற்றப்பட்டது.';
+
+  @override
+  String postDetailShowMoreReplies(int count) {
+    return 'Show $count more replies';
+  }
 
   @override
   String get guidanceClickedLink => 'நான் ஒரு இணைப்பைக் கிளிக் செய்தேன்';

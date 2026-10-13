@@ -39,6 +39,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonShareWithCommunity => 'Share with community';
 
   @override
+  String get commonShare => 'Share';
+
+  @override
   String get commonSharing => 'Sharing...';
 
   @override
@@ -66,6 +69,18 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get commonShareIntro =>
       'Help others by sharing a scam you received. Remove any personal details first.';
+
+  @override
+  String get commonPhotos => 'Photos (optional)';
+
+  @override
+  String get commonAddPhoto => 'Add photo';
+
+  @override
+  String get commonRemovePhoto => 'Remove photo';
+
+  @override
+  String get commonImageTooLarge => 'Each image must be 20 MB or smaller.';
 
   @override
   String get settingsDetectionModel => 'Detection model';
@@ -311,11 +326,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String callRemovedReport(String number) {
-    return 'Removed report for $number';
-  }
-
-  @override
   String get callOutgoing => 'Outgoing';
 
   @override
@@ -367,10 +377,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get callUnblock => 'Unblock';
 
   @override
-  String get callRemoveReport => 'Remove report';
+  String get callBlockAndReport => 'Block & Report';
 
   @override
-  String get callBlockAndReport => 'Block & Report';
+  String get callBlockNeedsScreening =>
+      'To stop blocked numbers from ringing, choose this app for call screening.';
 
   @override
   String get reportPhone => 'Phone';
@@ -767,6 +778,119 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingContinue => 'Continue';
 
   @override
+  String get onboardingBack => 'Back';
+
+  @override
+  String get onboardingStart => 'Let\'s begin';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingAllow => 'Allow';
+
+  @override
+  String get onboardingOpenSettings => 'Open settings';
+
+  @override
+  String get onboardingNotNow => 'Not now';
+
+  @override
+  String get onboardingFinish => 'Go to the app';
+
+  @override
+  String onboardingStepCount(int step, int total) {
+    return 'Step $step of $total';
+  }
+
+  @override
+  String get onboardingWelcomeTitle => 'Welcome';
+
+  @override
+  String get onboardingWelcomeBody =>
+      'This app helps you spot scam calls and messages. To do that, it needs a few permissions from your phone. We will go through them one at a time.';
+
+  @override
+  String get onboardingWelcomeNote =>
+      'Everything stays on your phone. You can change these choices at any time in Settings.';
+
+  @override
+  String get onboardingPhoneTitle => 'Phone calls';
+
+  @override
+  String get onboardingPhoneBody =>
+      'This lets the app see who is calling you, so it can tell you if a number is known for scams.';
+
+  @override
+  String get onboardingContactsTitle => 'Contacts';
+
+  @override
+  String get onboardingContactsBody =>
+      'This lets the app recognise people you already know, so their calls are never marked as suspicious.';
+
+  @override
+  String get onboardingScreeningTitle => 'Call checking';
+
+  @override
+  String get onboardingScreeningBody =>
+      'This lets the app check incoming calls and quietly stop numbers you have blocked. Your phone will ask you to choose this app for call screening.';
+
+  @override
+  String get onboardingNotificationsTitle => 'Alerts';
+
+  @override
+  String get onboardingNotificationsBody =>
+      'This lets the app send you a short alert when something looks like a scam.';
+
+  @override
+  String get onboardingMessagesTitle => 'Message checking';
+
+  @override
+  String get onboardingMessagesBody =>
+      'This lets the app read new messages as they arrive, so it can warn you about suspicious links or requests for money.';
+
+  @override
+  String get onboardingOverlayTitle => 'Show warnings during calls';
+
+  @override
+  String get onboardingOverlayBody =>
+      'This lets the app show a small notice on your screen while a suspicious call is ringing.';
+
+  @override
+  String get onboardingSettingsHint =>
+      'Your phone\'s settings will open. Find this app in the list, turn it on, then come back here.';
+
+  @override
+  String get onboardingStatusOn => 'This is turned on.';
+
+  @override
+  String get onboardingStatusSkipped =>
+      'This is not turned on yet. You can try again, or turn it on later in Settings.';
+
+  @override
+  String get onboardingStatusBlocked =>
+      'Your phone will not ask again. Tap \"Open settings\" to turn this on yourself.';
+
+  @override
+  String get onboardingDoneTitle => 'You\'re all set';
+
+  @override
+  String get onboardingDoneBody =>
+      'The app is now looking out for scam calls and messages for you.';
+
+  @override
+  String get onboardingDonePartialTitle => 'Almost done';
+
+  @override
+  String get onboardingDonePartialBody =>
+      'Some protections are not turned on yet. The app will still work, and you can turn the rest on later in Settings.';
+
+  @override
+  String onboardingGrantedCount(int granted, int total) {
+    return '$granted of $total turned on';
+  }
+
+  @override
   String get authEnterEmail => 'Please enter your email.';
 
   @override
@@ -780,6 +904,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authEnterName => 'Please enter your name.';
+
+  @override
+  String get authNameInvalid =>
+      'Use letters and numbers only, with at most one space between two words.';
 
   @override
   String get authCreateAccount => 'Create account';
@@ -858,6 +986,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Scams you report will show up here so you can track them.';
 
   @override
+  String get myPostsDelete => 'Delete';
+
+  @override
+  String get myPostsDeleteConfirm => 'Delete this post?';
+
+  @override
+  String get myPostsDeleteConfirmBody =>
+      'This removes it from the community. This cannot be undone.';
+
+  @override
   String get postDetailThankYou => 'Thank you. Our team will review this post.';
 
   @override
@@ -894,6 +1032,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get postDetailFlagOther => 'Other';
+
+  @override
+  String get postDetailReply => 'Reply';
+
+  @override
+  String get postDetailEdit => 'Edit';
+
+  @override
+  String get postDetailDelete => 'Delete';
+
+  @override
+  String get postDetailSave => 'Save';
+
+  @override
+  String get postDetailCancel => 'Cancel';
+
+  @override
+  String postDetailReplying(String name) {
+    return 'Replying to $name';
+  }
+
+  @override
+  String get postDetailWriteReply => 'Write a reply';
+
+  @override
+  String get postDetailDeleteConfirm => 'Delete this comment?';
+
+  @override
+  String get postDetailDeleteConfirmBody => 'This cannot be undone.';
+
+  @override
+  String get postDetailEdited => 'edited';
+
+  @override
+  String get postDetailRemovedComment => 'This comment was removed.';
+
+  @override
+  String postDetailShowMoreReplies(int count) {
+    return 'Show $count more replies';
+  }
 
   @override
   String get guidanceClickedLink => 'I clicked a link';

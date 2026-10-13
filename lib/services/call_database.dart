@@ -62,8 +62,8 @@ class CallDatabase {
     return rows.map(CallRecord.fromMap).toList();
   }
 
-  Future<void> setReported(
-    int id, {
+  Future<void> setReportedByNumber(
+    String normalizedNumber, {
     required bool reported,
     String? reason,
   }) async {
@@ -76,8 +76,8 @@ class CallDatabase {
         'reported_at':
             reported ? DateTime.now().millisecondsSinceEpoch : null,
       },
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'normalized_number = ?',
+      whereArgs: [normalizedNumber],
     );
   }
 

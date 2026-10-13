@@ -10,10 +10,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/role_service.dart';
 import '../services/scamshield_channels.dart';
 
-/// Every permission the app can ask for, in one place: the Scam Shield
-/// service checks (notification listener access, overlay, alerts), the
-/// runtime permissions (phone, contacts, notifications), and the call
-/// screening role.
 class PermissionsTab extends StatefulWidget {
   const PermissionsTab({super.key});
 
@@ -27,7 +23,6 @@ class _PermissionsTabState extends State<PermissionsTab>
   bool _overlayGranted = false;
   bool _notificationPermission = true;
   bool _isCallScreening = false;
-  String? _statusMessage;
   Map<Permission, PermissionStatus> _permissions = {};
 
   @override
@@ -94,10 +89,8 @@ class _PermissionsTabState extends State<PermissionsTab>
     final status = await permission.request();
     if (mounted) {
       final l10n = AppLocalizations.of(context);
-      setState(() {
-        _permissions[permission] = status;
-        _statusMessage = status.isGranted ? grantedMessage : l10n.permDenied;
-      });
+      setState(() => _permissions[permission] = status);
+      _showStatus(status.isGranted ? grantedMessage : l10n.permDenied);
     }
     await _refreshAll();
   }
@@ -106,17 +99,22 @@ class _PermissionsTabState extends State<PermissionsTab>
     final launched = await RoleService.requestCallScreening();
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    setState(() {
-      _statusMessage = launched
-          ? l10n.permConfirmScreening
-          : l10n.permScreeningUnavailable;
-    });
+    _showStatus(
+      launched ? l10n.permConfirmScreening : l10n.permScreeningUnavailable,
+    );
     await _refreshAll();
+  }
+
+  void _showStatus(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
   }
 
   Future<void> _openAppSettings() async {
     if (Platform.isAndroid) {
-      final uri = Uri.parse('package:com.example.call_log_app');
+      final uri = Uri.parse('package:com.scamwatch.negavsinparis');
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
         return;
@@ -130,20 +128,13 @@ class _PermissionsTabState extends State<PermissionsTab>
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.theme.colors;
     return RefreshIndicator(
       onRefresh: _refreshAll,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (_statusMessage != null) ...[
-            Text(
-              _statusMessage!,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: colors.mutedForeground),
-            ),
-            const SizedBox(height: 12),
-          ],
+          _buildIntroCard(context),
+          const SizedBox(height: 16),
           _buildServiceCard(context),
           const SizedBox(height: 16),
           _buildCallScreeningCard(context),
@@ -156,32 +147,73 @@ class _PermissionsTabState extends State<PermissionsTab>
     );
   }
 
+  // Calm, plain-language intro that replaces the old floating status line.
+  Widget _buildIntroCard(BuildContext context) {
+    final colors = context.theme.colors;
+    final l10n = AppLocalizations.of(context);
+    return FCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.verified_user_outlined, size: 28, color: colors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.permTitle,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.permGrantFollowing,
+                    style: TextStyle(color: colors.mutedForeground),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildServiceCard(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Card(
-      child: Column(
-        children: [
-          _checkTile(
-            l10n.permNotificationAccess,
-            l10n.permNotificationAccessSub,
-            _notificationAccess,
-            _requestNotificationAccess,
-          ),
-          const Divider(height: 1),
-          _checkTile(
-            l10n.permOverlay,
-            l10n.permOverlaySub,
-            _overlayGranted,
-            _requestOverlay,
-          ),
-          const Divider(height: 1),
-          _checkTile(
-            l10n.permAlerts,
-            l10n.permAlertsSub,
-            _notificationPermission,
-            _requestAlerts,
-          ),
-        ],
+    return FCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _checkTile(
+              l10n.permNotificationAccess,
+              l10n.permNotificationAccessSub,
+              _notificationAccess,
+              _requestNotificationAccess,
+            ),
+            const FDivider(),
+            _checkTile(
+              l10n.permOverlay,
+              l10n.permOverlaySub,
+              _overlayGranted,
+              _requestOverlay,
+            ),
+            const FDivider(),
+            _checkTile(
+              l10n.permAlerts,
+              l10n.permAlertsSub,
+              _notificationPermission,
+              _requestAlerts,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -192,17 +224,48 @@ class _PermissionsTabState extends State<PermissionsTab>
     bool ok,
     Future<void> Function() onFix,
   ) {
+    return _permissionRow(
+      title: title,
+      subtitle: subtitle,
+      granted: ok,
+      statusColor: ok ? Colors.green : Colors.orange,
+      onGrant: onFix,
+    );
+  }
+
+  Widget _permissionRow({
+    required String title,
+    required String subtitle,
+    required bool granted,
+    required Color statusColor,
+    required Future<void> Function() onGrant,
+  }) {
     final l10n = AppLocalizations.of(context);
-    return ListTile(
-      leading: Icon(
-        ok ? Icons.check_circle : Icons.error_outline,
-        color: ok ? Colors.green : Colors.orange,
+    return FTile(
+      prefix: Icon(
+        granted ? Icons.check_circle : Icons.error_outline,
+        color: granted ? Colors.green : statusColor,
       ),
       title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: ok
-          ? Text(l10n.permGranted)
-          : TextButton(onPressed: onFix, child: Text(l10n.permGrant)),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(color: statusColor),
+      ),
+      suffix: granted
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check, size: 18, color: Colors.green),
+                const SizedBox(width: 4),
+                Text(l10n.permGranted),
+              ],
+            )
+          : FButton(
+              onPress: onGrant,
+              size: FButtonSizeVariant.sm,
+              mainAxisSize: MainAxisSize.min,
+              child: Text(l10n.permGrant),
+            ),
     );
   }
 
@@ -273,11 +336,13 @@ class _PermissionsTabState extends State<PermissionsTab>
               children: [
                 const Icon(Icons.settings, size: 28),
                 const SizedBox(width: 12),
-                Text(
-                  l10n.permTitle,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    l10n.permTitle,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -287,21 +352,18 @@ class _PermissionsTabState extends State<PermissionsTab>
             const SizedBox(height: 8),
             _buildPermissionTile(
               permission: Permission.phone,
-              icon: Icons.phone,
               title: l10n.permPhoneCallLog,
               grantedMessage: l10n.permPhoneGranted,
             ),
             const FDivider(),
             _buildPermissionTile(
               permission: Permission.contacts,
-              icon: Icons.contact_mail,
               title: l10n.permContacts,
               grantedMessage: l10n.permContactsGranted,
             ),
             const FDivider(),
             _buildPermissionTile(
               permission: Permission.notification,
-              icon: Icons.notifications,
               title: l10n.permNotifications,
               grantedMessage: l10n.permNotificationsGranted,
             ),
@@ -319,12 +381,20 @@ class _PermissionsTabState extends State<PermissionsTab>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l10n.permStillNotWorking,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                const Icon(Icons.build, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.permStillNotWorking,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(l10n.permOpenSettingsBody),
@@ -342,24 +412,16 @@ class _PermissionsTabState extends State<PermissionsTab>
 
   Widget _buildPermissionTile({
     required Permission permission,
-    required IconData icon,
     required String title,
     required String grantedMessage,
   }) {
     final l10n = AppLocalizations.of(context);
-    return FTile(
-      prefix: Icon(icon),
-      title: Text(title),
-      subtitle: Text(
-        _getPermissionStatus(l10n, permission),
-        style: TextStyle(color: _getPermissionColor(permission)),
-      ),
-      suffix: FButton(
-        onPress: () => _requestPermission(permission, grantedMessage),
-        size: FButtonSizeVariant.sm,
-        mainAxisSize: MainAxisSize.min,
-        child: Text(l10n.permGrant),
-      ),
+    return _permissionRow(
+      title: title,
+      subtitle: _getPermissionStatus(l10n, permission),
+      granted: _permissions[permission] == PermissionStatus.granted,
+      statusColor: _getPermissionColor(permission),
+      onGrant: () => _requestPermission(permission, grantedMessage),
     );
   }
 

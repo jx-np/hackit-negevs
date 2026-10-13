@@ -36,6 +36,14 @@ const int kDefaultCustomModelContext = 8192;
 /// smaller `kv_cache_max_len`, in which case the runtime clamps it.
 const int kMaxCustomModelContext = 131072;
 
+/// Hardware backend the on-device model runs on. CPU works on every device;
+/// GPU is faster on phones with a supported GPU but can fail to initialise on
+/// some hardware, in which case the engine falls back automatically.
+enum ModelBackend { cpu, gpu }
+
+/// Default on-device backend. CPU is the safe choice that works everywhere.
+const ModelBackend kDefaultModelBackend = ModelBackend.cpu;
+
 class ProtectionSettings {
   static const String _kEnabled = 'protection_enabled';
   static const String _kHistory = 'verdict_history';
@@ -52,6 +60,7 @@ class ProtectionSettings {
   static const String _kCustomName = 'custom_model_name';
   static const String _kCustomContext = 'custom_model_context';
   static const String _kCustomThinking = 'custom_model_thinking';
+  static const String _kModelBackend = 'model_backend';
   static const String _kSeenTutorial = 'seen_tutorial';
   static const int _maxHistory = 60;
 
@@ -74,6 +83,19 @@ class ProtectionSettings {
 
   Future<void> setSelectedModelId(String value) =>
       _prefs.setString(_kModelId, value);
+
+  /// Hardware backend the on-device model should run on. Stored as the enum
+  /// name so an unknown or legacy value falls back to the safe CPU default.
+  Future<ModelBackend> modelBackend() async {
+    final stored = await _prefs.getString(_kModelBackend);
+    return ModelBackend.values.firstWhere(
+      (backend) => backend.name == stored,
+      orElse: () => kDefaultModelBackend,
+    );
+  }
+
+  Future<void> setModelBackend(ModelBackend value) =>
+      _prefs.setString(_kModelBackend, value.name);
 
   Future<String> customModelPath() async =>
       await _prefs.getString(_kCustomPath) ?? '';

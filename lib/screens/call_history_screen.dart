@@ -6,12 +6,17 @@ import 'package:call_log/call_log.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:forui/forui.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../api/api_client.dart';
+import '../api/api_exception.dart';
 import '../models/call_record.dart';
+import '../services/api/detection_service.dart';
 import '../services/call_database.dart';
 import '../services/call_event_service.dart';
 import '../services/report_service.dart';
+import '../services/role_service.dart';
 import 'blocked_numbers_screen.dart';
 
 class CallHistoryScreen extends StatefulWidget {
@@ -24,6 +29,7 @@ class CallHistoryScreen extends StatefulWidget {
 class _CallHistoryScreenState extends State<CallHistoryScreen>
     with WidgetsBindingObserver {
   static const String _blockedPrefsKey = 'spam_blocked_numbers';
+  static const String _protectionEnabledPrefsKey = 'spam_protection_enabled';
 
   List<CallRecord> _records = const [];
   final Set<String> _blockedNumbers = {};
@@ -97,6 +103,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_blockedPrefsKey, _blockedNumbers.join(','));
+      await prefs.setBool(
+        _protectionEnabledPrefsKey,
+        _blockedNumbers.isNotEmpty,
+      );
     } catch (_) {}
   }
 
@@ -234,6 +244,26 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.callBlocked(record.rawNumber))),
     );
+    // Blocking only takes effect at the OS level when the app holds the
+    // call-screening role. Without it, SpamCallScreeningService never runs and
+    // the phone keeps ringing. Prompt for the role the first time it is needed.
+    await _ensureCallScreeningRole();
+  }
+
+  Future<void> _ensureCallScreeningRole() async {
+    if (!RoleService.isSupported) return;
+    final held = await RoleService.isCallScreening();
+    if (held || !mounted) return;
+    final l10n = AppLocalizations.of(context);
+    final launched = await RoleService.requestCallScreening();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          launched ? l10n.permConfirmScreening : l10n.callBlockNeedsScreening,
+        ),
+      ),
+    );
   }
 
   Future<void> _unblock(CallRecord record) async {
@@ -247,22 +277,26 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   }
 
   Future<void> _report(CallRecord record) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final detection = DetectionService(context.read<ApiClient>());
+    try {
+      await detection.reportPhoneNumber(
+        phoneNumber: record.rawNumber,
+        reason: 'scam',
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(e.message.isNotEmpty ? e.message : l10n.reportNotSent)),
+      );
+      return;
+    }
     await ReportService.submitReport(record, reason: 'user_reported');
     await _refreshFromDb();
     if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(content: Text(l10n.callReported(record.rawNumber))),
-    );
-  }
-
-  Future<void> _withdrawReport(CallRecord record) async {
-    await ReportService.withdrawReport(record);
-    await _refreshFromDb();
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(l10n.callRemovedReport(record.rawNumber))),
     );
   }
 
@@ -281,9 +315,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
         break;
       case 'report':
         await _report(record);
-        break;
-      case 'unreport':
-        await _withdrawReport(record);
         break;
       case 'block_report':
         await _blockAndReport(record);
@@ -518,12 +549,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
                 prefix: const Icon(Icons.flag),
                 title: Text(l10n.commonReport),
                 onPress: () => _runMenu(controller, 'report', record),
-              ),
-            if (record.reported)
-              FTile(
-                prefix: const Icon(Icons.flag_outlined),
-                title: Text(l10n.callRemoveReport),
-                onPress: () => _runMenu(controller, 'unreport', record),
               ),
             if (!isBlocked && !record.reported)
               FTile(

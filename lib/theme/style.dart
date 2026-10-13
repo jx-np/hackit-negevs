@@ -29,9 +29,15 @@ FStyle _style({
     tappableStyle: FTappableStyle(),
     borderRadius: const FBorderRadius(),
     borderWidth: 1,
-    pagePadding: const .symmetric(vertical: 8, horizontal: 12),
-    shadow: const [
-      BoxShadow(color: Color(0x0d000000), offset: Offset(0, 1), blurRadius: 2),
+    pagePadding: const .symmetric(vertical: 12, horizontal: 16),
+    shadow: [
+      BoxShadow(
+        color: colors.brightness == Brightness.light
+            ? const Color(0x140F1918)
+            : const Color(0x52000000),
+        offset: const Offset(0, 2),
+        blurRadius: 6,
+      ),
     ],
     extensions: const [AppStyle()],
   );

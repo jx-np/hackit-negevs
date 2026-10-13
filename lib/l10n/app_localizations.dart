@@ -162,6 +162,12 @@ abstract class AppLocalizations {
   /// **'Share with community'**
   String get commonShareWithCommunity;
 
+  /// No description provided for @commonShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get commonShare;
+
   /// No description provided for @commonSharing.
   ///
   /// In en, this message translates to:
@@ -215,6 +221,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Help others by sharing a scam you received. Remove any personal details first.'**
   String get commonShareIntro;
+
+  /// No description provided for @commonPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos (optional)'**
+  String get commonPhotos;
+
+  /// No description provided for @commonAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add photo'**
+  String get commonAddPhoto;
+
+  /// No description provided for @commonRemovePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove photo'**
+  String get commonRemovePhoto;
+
+  /// No description provided for @commonImageTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Each image must be 20 MB or smaller.'**
+  String get commonImageTooLarge;
 
   /// No description provided for @settingsDetectionModel.
   ///
@@ -600,12 +630,6 @@ abstract class AppLocalizations {
   /// **'Reported {number}'**
   String callReported(String number);
 
-  /// No description provided for @callRemovedReport.
-  ///
-  /// In en, this message translates to:
-  /// **'Removed report for {number}'**
-  String callRemovedReport(String number);
-
   /// No description provided for @callOutgoing.
   ///
   /// In en, this message translates to:
@@ -702,17 +726,17 @@ abstract class AppLocalizations {
   /// **'Unblock'**
   String get callUnblock;
 
-  /// No description provided for @callRemoveReport.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove report'**
-  String get callRemoveReport;
-
   /// No description provided for @callBlockAndReport.
   ///
   /// In en, this message translates to:
   /// **'Block & Report'**
   String get callBlockAndReport;
+
+  /// No description provided for @callBlockNeedsScreening.
+  ///
+  /// In en, this message translates to:
+  /// **'To stop blocked numbers from ringing, choose this app for call screening.'**
+  String get callBlockNeedsScreening;
 
   /// No description provided for @reportPhone.
   ///
@@ -1440,6 +1464,198 @@ abstract class AppLocalizations {
   /// **'Continue'**
   String get onboardingContinue;
 
+  /// No description provided for @onboardingBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get onboardingBack;
+
+  /// No description provided for @onboardingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Let\'s begin'**
+  String get onboardingStart;
+
+  /// No description provided for @onboardingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// No description provided for @onboardingAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow'**
+  String get onboardingAllow;
+
+  /// No description provided for @onboardingOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get onboardingOpenSettings;
+
+  /// No description provided for @onboardingNotNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get onboardingNotNow;
+
+  /// No description provided for @onboardingFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to the app'**
+  String get onboardingFinish;
+
+  /// No description provided for @onboardingStepCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {step} of {total}'**
+  String onboardingStepCount(int step, int total);
+
+  /// No description provided for @onboardingWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get onboardingWelcomeTitle;
+
+  /// No description provided for @onboardingWelcomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This app helps you spot scam calls and messages. To do that, it needs a few permissions from your phone. We will go through them one at a time.'**
+  String get onboardingWelcomeBody;
+
+  /// No description provided for @onboardingWelcomeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything stays on your phone. You can change these choices at any time in Settings.'**
+  String get onboardingWelcomeNote;
+
+  /// No description provided for @onboardingPhoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone calls'**
+  String get onboardingPhoneTitle;
+
+  /// No description provided for @onboardingPhoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This lets the app see who is calling you, so it can tell you if a number is known for scams.'**
+  String get onboardingPhoneBody;
+
+  /// No description provided for @onboardingContactsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get onboardingContactsTitle;
+
+  /// No description provided for @onboardingContactsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This lets the app recognise people you already know, so their calls are never marked as suspicious.'**
+  String get onboardingContactsBody;
+
+  /// No description provided for @onboardingScreeningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call checking'**
+  String get onboardingScreeningTitle;
+
+  /// No description provided for @onboardingScreeningBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This lets the app check incoming calls and quietly stop numbers you have blocked. Your phone will ask you to choose this app for call screening.'**
+  String get onboardingScreeningBody;
+
+  /// No description provided for @onboardingNotificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts'**
+  String get onboardingNotificationsTitle;
+
+  /// No description provided for @onboardingNotificationsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This lets the app send you a short alert when something looks like a scam.'**
+  String get onboardingNotificationsBody;
+
+  /// No description provided for @onboardingMessagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Message checking'**
+  String get onboardingMessagesTitle;
+
+  /// No description provided for @onboardingMessagesBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This lets the app read new messages as they arrive, so it can warn you about suspicious links or requests for money.'**
+  String get onboardingMessagesBody;
+
+  /// No description provided for @onboardingOverlayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show warnings during calls'**
+  String get onboardingOverlayTitle;
+
+  /// No description provided for @onboardingOverlayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This lets the app show a small notice on your screen while a suspicious call is ringing.'**
+  String get onboardingOverlayBody;
+
+  /// No description provided for @onboardingSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone\'s settings will open. Find this app in the list, turn it on, then come back here.'**
+  String get onboardingSettingsHint;
+
+  /// No description provided for @onboardingStatusOn.
+  ///
+  /// In en, this message translates to:
+  /// **'This is turned on.'**
+  String get onboardingStatusOn;
+
+  /// No description provided for @onboardingStatusSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not turned on yet. You can try again, or turn it on later in Settings.'**
+  String get onboardingStatusSkipped;
+
+  /// No description provided for @onboardingStatusBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your phone will not ask again. Tap \"Open settings\" to turn this on yourself.'**
+  String get onboardingStatusBlocked;
+
+  /// No description provided for @onboardingDoneTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re all set'**
+  String get onboardingDoneTitle;
+
+  /// No description provided for @onboardingDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app is now looking out for scam calls and messages for you.'**
+  String get onboardingDoneBody;
+
+  /// No description provided for @onboardingDonePartialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost done'**
+  String get onboardingDonePartialTitle;
+
+  /// No description provided for @onboardingDonePartialBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Some protections are not turned on yet. The app will still work, and you can turn the rest on later in Settings.'**
+  String get onboardingDonePartialBody;
+
+  /// No description provided for @onboardingGrantedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{granted} of {total} turned on'**
+  String onboardingGrantedCount(int granted, int total);
+
   /// No description provided for @authEnterEmail.
   ///
   /// In en, this message translates to:
@@ -1469,6 +1685,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please enter your name.'**
   String get authEnterName;
+
+  /// No description provided for @authNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use letters and numbers only, with at most one space between two words.'**
+  String get authNameInvalid;
 
   /// No description provided for @authCreateAccount.
   ///
@@ -1614,6 +1836,24 @@ abstract class AppLocalizations {
   /// **'Scams you report will show up here so you can track them.'**
   String get myPostsNoneBody;
 
+  /// No description provided for @myPostsDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get myPostsDelete;
+
+  /// No description provided for @myPostsDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this post?'**
+  String get myPostsDeleteConfirm;
+
+  /// No description provided for @myPostsDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes it from the community. This cannot be undone.'**
+  String get myPostsDeleteConfirmBody;
+
   /// No description provided for @postDetailThankYou.
   ///
   /// In en, this message translates to:
@@ -1685,6 +1925,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get postDetailFlagOther;
+
+  /// No description provided for @postDetailReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get postDetailReply;
+
+  /// No description provided for @postDetailEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get postDetailEdit;
+
+  /// No description provided for @postDetailDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get postDetailDelete;
+
+  /// No description provided for @postDetailSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get postDetailSave;
+
+  /// No description provided for @postDetailCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get postDetailCancel;
+
+  /// No description provided for @postDetailReplying.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying to {name}'**
+  String postDetailReplying(String name);
+
+  /// No description provided for @postDetailWriteReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a reply'**
+  String get postDetailWriteReply;
+
+  /// No description provided for @postDetailDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this comment?'**
+  String get postDetailDeleteConfirm;
+
+  /// No description provided for @postDetailDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone.'**
+  String get postDetailDeleteConfirmBody;
+
+  /// No description provided for @postDetailEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'edited'**
+  String get postDetailEdited;
+
+  /// No description provided for @postDetailRemovedComment.
+  ///
+  /// In en, this message translates to:
+  /// **'This comment was removed.'**
+  String get postDetailRemovedComment;
+
+  /// No description provided for @postDetailShowMoreReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'Show {count} more replies'**
+  String postDetailShowMoreReplies(int count);
 
   /// No description provided for @guidanceClickedLink.
   ///

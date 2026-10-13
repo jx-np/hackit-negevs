@@ -39,6 +39,9 @@ class AppLocalizationsMs extends AppLocalizations {
   String get commonShareWithCommunity => 'Kongsi dengan komuniti';
 
   @override
+  String get commonShare => 'Kongsi';
+
+  @override
   String get commonSharing => 'Berkongsi...';
 
   @override
@@ -66,6 +69,19 @@ class AppLocalizationsMs extends AppLocalizations {
   @override
   String get commonShareIntro =>
       'Bantu orang lain dengan berkongsi penipuan yang anda terima. Buang sebarang maklumat peribadi dahulu.';
+
+  @override
+  String get commonPhotos => 'Foto (pilihan)';
+
+  @override
+  String get commonAddPhoto => 'Tambah foto';
+
+  @override
+  String get commonRemovePhoto => 'Buang foto';
+
+  @override
+  String get commonImageTooLarge =>
+      'Setiap imej mestilah 20 MB atau lebih kecil.';
 
   @override
   String get settingsDetectionModel => 'Model pengesanan';
@@ -312,11 +328,6 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String callRemovedReport(String number) {
-    return 'Laporan dibuang untuk $number';
-  }
-
-  @override
   String get callOutgoing => 'Keluar';
 
   @override
@@ -368,10 +379,11 @@ class AppLocalizationsMs extends AppLocalizations {
   String get callUnblock => 'Nyahsekat';
 
   @override
-  String get callRemoveReport => 'Buang laporan';
+  String get callBlockAndReport => 'Sekat & Lapor';
 
   @override
-  String get callBlockAndReport => 'Sekat & Lapor';
+  String get callBlockNeedsScreening =>
+      'To stop blocked numbers from ringing, choose this app for call screening.';
 
   @override
   String get reportPhone => 'Telefon';
@@ -775,6 +787,119 @@ class AppLocalizationsMs extends AppLocalizations {
   String get onboardingContinue => 'Teruskan';
 
   @override
+  String get onboardingBack => 'Kembali';
+
+  @override
+  String get onboardingStart => 'Mari mula';
+
+  @override
+  String get onboardingNext => 'Seterusnya';
+
+  @override
+  String get onboardingAllow => 'Benarkan';
+
+  @override
+  String get onboardingOpenSettings => 'Buka tetapan';
+
+  @override
+  String get onboardingNotNow => 'Bukan sekarang';
+
+  @override
+  String get onboardingFinish => 'Pergi ke aplikasi';
+
+  @override
+  String onboardingStepCount(int step, int total) {
+    return 'Langkah $step daripada $total';
+  }
+
+  @override
+  String get onboardingWelcomeTitle => 'Selamat datang';
+
+  @override
+  String get onboardingWelcomeBody =>
+      'Aplikasi ini membantu anda mengenal pasti panggilan dan mesej penipuan. Untuk itu, ia memerlukan beberapa kebenaran daripada telefon anda. Kita akan melaluinya satu demi satu.';
+
+  @override
+  String get onboardingWelcomeNote =>
+      'Semuanya kekal di telefon anda. Anda boleh menukar pilihan ini pada bila-bila masa di Tetapan.';
+
+  @override
+  String get onboardingPhoneTitle => 'Panggilan telefon';
+
+  @override
+  String get onboardingPhoneBody =>
+      'Ini membolehkan aplikasi melihat siapa yang menghubungi anda, supaya ia boleh memberitahu jika nombor itu dikenali sebagai penipuan.';
+
+  @override
+  String get onboardingContactsTitle => 'Kenalan';
+
+  @override
+  String get onboardingContactsBody =>
+      'Ini membolehkan aplikasi mengenali orang yang anda kenali, supaya panggilan mereka tidak ditanda sebagai mencurigakan.';
+
+  @override
+  String get onboardingScreeningTitle => 'Semakan panggilan';
+
+  @override
+  String get onboardingScreeningBody =>
+      'Ini membolehkan aplikasi menyemak panggilan masuk dan menyekat nombor yang telah anda sekat. Telefon anda akan meminta anda memilih aplikasi ini untuk saringan panggilan.';
+
+  @override
+  String get onboardingNotificationsTitle => 'Makluman';
+
+  @override
+  String get onboardingNotificationsBody =>
+      'Ini membolehkan aplikasi menghantar makluman ringkas apabila sesuatu kelihatan seperti penipuan.';
+
+  @override
+  String get onboardingMessagesTitle => 'Semakan mesej';
+
+  @override
+  String get onboardingMessagesBody =>
+      'Ini membolehkan aplikasi membaca mesej baharu apabila ia tiba, supaya ia boleh memberi amaran tentang pautan mencurigakan atau permintaan wang.';
+
+  @override
+  String get onboardingOverlayTitle => 'Tunjukkan amaran semasa panggilan';
+
+  @override
+  String get onboardingOverlayBody =>
+      'Ini membolehkan aplikasi menunjukkan notis kecil di skrin semasa panggilan mencurigakan berdering.';
+
+  @override
+  String get onboardingSettingsHint =>
+      'Tetapan telefon anda akan dibuka. Cari aplikasi ini dalam senarai, hidupkannya, kemudian kembali ke sini.';
+
+  @override
+  String get onboardingStatusOn => 'Ini telah dihidupkan.';
+
+  @override
+  String get onboardingStatusSkipped =>
+      'Ini belum dihidupkan. Anda boleh cuba lagi, atau hidupkannya kemudian di Tetapan.';
+
+  @override
+  String get onboardingStatusBlocked =>
+      'Telefon anda tidak akan bertanya lagi. Ketik \"Buka tetapan\" untuk menghidupkannya sendiri.';
+
+  @override
+  String get onboardingDoneTitle => 'Semuanya sedia';
+
+  @override
+  String get onboardingDoneBody =>
+      'Aplikasi kini memerhati panggilan dan mesej penipuan untuk anda.';
+
+  @override
+  String get onboardingDonePartialTitle => 'Hampir selesai';
+
+  @override
+  String get onboardingDonePartialBody =>
+      'Sesetengah perlindungan belum dihidupkan. Aplikasi masih berfungsi, dan anda boleh menghidupkan selebihnya kemudian di Tetapan.';
+
+  @override
+  String onboardingGrantedCount(int granted, int total) {
+    return '$granted daripada $total dihidupkan';
+  }
+
+  @override
   String get authEnterEmail => 'Sila masukkan e-mel anda.';
 
   @override
@@ -788,6 +913,10 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get authEnterName => 'Sila masukkan nama anda.';
+
+  @override
+  String get authNameInvalid =>
+      'Gunakan huruf dan nombor sahaja, dengan paling banyak satu ruang antara dua perkataan.';
 
   @override
   String get authCreateAccount => 'Cipta akaun';
@@ -867,6 +996,16 @@ class AppLocalizationsMs extends AppLocalizations {
       'Penipuan yang anda laporkan akan dipaparkan di sini supaya anda boleh menjejakinya.';
 
   @override
+  String get myPostsDelete => 'Padam';
+
+  @override
+  String get myPostsDeleteConfirm => 'Padam siaran ini?';
+
+  @override
+  String get myPostsDeleteConfirmBody =>
+      'Ini mengeluarkannya daripada komuniti. Tindakan ini tidak boleh dibatalkan.';
+
+  @override
   String get postDetailThankYou =>
       'Terima kasih. Pasukan kami akan menyemak siaran ini.';
 
@@ -904,6 +1043,46 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get postDetailFlagOther => 'Lain-lain';
+
+  @override
+  String get postDetailReply => 'Balas';
+
+  @override
+  String get postDetailEdit => 'Edit';
+
+  @override
+  String get postDetailDelete => 'Padam';
+
+  @override
+  String get postDetailSave => 'Simpan';
+
+  @override
+  String get postDetailCancel => 'Batal';
+
+  @override
+  String postDetailReplying(String name) {
+    return 'Membalas $name';
+  }
+
+  @override
+  String get postDetailWriteReply => 'Tulis balasan';
+
+  @override
+  String get postDetailDeleteConfirm => 'Padam komen ini?';
+
+  @override
+  String get postDetailDeleteConfirmBody => 'Ini tidak boleh dibatalkan.';
+
+  @override
+  String get postDetailEdited => 'disunting';
+
+  @override
+  String get postDetailRemovedComment => 'Komen ini telah dialih keluar.';
+
+  @override
+  String postDetailShowMoreReplies(int count) {
+    return 'Show $count more replies';
+  }
 
   @override
   String get guidanceClickedLink => 'Saya klik pautan';

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 /// native code.
 class RoleService {
   static const MethodChannel _channel =
-      MethodChannel('com.example.call_log_app/roles');
+      MethodChannel('com.scamwatch.negavsinparis/roles');
 
   static bool get isSupported => Platform.isAndroid;
 

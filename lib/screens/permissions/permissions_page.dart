@@ -7,8 +7,8 @@ import 'package:notification_listener_service/notification_listener_service.dart
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../services/role_service.dart';
-import '../services/scamshield_channels.dart';
+import '../../services/role_service.dart';
+import '../../services/scamshield_channels.dart';
 
 class PermissionsTab extends StatefulWidget {
   const PermissionsTab({super.key});
@@ -224,11 +224,12 @@ class _PermissionsTabState extends State<PermissionsTab>
     bool ok,
     Future<void> Function() onFix,
   ) {
+    final colors = context.theme.colors;
     return _permissionRow(
       title: title,
       subtitle: subtitle,
       granted: ok,
-      statusColor: ok ? Colors.green : Colors.orange,
+      statusColor: ok ? colors.primary : colors.secondaryForeground,
       onGrant: onFix,
     );
   }
@@ -244,7 +245,7 @@ class _PermissionsTabState extends State<PermissionsTab>
     return FTile(
       prefix: Icon(
         granted ? Icons.check_circle : Icons.error_outline,
-        color: granted ? Colors.green : statusColor,
+        color: granted ? context.theme.colors.primary : statusColor,
       ),
       title: Text(title),
       subtitle: Text(
@@ -255,7 +256,7 @@ class _PermissionsTabState extends State<PermissionsTab>
           ? Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check, size: 18, color: Colors.green),
+                Icon(Icons.check, size: 18, color: context.theme.colors.primary),
                 const SizedBox(width: 4),
                 Text(l10n.permGranted),
               ],
@@ -285,17 +286,16 @@ class _PermissionsTabState extends State<PermissionsTab>
                 Expanded(
                   child: Text(
                     l10n.permScreeningRole,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                      style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
                 Icon(
                   _isCallScreening
                       ? Icons.check_circle
                       : Icons.radio_button_unchecked,
-                  color: _isCallScreening ? Colors.green : colors.mutedForeground,
+                    color: _isCallScreening
+                      ? colors.primary
+                      : colors.mutedForeground,
                 ),
               ],
             ),

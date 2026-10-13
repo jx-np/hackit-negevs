@@ -6,13 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:call_log_app/l10n/app_localizations.dart';
 
-import '../api/api_client.dart';
-import '../services/model_controller.dart';
-import '../services/notification_log.dart';
-import '../services/protection_settings.dart';
-import '../services/scamshield_channels.dart';
+import '../../api/api_client.dart';
+import '../../services/model_controller.dart';
+import '../../services/notification_log.dart';
+import '../../services/protection_settings.dart';
+import '../../services/scamshield_channels.dart';
 import 'notifications_screen.dart';
-import 'community/report_tab_screen.dart';
+import '../community/report_tab_screen.dart';
 
 enum _ShieldState { grey, green, red, shimmer }
 

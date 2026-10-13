@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:call_log_app/l10n/app_localizations.dart';
 
-import '../core/scam_verdict.dart';
-import '../services/notification_log.dart';
+import '../../core/scam_verdict.dart';
+import '../../services/notification_log.dart';
 
 class ActivityTab extends StatefulWidget {
   const ActivityTab({

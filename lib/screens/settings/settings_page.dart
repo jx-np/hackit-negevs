@@ -10,7 +10,7 @@ import '../../services/scamshield_channels.dart';
 import '../../state/auth_controller.dart';
 import '../../state/locale_controller.dart';
 import '../../widgets/tour/tour_controller.dart';
-import '../permissions_tab.dart';
+import '../permissions/permissions_page.dart';
 import 'dev_menu_page.dart';
 import 'widgets/settings_section.dart';
 

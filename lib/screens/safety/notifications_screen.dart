@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:call_log_app/l10n/app_localizations.dart';
 
-import '../services/notification_log.dart';
+import '../../services/notification_log.dart';
 import 'activity_tab.dart';
 
 class NotificationsScreen extends StatefulWidget {

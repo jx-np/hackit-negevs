@@ -214,6 +214,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildActions(AppLocalizations l10n) {
+    final theme = Theme.of(context);
     final step = _currentStep;
     final String primaryLabel;
     final VoidCallback? onPrimary;
@@ -268,8 +269,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         primaryLabel,
                         key: ValueKey(primaryLabel),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 22,
+                        style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -289,7 +289,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                     onPressed: onSecondary,
                     child: Text(
                       secondaryLabel,
-                      style: const TextStyle(fontSize: 18),
+                      style: theme.textTheme.bodyLarge,
                     ),
                   ),
           ),

@@ -7,12 +7,12 @@ import 'package:forui/forui.dart';
 import 'package:provider/provider.dart';
 import 'package:call_log_app/api/api_client.dart';
 import 'package:call_log_app/background/background_runner.dart';
-import 'package:call_log_app/screens/call_history_screen.dart';
+import 'package:call_log_app/screens/calls/call_history_screen.dart';
 import 'package:call_log_app/screens/community/my_posts_screen.dart';
 import 'package:call_log_app/screens/community/report_tab_screen.dart';
 import 'package:call_log_app/screens/auth/login_register_screen.dart';
-import 'package:call_log_app/screens/login_screen.dart';
-import 'package:call_log_app/screens/safety_screen.dart';
+import 'package:call_log_app/screens/auth/login_screen.dart';
+import 'package:call_log_app/screens/safety/safety_screen.dart';
 import 'package:call_log_app/screens/settings/settings_page.dart';
 import 'package:call_log_app/services/protection_settings.dart';
 import 'package:call_log_app/services/scamshield_channels.dart';
@@ -156,23 +156,23 @@ class MyApp extends StatelessWidget {
           theme: _materialTheme(lightColors),
           darkTheme: _materialTheme(darkColors),
           builder: (context, child) {
-          final media = MediaQuery.of(context);
-          final clamped = media.textScaler.clamp(
-            minScaleFactor: 1.3,
-            maxScaleFactor: 1.8,
-          );
-          return MediaQuery(
-            data: media.copyWith(textScaler: clamped),
-            child: FTheme(
-              data: Theme.brightnessOf(context) == Brightness.light
-                  ? lightTheme
-                  : darkTheme,
-              child: FToaster(
-                child: FTooltipGroup(child: child ?? const SizedBox.shrink()),
+            final media = MediaQuery.of(context);
+            final clamped = media.textScaler.clamp(
+              minScaleFactor: 1.0,
+              maxScaleFactor: 1.5,
+            );
+            return MediaQuery(
+              data: media.copyWith(textScaler: clamped),
+              child: FTheme(
+                data: Theme.brightnessOf(context) == Brightness.light
+                    ? lightTheme
+                    : darkTheme,
+                child: FToaster(
+                  child: FTooltipGroup(child: child ?? const SizedBox.shrink()),
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
           home: const _AuthGate(),
         ),
       ),
@@ -211,11 +211,14 @@ class _HomePageState extends State<HomePage> {
   static const MethodChannel _deeplink = MethodChannel('report/deeplink');
 
   final List<_NavigationItem> _items = [
-    _NavigationItem(icon: Icons.phone, label: 'Calls'),
-    _NavigationItem(icon: Icons.shield, label: 'Safety'),
-    _NavigationItem(icon: Icons.campaign, label: 'Report'),
-    _NavigationItem(icon: Icons.article, label: 'My Posts'),
-    _NavigationItem(icon: Icons.settings, label: 'Settings'),
+    _NavigationItem(icon: Icons.phone, label: (l10n) => l10n.callHistoryTitle),
+    _NavigationItem(icon: Icons.shield, label: (l10n) => l10n.safetyTitle),
+    _NavigationItem(icon: Icons.campaign, label: (l10n) => l10n.reportTabTitle),
+    _NavigationItem(icon: Icons.article, label: (l10n) => l10n.myPostsTitle),
+    _NavigationItem(
+      icon: Icons.settings,
+      label: (l10n) => l10n.settingsScreenTitle,
+    ),
   ];
 
   TourController? _tour;
@@ -307,6 +310,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final client = context.read<ApiClient>();
     final tour = context.read<TourController>();
     final targets = context.read<CoachMarkTargets>();
@@ -357,7 +361,7 @@ class _HomePageState extends State<HomePage> {
                     key: targets.keyForTab(i),
                     child: Icon(_items[i].icon, size: 30),
                   ),
-                  label: _items[i].label,
+                  label: _items[i].label(l10n),
                   selectedIcon: Icon(
                     _items[i].icon,
                     size: 30,
@@ -373,10 +377,10 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _NavigationItem {
-  final IconData icon;
-  final String label;
-
   _NavigationItem({required this.icon, required this.label});
+
+  final IconData icon;
+  final String Function(AppLocalizations) label;
 }
 
 class ReportDeepLinkPayload {

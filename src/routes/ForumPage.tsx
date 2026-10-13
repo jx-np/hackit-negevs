@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, BadgeCheck, ShieldCheck, UserX } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { ForumSidebar, type ForumPanel } from '../components/forum/ForumSidebar';
 import { PostList } from '../components/forum/PostList';
@@ -9,9 +9,10 @@ import { SortControl } from '../components/forum/SortControl';
 import { useDebounce } from '../hooks/useDebounce';
 import type { SortKey } from '../types';
 import { HelpContent } from './HelpPage';
-import { PlaceholderContent } from './PlaceholderPage';
+import { ReportUserContent } from './ReportUserPage';
 import { RulesContent } from './RulesPage';
 import { StaySafeContent } from './StaySafePage';
+import { VerifiedContent } from './VerifiedDatabasePage';
 
 /** Renders the inline content for a given forum navigation panel. */
 function PanelContent({ panel }: { panel: ForumPanel }) {
@@ -23,23 +24,9 @@ function PanelContent({ panel }: { panel: ForumPanel }) {
     case 'help':
       return <HelpContent />;
     case 'verified':
-      return (
-        <PlaceholderContent
-          eyebrow="Community"
-          title="Verified Scam Database"
-          description="A curated, confirmed registry of reported scams."
-          icon={BadgeCheck}
-        />
-      );
+      return <VerifiedContent />;
     case 'report-user':
-      return (
-        <PlaceholderContent
-          eyebrow="Community"
-          title="Report a User"
-          description="Flag a member who is breaking the community rules."
-          icon={UserX}
-        />
-      );
+      return <ReportUserContent />;
   }
 }
 

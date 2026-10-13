@@ -141,7 +141,9 @@ describe('createPost', () => {
 
     expect(post.id).toBe('99');
     const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
-    expect(body.scam_type).toBe('phishing');
+    // The backend infers the category server-side and rejects a
+    // client-supplied `scam_type` on create, so it must not be sent.
+    expect(body.scam_type).toBeUndefined();
     expect(body.confirm_publication).toBe(true);
     expect(body.redacted_text).toBe('Details here.');
   });

@@ -1,12 +1,22 @@
 import { useEffect, useRef } from 'react';
 import { usePosts } from '../../hooks/usePosts';
-import type { SortKey } from '../../types';
+import type { Post, SortKey } from '../../types';
 import { PostCard } from './PostCard';
 
 interface PostListProps {
   query: string;
   tagId: string | null;
   sort: SortKey;
+  /**
+   * Optional client-side predicate applied to each loaded post. Used by the
+   * Verified Scam Database view to show only moderator-reviewed reports while
+   * reusing the same cursor-paginated feed. When omitted, every post is shown.
+   */
+  filter?: (post: Post) => boolean;
+  /** Heading shown above the records when a custom empty-state is desired. */
+  emptyTitle?: string;
+  /** Secondary line in the empty state. */
+  emptyHint?: string;
 }
 
 function PostSkeleton() {
@@ -28,7 +38,14 @@ function PostSkeleton() {
   );
 }
 
-export function PostList({ query, tagId, sort }: PostListProps) {
+export function PostList({
+  query,
+  tagId,
+  sort,
+  filter,
+  emptyTitle,
+  emptyHint,
+}: PostListProps) {
   const {
     data,
     isLoading,
@@ -86,14 +103,26 @@ export function PostList({ query, tagId, sort }: PostListProps) {
     );
   }
 
-  const posts = data?.pages.flatMap((p) => p.posts) ?? [];
-  const total = data?.pages[0]?.total ?? 0;
+  const loaded = data?.pages.flatMap((p) => p.posts) ?? [];
+  const posts = filter ? loaded.filter(filter) : loaded;
+  const total = filter ? posts.length : data?.pages[0]?.total ?? 0;
 
   if (posts.length === 0) {
+    // While filtering client-side, an early page may contain no matches even
+    // though later pages do. Keep the sentinel mounted so the observer can
+    // continue paging instead of stopping at a premature empty state.
+    const stillPaging = Boolean(filter) && hasNextPage;
     return (
       <div className="rounded-lg border border-dashed border-scam-line p-12 text-center text-scam-muted">
-        <p className="text-xl font-medium text-scam-text">No records found</p>
-        <p className="mt-1 text-base">Try a different search term or category.</p>
+        <p className="text-xl font-medium text-scam-text">
+          {stillPaging ? 'Loading…' : emptyTitle ?? 'No records found'}
+        </p>
+        <p className="mt-1 text-base">
+          {stillPaging
+            ? 'Scanning reports for matches.'
+            : emptyHint ?? 'Try a different search term or category.'}
+        </p>
+        <div ref={sentinelRef} className="h-10" />
       </div>
     );
   }

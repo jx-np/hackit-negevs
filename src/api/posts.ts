@@ -167,14 +167,15 @@ export async function createPost(input: NewPostInput): Promise<Post> {
     return Promise.reject(new Error('You must be logged in to report.'));
   }
 
-  // Backend posts require explicit publication confirmation and use slugs for
-  // scam_type / tags. The `tagId` field carries the chosen category slug.
+  // The backend infers the scam category server-side and rejects a
+  // client-supplied `scam_type` on create. It only accepts tags drawn from a
+  // known set, so any UI-selected category/tags that aren't recognised are
+  // dropped here rather than triggering a 422 "unknown field"/"unknown tags".
   const extraTags = (input.tags ?? []).filter((t) => t && t !== input.tagId);
 
   const body = {
     title: input.title,
     redacted_text: input.excerpt,
-    scam_type: input.tagId,
     tags: extraTags,
     confirm_publication: true,
     locale: 'en-SG',

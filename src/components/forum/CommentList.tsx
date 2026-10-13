@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowBigUp, Check, Flag, MessageCircle, MoreVertical, Pencil, Reply, Send, Trash2, X } from 'lucide-react';
+import { ArrowBigUp, Check, CornerDownRight, Flag, MessageCircle, Minus, MoreVertical, Pencil, Plus, Reply, Send, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useComments } from '../../hooks/useComments';
 import { useCommentLike } from '../../hooks/useCommentLike';
@@ -143,6 +143,17 @@ function CommentMenu({
   );
 }
 
+/** Count a comment plus every descendant reply beneath it. */
+function countThread(
+  commentId: string,
+  childrenByParent: Map<string, Comment[]>,
+): number {
+  const kids = childrenByParent.get(commentId) ?? [];
+  let total = kids.length;
+  for (const k of kids) total += countThread(k.id, childrenByParent);
+  return total;
+}
+
 function CommentItem({
   comment,
   postId,
@@ -155,19 +166,23 @@ function CommentItem({
   childrenByParent: Map<string, Comment[]>;
 }) {
   const isReply = depth > 0;
-  // Cap reply nesting at 3 levels so reply-to-reply chains don't grow without
-  // bound and waterfall past the container's right edge. Replies at the max
-  // depth can't be replied to further, and indentation stops shifting right.
-  const MAX_DEPTH = 3;
-  const atMaxDepth = depth >= MAX_DEPTH;
-  const nextDepth = Math.min(depth + 1, MAX_DEPTH);
+  // Reddit-style nesting: replies are visually indented, but the indent is
+  // clamped so deep chains never waterfall off the right edge. Beyond
+  // VISIBLE_DEPTH the subtree is flattened behind a "Continue this thread"
+  // affordance instead of indenting further.
+  const VISIBLE_DEPTH = 4;
+  const atVisibleLimit = depth >= VISIBLE_DEPTH;
+  const nextDepth = depth + 1;
   const removed = comment.status === 'removed' || comment.status === 'hidden';
-  const hasReplies = (childrenByParent.get(comment.id) ?? []).length > 0;
+  const children = childrenByParent.get(comment.id) ?? [];
+  const hasReplies = children.length > 0;
   const { user, isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
   const isAuthor = !!user && user.id === comment.authorId;
   const like = useCommentLike(comment.id);
 
+  const [collapsed, setCollapsed] = useState(false);
+  const [continued, setContinued] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
   const [flagging, setFlagging] = useState(false);
@@ -177,6 +192,7 @@ function CommentItem({
   const [replying, setReplying] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+  const hiddenReplyCount = countThread(comment.id, childrenByParent);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['comments', postId] });
@@ -240,17 +256,67 @@ function CommentItem({
     return null;
   }
 
-  return (
-    <div className={isReply ? 'mt-3 border-l border-scam-line pl-4 ml-3 sm:ml-5' : ''}>
-      <div className="flex items-start gap-3 min-w-0">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted">
-          {initials(comment.authorLabel)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2">
-            <span className="text-sm font-semibold text-scam-text">
-              {comment.authorLabel}
+  if (collapsed) {
+    return (
+      <div className={isReply ? 'mt-2' : ''}>
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="flex items-center gap-2 text-xs font-medium text-scam-muted transition hover:text-trust-400"
+        >
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-scam-line bg-scam-750 text-scam-muted transition hover:border-trust-400 hover:text-trust-400">
+            <Plus size={13} />
+          </span>
+          <span className="font-semibold text-scam-text">{comment.authorLabel}</span>
+          <span className="text-scam-dim">{timeAgo(comment.createdAt)}</span>
+          {hiddenReplyCount > 0 && (
+            <span className="text-scam-dim">
+              · {hiddenReplyCount} {hiddenReplyCount === 1 ? 'reply' : 'replies'} hidden
             </span>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={isReply ? 'mt-2' : ''}>
+      <div className="flex items-stretch gap-2 min-w-0 sm:gap-3">
+        {/* Left rail: round avatar + collapse toggle + clickable threadline */}
+        <div className="flex shrink-0 flex-col items-center">
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            aria-label="Collapse thread"
+            className="group relative grid h-8 w-8 shrink-0 place-items-center rounded-full border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted transition hover:border-trust-400"
+          >
+            <span className="group-hover:opacity-0">{initials(comment.authorLabel)}</span>
+            <Minus
+              size={14}
+              className="absolute text-trust-400 opacity-0 group-hover:opacity-100"
+            />
+          </button>
+          {hasReplies && (
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              aria-label="Collapse thread"
+              tabIndex={-1}
+              className="group mt-1 flex w-8 flex-1 cursor-pointer justify-center"
+            >
+              <span className="w-px flex-1 bg-scam-line transition group-hover:bg-trust-400" />
+            </button>
+          )}
+        </div>
+        <div className="min-w-0 flex-1 pb-1">
+          <div className="flex flex-wrap items-center gap-x-2">
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              className="text-sm font-semibold text-scam-text transition hover:text-trust-400"
+            >
+              {comment.authorLabel}
+            </button>
             <span className="text-xs text-scam-dim">{timeAgo(comment.createdAt)}</span>
             {comment.updatedAt !== comment.createdAt && !removed && (
               <span className="text-xs text-scam-dim">(edited)</span>
@@ -408,7 +474,7 @@ function CommentItem({
                 </motion.span>
               </motion.button>
 
-              {isLoggedIn && !atMaxDepth && (
+              {isLoggedIn && (
                 <button
                   type="button"
                   onClick={() => setReplying((r) => !r)}
@@ -480,15 +546,31 @@ function CommentItem({
         )}
       </div>
 
-      {(childrenByParent.get(comment.id) ?? []).map((child) => (
-        <CommentItem
-          key={child.id}
-          comment={child}
-          postId={postId}
-          depth={nextDepth}
-          childrenByParent={childrenByParent}
-        />
-      ))}
+      {hasReplies &&
+        (atVisibleLimit && !continued ? (
+          <button
+            type="button"
+            onClick={() => setContinued(true)}
+            className="mt-3 ml-10 inline-flex items-center gap-1 text-xs font-semibold text-trust-400 transition hover:text-trust-300 sm:ml-11"
+          >
+            <CornerDownRight size={13} /> Continue this thread (
+            {hiddenReplyCount} {hiddenReplyCount === 1 ? 'reply' : 'replies'})
+          </button>
+        ) : (
+          <div className="ml-4 sm:ml-5">
+            {children.map((child) => (
+              <CommentItem
+                key={child.id}
+                comment={child}
+                postId={postId}
+                // Once a thread is "continued" past the visible limit, keep the
+                // children at the same indent level so they don't waterfall.
+                depth={atVisibleLimit ? depth : nextDepth}
+                childrenByParent={childrenByParent}
+              />
+            ))}
+          </div>
+        ))}
     </div>
   );
 }

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
 import '../../models/api/community_models.dart';
 import '../../services/api/community_service.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_screen.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({
@@ -119,151 +122,127 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          l10n.communityShareScam,
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+    final tokens = context.tokens;
+    return AppScreen(
+      title: l10n.communityShareScam,
+      scrollable: true,
+      bottomBar: SizedBox(
+        height: 60,
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: _submitting ? null : _submit,
+          icon: _submitting
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(LucideIcons.send, size: 24),
+          label: Text(
+            _submitting ? l10n.commonSharing : l10n.commonShareWithCommunity,
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+          ),
         ),
       ),
       body: _loadingOptions
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      l10n.commonShareIntro,
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 24),
-                    _FieldLabel(l10n.commonTitle),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _titleController,
-                      validator: _validateTitle,
-                      style: theme.textTheme.titleMedium,
-                      decoration: _fieldDecoration(l10n.commonTitleHint),
-                    ),
-                    const SizedBox(height: 24),
-                    _FieldLabel(l10n.commonMessage),
-                    const SizedBox(height: 8),
-                    TextFormField(
-                      controller: _textController,
-                      validator: _validateText,
-                      minLines: 4,
-                      maxLines: 10,
-                      style: theme.textTheme.bodyLarge,
-                      decoration: _fieldDecoration(l10n.commonMessageHint),
-                    ),
-                    const SizedBox(height: 24),
-                    _FieldLabel(l10n.commonWhatKindOfScam),
-                    const SizedBox(height: 12),
+          : Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(l10n.commonShareIntro, style: theme.textTheme.bodyLarge),
+                  SizedBox(height: tokens.space.xl),
+                  _FieldLabel(l10n.commonTitle),
+                  SizedBox(height: tokens.space.sm),
+                  TextFormField(
+                    controller: _titleController,
+                    validator: _validateTitle,
+                    style: theme.textTheme.titleMedium,
+                    decoration: _fieldDecoration(l10n.commonTitleHint),
+                  ),
+                  SizedBox(height: tokens.space.xl),
+                  _FieldLabel(l10n.commonMessage),
+                  SizedBox(height: tokens.space.sm),
+                  TextFormField(
+                    controller: _textController,
+                    validator: _validateText,
+                    minLines: 4,
+                    maxLines: 10,
+                    style: theme.textTheme.bodyLarge,
+                    decoration: _fieldDecoration(l10n.commonMessageHint),
+                  ),
+                  SizedBox(height: tokens.space.xl),
+                  _FieldLabel(l10n.commonWhatKindOfScam),
+                  SizedBox(height: tokens.space.md),
+                  Wrap(
+                    spacing: tokens.space.md,
+                    runSpacing: tokens.space.md,
+                    children: [
+                      for (final cat in _categories)
+                        ChoiceChip(
+                          label: Text(cat.displayName, style: theme.textTheme.bodyLarge),
+                          selected: _scamType == cat.slug,
+                          onSelected: (_) => setState(() => _scamType = cat.slug),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: tokens.space.lg,
+                            vertical: tokens.space.md,
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (_availableTags.isNotEmpty) ...[
+                    SizedBox(height: tokens.space.xl),
+                    _FieldLabel(l10n.commonTagsOptional),
+                    SizedBox(height: tokens.space.md),
                     Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
+                      spacing: tokens.space.md,
+                      runSpacing: tokens.space.md,
                       children: [
-                        for (final cat in _categories)
-                          ChoiceChip(
-                            label: Text(
-                              cat.displayName,
-                              style: theme.textTheme.bodyLarge,
-                            ),
-                            selected: _scamType == cat.slug,
-                            onSelected: (_) =>
-                                setState(() => _scamType = cat.slug),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
+                        for (final tag in _availableTags)
+                          FilterChip(
+                            label: Text(tag.displayName, style: theme.textTheme.bodyLarge),
+                            selected: _selectedTags.contains(tag.slug),
+                            onSelected: (selected) => setState(() {
+                              if (selected) {
+                                _selectedTags.add(tag.slug);
+                              } else {
+                                _selectedTags.remove(tag.slug);
+                              }
+                            }),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: tokens.space.lg,
+                              vertical: tokens.space.md,
                             ),
                           ),
                       ],
                     ),
-                    if (_availableTags.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      _FieldLabel(l10n.commonTagsOptional),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
+                  ],
+                  if (_error != null) ...[
+                    SizedBox(height: tokens.space.lg),
+                    Container(
+                      padding: EdgeInsets.all(tokens.space.lg),
+                      decoration: BoxDecoration(
+                        color: tokens.risk.dangerContainer,
+                        borderRadius: tokens.radii.mdRadius,
+                      ),
+                      child: Row(
                         children: [
-                          for (final tag in _availableTags)
-                            FilterChip(
-                              label: Text(
-                                tag.displayName,
-                                style: theme.textTheme.bodyLarge,
-                              ),
-                              selected: _selectedTags.contains(tag.slug),
-                              onSelected: (selected) => setState(() {
-                                if (selected) {
-                                  _selectedTags.add(tag.slug);
-                                } else {
-                                  _selectedTags.remove(tag.slug);
-                                }
-                              }),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
+                          Icon(LucideIcons.circleAlert, color: tokens.risk.danger),
+                          SizedBox(width: tokens.space.md),
+                          Expanded(
+                            child: Text(
+                              _error!,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: tokens.risk.onDangerContainer,
                               ),
                             ),
-                        ],
-                      ),
-                    ],
-                    if (_error != null) ...[
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: theme.colorScheme.onErrorContainer,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _error!,
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  color: theme.colorScheme.onErrorContainer,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      height: 64,
-                      child: FilledButton.icon(
-                        onPressed: _submitting ? null : _submit,
-                        icon: _submitting
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.publish, size: 26),
-                        label: Text(
-                          _submitting
-                              ? l10n.commonSharing
-                              : l10n.commonShareWithCommunity,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
     );
@@ -274,9 +253,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       hintText: hint,
       filled: true,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: context.tokens.radii.mdRadius,
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: context.tokens.space.lg,
+        vertical: 18,
+      ),
     );
   }
 }

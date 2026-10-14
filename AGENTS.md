@@ -3,7 +3,7 @@
 ScamWatch — a Flutter **Android** app that detects scam messages. It listens to
 incoming notifications from messaging apps, runs them through an on-device Gemma
 model and/or a remote backend, and raises overlay alerts. Package name is
-`call_log_app`; Android application ID is `com.scamwatch.negavsinparis`.
+`scamwatch_mobile_app`; Android application ID is `com.scamwatch.negavsinparis`.
 
 ## Commands
 
@@ -59,7 +59,7 @@ model and/or a remote backend, and raises overlay alerts. Package name is
   `core/` (models/prompts/catalog), `services/` (evaluators, channels, settings,
   logs), `state/` (ChangeNotifier controllers), `screens/`, `widgets/`, `theme/`.
 - State uses `provider` with `ChangeNotifier` controllers wired in `main.dart`.
-- Imports use the `package:call_log_app/...` form, not relative paths, in
+- Imports use the `package:scamwatch_mobile_app/...` form, not relative paths, in
   app-level code.
 - Only write tests for logic you're not confident in (e.g. verdict parsing,
   routing). Skip tests for trivial changes. Existing tests live in `test/` and

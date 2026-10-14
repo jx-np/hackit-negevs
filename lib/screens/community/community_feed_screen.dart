@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
 import '../../models/api/community_models.dart';
 import '../../services/api/community_service.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
+import '../../widgets/ui/empty_state.dart';
 import 'create_post_screen.dart';
 import 'post_detail_screen.dart';
 
@@ -90,55 +95,67 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.communityTitle)),
+    final tokens = context.tokens;
+    return AppScreen(
+      title: l10n.communityTitle,
+      scrollable: false,
       body: RefreshIndicator(
         onRefresh: _load,
         child: _buildBody(theme, l10n),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _createPost,
-        icon: const Icon(Icons.add, size: 28),
-        label: Text(
-          l10n.communityShareScam,
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+      bottomBar: SizedBox(
+        height: 56,
+        width: double.infinity,
+        child: FilledButton.icon(
+          onPressed: _createPost,
+          icon: const Icon(LucideIcons.plus),
+          label: Text(l10n.communityShareScam),
+          style: FilledButton.styleFrom(
+            textStyle: theme.textTheme.labelLarge?.copyWith(fontSize: 18),
+            shape: RoundedRectangleBorder(borderRadius: tokens.radii.lgRadius),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
+    final tokens = context.tokens;
     if (_loading && _posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(top: tokens.space.sm, bottom: tokens.space.xl2),
       children: [
         if (_categories.isNotEmpty) _filterChips(theme, l10n),
         if (_error != null) _errorCard(theme),
         if (_posts.isEmpty && _error == null) _emptyCard(theme, l10n),
-        for (final post in _posts) _postCard(theme, l10n, post),
+        for (final post in _posts) ...[
+          SizedBox(height: tokens.space.md),
+          _postCard(theme, l10n, post),
+        ],
       ],
     );
   }
 
   Widget _filterChips(ThemeData theme, AppLocalizations l10n) {
+    final tokens = context.tokens;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.only(bottom: tokens.space.md),
       child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: tokens.space.sm,
+        runSpacing: tokens.space.sm,
         children: [
           ChoiceChip(
             label: Text(l10n.communityAll),
-            labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            labelStyle: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
             selected: _activeType == null,
             onSelected: (_) => _selectType(null),
           ),
           for (final cat in _categories)
             ChoiceChip(
               label: Text(cat.displayName),
-              labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              labelStyle: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
               selected: _activeType == cat.slug,
               onSelected: (_) => _selectType(cat.slug),
             ),
@@ -148,68 +165,70 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   }
 
   Widget _postCard(ThemeData theme, AppLocalizations l10n, FeedPost post) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _openPost(post),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+    final tokens = context.tokens;
+    final scheme = theme.colorScheme;
+    return AppCard(
+      onTap: () => _openPost(post),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      post.title,
-                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  if (post.isReviewed) _reviewedBadge(theme, l10n),
-                ],
+              Expanded(
+                child: Text(
+                  post.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(post.redactedExcerpt, style: theme.textTheme.bodyLarge),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  if (post.category != null) ...[
-                    Icon(Icons.label_outline, size: 20, color: theme.colorScheme.primary),
-                    const SizedBox(width: 6),
-                    Text(post.category!.displayName, style: theme.textTheme.bodyMedium),
-                    const SizedBox(width: 16),
-                  ],
-                  Icon(Icons.chat_bubble_outline, size: 20, color: theme.colorScheme.outline),
-                  const SizedBox(width: 6),
-                  Text('${post.commentCount}', style: theme.textTheme.bodyMedium),
-                ],
-              ),
+              if (post.isReviewed) ...[
+                SizedBox(width: tokens.space.sm),
+                _reviewedBadge(theme, l10n),
+              ],
             ],
           ),
-        ),
+          SizedBox(height: tokens.space.sm),
+          Text(post.redactedExcerpt, maxLines: 3, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyLarge),
+          SizedBox(height: tokens.space.md),
+          Row(
+            children: [
+              if (post.category != null) ...[
+                Icon(LucideIcons.tag, size: 20, color: scheme.primary),
+                SizedBox(width: tokens.space.xs),
+                Text(post.category!.displayName, style: theme.textTheme.bodyMedium),
+                SizedBox(width: tokens.space.lg),
+              ],
+              Icon(LucideIcons.messageCircle, size: 20, color: scheme.onSurfaceVariant),
+              SizedBox(width: tokens.space.xs),
+              Text('${post.commentCount}', style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _reviewedBadge(ThemeData theme, AppLocalizations l10n) {
+    final tokens = context.tokens;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: tokens.space.md, vertical: tokens.space.xs),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        color: tokens.risk.safeContainer,
+        borderRadius: tokens.radii.pillRadius,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified, size: 18, color: theme.colorScheme.primary),
-          const SizedBox(width: 4),
+          Icon(LucideIcons.badgeCheck, size: 18, color: tokens.risk.safe),
+          SizedBox(width: tokens.space.xs),
           Text(
             l10n.commonReviewed,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: theme.colorScheme.primary,
+              color: tokens.risk.onSafeContainer,
             ),
           ),
         ],
@@ -218,48 +237,30 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   }
 
   Widget _emptyCard(ThemeData theme, AppLocalizations l10n) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(Icons.forum_outlined, size: 56, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
-            Text(
-              l10n.commonNoPostsYet,
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.communityNoPostsBody,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge,
-            ),
-          ],
-        ),
+    return AppCard(
+      child: EmptyState(
+        icon: LucideIcons.messagesSquare,
+        title: l10n.commonNoPostsYet,
+        message: l10n.communityNoPostsBody,
       ),
     );
   }
 
   Widget _errorCard(ThemeData theme) {
-    return Card(
-      color: theme.colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, size: 28, color: theme.colorScheme.error),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _error!,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
-                ),
-              ),
+    final tokens = context.tokens;
+    return AppCard(
+      color: tokens.risk.dangerContainer,
+      child: Row(
+        children: [
+          Icon(LucideIcons.circleAlert, color: tokens.risk.danger),
+          SizedBox(width: tokens.space.md),
+          Expanded(
+            child: Text(
+              _error!,
+              style: theme.textTheme.bodyLarge?.copyWith(color: tokens.risk.onDangerContainer),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

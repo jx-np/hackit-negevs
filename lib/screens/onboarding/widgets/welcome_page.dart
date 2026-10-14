@@ -1,5 +1,6 @@
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'onboarding_illustration.dart';
 import 'onboarding_page_layout.dart';
@@ -18,7 +19,7 @@ class WelcomePage extends StatelessWidget {
     return OnboardingPageLayout(
       controller: controller,
       index: index,
-      illustration: const OnboardingIllustration(icon: Icons.shield_outlined),
+       illustration: const OnboardingIllustration(icon: LucideIcons.shield),
       title: l10n.onboardingWelcomeTitle,
       body: l10n.onboardingWelcomeBody,
       footer: Text(

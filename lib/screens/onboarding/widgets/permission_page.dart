@@ -1,5 +1,7 @@
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 
 import '../permission_step.dart';
 import 'onboarding_illustration.dart';
@@ -53,9 +55,9 @@ class PermissionPage extends StatelessWidget {
     if (status == StepStatus.granted) {
       return _StatusNote(
         key: const ValueKey('granted'),
-        icon: Icons.check_circle_rounded,
+         icon: LucideIcons.circleCheck,
         text: l10n.onboardingStatusOn,
-        color: kOnboardingDoneColor,
+         color: context.tokens.risk.safe,
       );
     }
     final String text;
@@ -70,7 +72,7 @@ class PermissionPage extends StatelessWidget {
     }
     return _StatusNote(
       key: ValueKey(text),
-      icon: Icons.info_outline_rounded,
+       icon: LucideIcons.info,
       text: text,
       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
     );
@@ -96,16 +98,16 @@ class _StatusNote extends StatelessWidget {
       liveRegion: true,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+         padding: EdgeInsets.all(context.tokens.space.lg),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(16),
+           borderRadius: context.tokens.radii.lgRadius,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(icon, color: color, size: 28),
-            const SizedBox(width: 12),
+             SizedBox(width: context.tokens.space.md),
             Expanded(
               child: Text(
                 text,

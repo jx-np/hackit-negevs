@@ -1,16 +1,31 @@
 {
   "ms": [
     "callBlockNeedsScreening",
+    "authBannerTitle",
+    "authBannerBody",
+    "authBannerAction",
+    "authBannerDismiss",
+    "authGateMessage",
     "postDetailShowMoreReplies"
   ],
 
   "ta": [
     "callBlockNeedsScreening",
+    "authBannerTitle",
+    "authBannerBody",
+    "authBannerAction",
+    "authBannerDismiss",
+    "authGateMessage",
     "postDetailShowMoreReplies"
   ],
 
   "zh": [
     "callBlockNeedsScreening",
+    "authBannerTitle",
+    "authBannerBody",
+    "authBannerAction",
+    "authBannerDismiss",
+    "authGateMessage",
     "postDetailShowMoreReplies"
   ]
 }

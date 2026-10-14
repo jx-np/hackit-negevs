@@ -1,5 +1,6 @@
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import 'onboarding_illustration.dart';
 import 'onboarding_page_layout.dart';
@@ -28,7 +29,7 @@ class DonePage extends StatelessWidget {
       controller: controller,
       index: index,
       illustration: OnboardingIllustration(
-        icon: Icons.verified_user_outlined,
+         icon: LucideIcons.shieldCheck,
         done: allOn,
       ),
       title: allOn ? l10n.onboardingDoneTitle : l10n.onboardingDonePartialTitle,

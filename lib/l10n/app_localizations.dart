@@ -1764,6 +1764,36 @@ abstract class AppLocalizations {
   /// **'New here? Create an account'**
   String get authToggleToRegister;
 
+  /// No description provided for @authBannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to unlock more'**
+  String get authBannerTitle;
+
+  /// No description provided for @authBannerBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Post to the community, sync reports, and more.'**
+  String get authBannerBody;
+
+  /// No description provided for @authBannerAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get authBannerAction;
+
+  /// No description provided for @authBannerDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get authBannerDismiss;
+
+  /// No description provided for @authGateMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to use this feature.'**
+  String get authGateMessage;
+
   /// No description provided for @communityTitle.
   ///
   /// In en, this message translates to:

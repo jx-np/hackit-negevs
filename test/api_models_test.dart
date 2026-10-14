@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:call_log_app/api/api_exception.dart';
-import 'package:call_log_app/models/api/auth_models.dart';
-import 'package:call_log_app/models/api/community_models.dart';
-import 'package:call_log_app/models/api/detection_models.dart';
-import 'package:call_log_app/models/api/guidance_models.dart';
+import 'package:scamwatch_mobile_app/api/api_exception.dart';
+import 'package:scamwatch_mobile_app/models/api/auth_models.dart';
+import 'package:scamwatch_mobile_app/models/api/community_models.dart';
+import 'package:scamwatch_mobile_app/models/api/detection_models.dart';
+import 'package:scamwatch_mobile_app/models/api/guidance_models.dart';
 
 void main() {
   group('AuthUser.fromJson', () {

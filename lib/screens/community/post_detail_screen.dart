@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
@@ -8,6 +9,9 @@ import '../../models/api/community_models.dart';
 import '../../services/api/community_service.dart';
 import '../../services/api/discussion_service.dart';
 import '../../state/auth_controller.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
   const PostDetailScreen({super.key, required this.client, required this.postId});
@@ -249,20 +253,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.postDetailTitle),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.flag_outlined, size: 28),
-            tooltip: l10n.postDetailReportTooltip,
-            onPressed: _post == null ? null : _flagPost,
-          ),
-        ],
-      ),
-      body: _buildBody(theme, l10n),
+    return AppScreen(
+      title: l10n.postDetailTitle,
+      actions: [
+        IconButton(
+          icon: const Icon(LucideIcons.flag),
+          tooltip: l10n.postDetailReportTooltip,
+          onPressed: _post == null ? null : _flagPost,
+        ),
+      ],
+      scrollable: false,
+      body: _buildBody(Theme.of(context), l10n),
     );
   }
 
@@ -272,9 +274,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     }
     if (_error != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(_error!, textAlign: TextAlign.center, style: theme.textTheme.bodyLarge),
+        child: AppCard(
+          color: context.tokens.risk.dangerContainer,
+          child: Text(_error!, textAlign: TextAlign.center, style: theme.textTheme.bodyLarge?.copyWith(color: context.tokens.risk.onDangerContainer)),
         ),
       );
     }
@@ -293,45 +295,47 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       }
     }
     final userId = _currentUserId;
+    final tokens = context.tokens;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(top: tokens.space.sm, bottom: tokens.space.xl2),
       children: [
         Text(post.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
         if (post.images.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.space.md),
           _pictureStrip(theme, post.images),
         ],
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.space.md),
         Text(post.redactedText, style: theme.textTheme.bodyLarge),
-        const SizedBox(height: 20),
+        SizedBox(height: tokens.space.xl),
         _voteRow(theme, post),
-        const SizedBox(height: 20),
+        SizedBox(height: tokens.space.xl),
         Text(
           l10n.postDetailComments(_comments.length),
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.space.md),
         if (_comments.isEmpty)
           Text(l10n.postDetailNoComments, style: theme.textTheme.bodyLarge)
         else
           for (final root in roots)
             _commentThread(theme, l10n, root, descendantsByRoot[root.commentId] ?? const [], userId),
-        const SizedBox(height: 16),
+        SizedBox(height: tokens.space.lg),
         _commentComposer(theme, l10n),
       ],
     );
   }
 
   Widget _pictureStrip(ThemeData theme, List<String> images) {
+    final tokens = context.tokens;
     return SizedBox(
       height: 160,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: images.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
+         separatorBuilder: (_, _) => SizedBox(width: tokens.space.md),
         itemBuilder: (context, index) {
           return ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+             borderRadius: tokens.radii.lgRadius,
             child: Image.network(
               images[index],
               width: 160,
@@ -341,7 +345,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 width: 160,
                 height: 160,
                 color: theme.colorScheme.surfaceContainerHighest,
-                child: Icon(Icons.broken_image_outlined, size: 40, color: theme.colorScheme.onSurfaceVariant),
+                 child: Icon(LucideIcons.imageOff, size: 40, color: theme.colorScheme.onSurfaceVariant),
               ),
             ),
           );
@@ -376,14 +380,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         _commentCard(theme, l10n, root, userId, isReply: false),
         if (replies.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(left: 12),
+             padding: EdgeInsets.only(left: context.tokens.space.md),
             child: Container(
               decoration: BoxDecoration(
                 border: Border(
                   left: BorderSide(color: theme.colorScheme.outlineVariant, width: 2),
                 ),
               ),
-              padding: const EdgeInsets.only(left: 12),
+               padding: EdgeInsets.only(left: context.tokens.space.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -400,17 +404,17 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget _voteRow(ThemeData theme, PostDetail post) {
     return Row(
       children: [
-        _voteButton(
+         _voteButton(
           theme,
-          icon: Icons.thumb_up,
+          icon: LucideIcons.thumbsUp,
           label: '${post.reactions.up}',
           active: post.myVote == 1,
           onTap: () => _vote(1),
         ),
-        const SizedBox(width: 12),
+         SizedBox(width: context.tokens.space.md),
         _voteButton(
           theme,
-          icon: Icons.thumb_down,
+          icon: LucideIcons.thumbsDown,
           label: '${post.reactions.down}',
           active: post.myVote == -1,
           onTap: () => _vote(-1),
@@ -434,7 +438,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           icon: Icon(icon, size: 24),
           label: Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           style: OutlinedButton.styleFrom(
-            backgroundColor: active ? theme.colorScheme.primary.withValues(alpha: 0.15) : null,
+             backgroundColor: active ? theme.colorScheme.primary.withValues(alpha: 0.12) : null,
             foregroundColor: active ? theme.colorScheme.primary : theme.colorScheme.onSurface,
           ),
         ),
@@ -455,10 +459,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final wasEdited = comment.updatedAt != null &&
         comment.createdAt != null &&
         comment.updatedAt!.isAfter(comment.createdAt!);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+    return Padding(
+      padding: EdgeInsets.only(bottom: context.tokens.space.md),
+      child: AppCard(
+        padding: EdgeInsets.all(context.tokens.space.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -480,7 +484,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
               ],
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: context.tokens.space.sm),
             if (isRemoved)
               Text(
                 l10n.postDetailRemovedComment,
@@ -513,11 +517,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           style: theme.textTheme.bodyLarge,
           decoration: InputDecoration(
             filled: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+             border: OutlineInputBorder(borderRadius: context.tokens.radii.mdRadius),
+             contentPadding: EdgeInsets.symmetric(horizontal: context.tokens.space.lg, vertical: context.tokens.space.md),
           ),
         ),
-        const SizedBox(height: 8),
+         SizedBox(height: context.tokens.space.sm),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -525,7 +529,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               onPressed: _savingEdit ? null : _cancelEdit,
               child: Text(l10n.postDetailCancel),
             ),
-            const SizedBox(width: 4),
+             SizedBox(width: context.tokens.space.xs),
             FilledButton(
               onPressed: _savingEdit ? null : () => _saveEdit(comment),
               child: _savingEdit
@@ -540,41 +544,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   Widget _commentActions(ThemeData theme, AppLocalizations l10n, PostComment comment, bool isAuthor) {
     final buttonStyle = TextButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      minimumSize: const Size(0, 36),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+       padding: EdgeInsets.symmetric(horizontal: context.tokens.space.sm, vertical: context.tokens.space.xs),
+       minimumSize: const Size(0, 44),
       foregroundColor: theme.colorScheme.onSurfaceVariant,
     );
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+       padding: EdgeInsets.only(top: context.tokens.space.xs),
       child: Wrap(
         spacing: 4,
         children: [
           TextButton.icon(
             style: buttonStyle,
             onPressed: () => _startReply(comment),
-            icon: const Icon(Icons.reply, size: 18),
+             icon: const Icon(LucideIcons.reply, size: 18),
             label: Text(l10n.postDetailReply),
           ),
           if (isAuthor)
             TextButton.icon(
               style: buttonStyle,
               onPressed: () => _startEdit(comment),
-              icon: const Icon(Icons.edit_outlined, size: 18),
+               icon: const Icon(LucideIcons.pencil, size: 18),
               label: Text(l10n.postDetailEdit),
             ),
           if (isAuthor)
             TextButton.icon(
               style: buttonStyle,
               onPressed: () => _deleteComment(comment),
-              icon: const Icon(Icons.delete_outline, size: 18),
+               icon: Icon(LucideIcons.trash2, size: 18, color: theme.colorScheme.error),
               label: Text(l10n.postDetailDelete),
             ),
           if (!isAuthor)
             TextButton.icon(
               style: buttonStyle,
               onPressed: () => _flagComment(comment),
-              icon: const Icon(Icons.flag_outlined, size: 18),
+               icon: const Icon(LucideIcons.flag, size: 18),
               label: Text(l10n.postDetailReportTooltip),
             ),
         ],
@@ -589,16 +592,16 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       children: [
         if (replyingTo != null)
           Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+             margin: EdgeInsets.only(bottom: context.tokens.space.sm),
+             padding: EdgeInsets.fromLTRB(context.tokens.space.md, context.tokens.space.sm, context.tokens.space.sm, context.tokens.space.sm),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(12),
+               borderRadius: context.tokens.radii.mdRadius,
             ),
             child: Row(
               children: [
-                Icon(Icons.reply, size: 18, color: theme.colorScheme.onSurfaceVariant),
-                const SizedBox(width: 8),
+                 Icon(LucideIcons.reply, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                 SizedBox(width: context.tokens.space.sm),
                 Expanded(
                   child: Text(
                     l10n.postDetailReplying(replyingTo),
@@ -607,7 +610,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 20),
+                   icon: const Icon(LucideIcons.x, size: 20),
                   tooltip: l10n.postDetailCancel,
                   onPressed: _cancelReply,
                 ),
@@ -622,11 +625,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           decoration: InputDecoration(
             hintText: replyingTo != null ? l10n.postDetailWriteReply : l10n.postDetailWriteComment,
             filled: true,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+             border: OutlineInputBorder(borderRadius: context.tokens.radii.mdRadius),
+             contentPadding: EdgeInsets.symmetric(horizontal: context.tokens.space.lg, vertical: context.tokens.space.md),
           ),
         ),
-        const SizedBox(height: 10),
+         SizedBox(height: context.tokens.space.md),
         SizedBox(
           height: 56,
           child: FilledButton.icon(
@@ -637,7 +640,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.send),
+                 : const Icon(LucideIcons.send),
             label: Text(l10n.postDetailPostComment, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
           ),
         ),

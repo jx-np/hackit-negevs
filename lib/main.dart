@@ -2,26 +2,29 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:forui/forui.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:call_log_app/api/api_client.dart';
-import 'package:call_log_app/background/background_runner.dart';
-import 'package:call_log_app/screens/calls/call_history_screen.dart';
-import 'package:call_log_app/screens/community/my_posts_screen.dart';
-import 'package:call_log_app/screens/community/report_tab_screen.dart';
-import 'package:call_log_app/screens/auth/login_register_screen.dart';
-import 'package:call_log_app/screens/auth/login_screen.dart';
-import 'package:call_log_app/screens/safety/safety_screen.dart';
-import 'package:call_log_app/screens/settings/settings_page.dart';
-import 'package:call_log_app/services/protection_settings.dart';
-import 'package:call_log_app/services/scamshield_channels.dart';
-import 'package:call_log_app/state/auth_controller.dart';
-import 'package:call_log_app/state/locale_controller.dart';
-import 'package:call_log_app/theme/theme.dart';
-import 'package:call_log_app/widgets/tour/coach_mark_overlay.dart';
-import 'package:call_log_app/widgets/tour/tour_controller.dart';
-import 'package:call_log_app/widgets/tour/tour_models.dart';
+import 'package:scamwatch_mobile_app/api/api_client.dart';
+import 'package:scamwatch_mobile_app/background/background_runner.dart';
+import 'package:scamwatch_mobile_app/screens/calls/call_history_screen.dart';
+import 'package:scamwatch_mobile_app/screens/community/my_posts_screen.dart';
+import 'package:scamwatch_mobile_app/screens/community/report_tab_screen.dart';
+import 'package:scamwatch_mobile_app/screens/onboarding/onboarding_screen.dart';
+import 'package:scamwatch_mobile_app/screens/safety/safety_screen.dart';
+import 'package:scamwatch_mobile_app/screens/settings/settings_page.dart';
+import 'package:scamwatch_mobile_app/services/protection_settings.dart';
+import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
+import 'package:scamwatch_mobile_app/state/auth_controller.dart';
+import 'package:scamwatch_mobile_app/state/locale_controller.dart';
+import 'package:scamwatch_mobile_app/state/theme_controller.dart';
+import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
+import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/theme/theme.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/coach_mark_overlay.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_controller.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +35,8 @@ void main() {
   final tourController = TourController(steps: kTourSteps);
   final localeController = LocaleController();
   localeController.load();
+  final themeController = ThemeController();
+  themeController.load();
   runApp(
     MyApp(
       apiClient: apiClient,
@@ -39,6 +44,7 @@ void main() {
       tourTargets: tourTargets,
       tourController: tourController,
       localeController: localeController,
+      themeController: themeController,
     ),
   );
 }
@@ -50,8 +56,10 @@ void backgroundMain() {
 }
 
 ThemeData _materialTheme(FColors colors) {
+  final isDark = colors.brightness == Brightness.dark;
   return ThemeData(
     useMaterial3: true,
+    extensions: [isDark ? AppTokens.dark : AppTokens.light],
     colorScheme: ColorScheme(
       brightness: colors.brightness,
       primary: colors.primary,
@@ -143,6 +151,7 @@ class MyApp extends StatelessWidget {
     required this.tourTargets,
     required this.tourController,
     required this.localeController,
+    required this.themeController,
   });
 
   final ApiClient apiClient;
@@ -150,6 +159,7 @@ class MyApp extends StatelessWidget {
   final CoachMarkTargets tourTargets;
   final TourController tourController;
   final LocaleController localeController;
+  final ThemeController themeController;
 
   @override
   Widget build(BuildContext context) {
@@ -160,9 +170,10 @@ class MyApp extends StatelessWidget {
         Provider<CoachMarkTargets>.value(value: tourTargets),
         ChangeNotifierProvider<TourController>.value(value: tourController),
         ChangeNotifierProvider<LocaleController>.value(value: localeController),
+        ChangeNotifierProvider<ThemeController>.value(value: themeController),
       ],
-      child: Consumer<LocaleController>(
-        builder: (context, localeController, _) => MaterialApp(
+      child: Consumer2<LocaleController, ThemeController>(
+        builder: (context, localeController, themeController, _) => MaterialApp(
           title: 'Call Manager',
           locale: localeController.locale,
           supportedLocales: const [
@@ -175,6 +186,7 @@ class MyApp extends StatelessWidget {
           ],
           theme: _materialTheme(lightColors),
           darkTheme: _materialTheme(darkColors),
+          themeMode: themeController.mode,
           builder: (context, child) {
             final media = MediaQuery.of(context);
             final clamped = media.textScaler.clamp(
@@ -193,29 +205,47 @@ class MyApp extends StatelessWidget {
               ),
             );
           },
-          home: const _AuthGate(),
+          home: const _RootGate(),
         ),
       ),
     );
   }
 }
 
-class _AuthGate extends StatelessWidget {
-  const _AuthGate();
+/// Decides the first screen on launch. Onboarding comes first; the app is fully
+/// usable without an account. Sign-in is only prompted for features that need
+/// it (see [requireLogin]). Once onboarding is complete we go straight to the
+/// app on every subsequent launch, regardless of auth status.
+class _RootGate extends StatefulWidget {
+  const _RootGate();
+
+  @override
+  State<_RootGate> createState() => _RootGateState();
+}
+
+class _RootGateState extends State<_RootGate> {
+  final ProtectionSettings _settings = ProtectionSettings();
+  bool? _onboarded;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final done = await _settings.onboardingComplete();
+    if (!mounted) return;
+    setState(() => _onboarded = done);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthController>();
-    switch (auth.status) {
-      case AuthStatus.unknown:
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
-      case AuthStatus.signedOut:
-        return const LoginRegisterScreen();
-      case AuthStatus.signedIn:
-        return const LoginScreen();
+    final onboarded = _onboarded;
+    if (onboarded == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+    return onboarded ? const HomePage() : const OnboardingScreen();
   }
 }
 
@@ -228,15 +258,16 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  bool _signInBannerDismissed = false;
   static const MethodChannel _deeplink = MethodChannel('report/deeplink');
 
   final List<_NavigationItem> _items = [
-    _NavigationItem(icon: Icons.phone, label: (l10n) => l10n.callHistoryTitle),
-    _NavigationItem(icon: Icons.shield, label: (l10n) => l10n.safetyTitle),
-    _NavigationItem(icon: Icons.campaign, label: (l10n) => l10n.reportTabTitle),
-    _NavigationItem(icon: Icons.article, label: (l10n) => l10n.myPostsTitle),
+    _NavigationItem(icon: LucideIcons.phone, label: (l10n) => l10n.callHistoryTitle),
+    _NavigationItem(icon: LucideIcons.shield, label: (l10n) => l10n.safetyTitle),
+    _NavigationItem(icon: LucideIcons.megaphone, label: (l10n) => l10n.reportTabTitle),
+    _NavigationItem(icon: LucideIcons.fileText, label: (l10n) => l10n.myPostsTitle),
     _NavigationItem(
-      icon: Icons.settings,
+      icon: LucideIcons.settings,
       label: (l10n) => l10n.settingsScreenTitle,
     ),
   ];
@@ -330,7 +361,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final client = context.read<ApiClient>();
     final tour = context.read<TourController>();
     final targets = context.read<CoachMarkTargets>();
@@ -341,53 +371,164 @@ class _HomePageState extends State<HomePage> {
       MyPostsScreen(client: client),
       const SettingsPage(),
     ];
+    final auth = context.watch<AuthController>();
+    final showSignInBanner = !auth.isSignedIn && !_signInBannerDismissed;
     return Scaffold(
-      body: CoachMarkOverlay(
-        controller: tour,
-        targets: targets,
-        child: screens[_currentIndex],
-      ),
-      bottomNavigationBar: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            height: 84,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-            backgroundColor: context.theme.colors.card,
-            indicatorColor: context.theme.colors.primary.withValues(
-              alpha: 0.15,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            if (showSignInBanner)
+              _SignInBanner(
+                onSignIn: () => requireLogin(context),
+                onDismiss: () =>
+                    setState(() => _signInBannerDismissed = true),
+              ),
+            Expanded(
+              child: CoachMarkOverlay(
+                controller: tour,
+                targets: targets,
+                child: screens[_currentIndex],
+              ),
             ),
-            labelTextStyle: WidgetStateProperty.resolveWith((states) {
-              final selected = states.contains(WidgetState.selected);
-              return TextStyle(
-                fontSize: 14,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected
-                    ? context.theme.colors.primary
-                    : context.theme.colors.mutedForeground,
-              );
-            }),
-          ),
-        child: NavigationBar(
-            selectedIndex: _currentIndex,
-            onDestinationSelected: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
-            },
-            destinations: [
-              for (var i = 0; i < _items.length; i++)
-                NavigationDestination(
-                  icon: KeyedSubtree(
+          ],
+        ),
+      ),
+      bottomNavigationBar: _AppNavBar(
+        items: _items,
+        currentIndex: _currentIndex,
+        targets: targets,
+        onSelected: (index) => setState(() => _currentIndex = index),
+      ),
+    );
+  }
+}
+
+/// Custom bottom navigation bar. Replaces Material's [NavigationBar], which
+/// clipped long labels like "Call History" (every destination gets equal width
+/// with no graceful shrink). Each tab shrinks its label to fit via [FittedBox],
+/// and the active tab shows a soft rounded pill behind the icon built from the
+/// app design tokens. Preserves the coach-mark [CoachMarkTargets] keys so the
+/// feature tour still points at the right tabs.
+class _AppNavBar extends StatelessWidget {
+  const _AppNavBar({
+    required this.items,
+    required this.currentIndex,
+    required this.targets,
+    required this.onSelected,
+  });
+
+  final List<_NavigationItem> items;
+  final int currentIndex;
+  final CoachMarkTargets targets;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = context.theme.colors;
+    final tokens = context.tokens;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.card,
+        border: Border(top: BorderSide(color: colors.border)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 68,
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: _NavTab(
                     key: targets.keyForTab(i),
-                    child: Icon(_items[i].icon, size: 30),
-                  ),
-                  label: _items[i].label(l10n),
-                  selectedIcon: Icon(
-                    _items[i].icon,
-                    size: 30,
-                    color: context.theme.colors.primary,
+                    icon: items[i].icon,
+                    label: items[i].label(l10n),
+                    selected: i == currentIndex,
+                    onTap: () => onSelected(i),
+                    primary: colors.primary,
+                    inactive: colors.mutedForeground,
+                    pill: colors.primary.withValues(alpha: 0.14),
+                    radii: tokens.radii,
+                    space: tokens.space,
                   ),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavTab extends StatelessWidget {
+  const _NavTab({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.primary,
+    required this.inactive,
+    required this.pill,
+    required this.radii,
+    required this.space,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color primary;
+  final Color inactive;
+  final Color pill;
+  final AppRadii radii;
+  final AppSpacing space;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? primary : inactive;
+    return InkWell(
+      onTap: onTap,
+      customBorder: const StadiumBorder(),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: space.xs,
+          vertical: space.sm,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              padding: EdgeInsets.symmetric(
+                horizontal: space.lg,
+                vertical: space.xs,
+              ),
+              decoration: BoxDecoration(
+                color: selected ? pill : Colors.transparent,
+                borderRadius: radii.pillRadius,
+              ),
+              child: Icon(icon, size: 24, color: color),
+            ),
+            SizedBox(height: space.xs),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(
+                  fontSize: 12,
+                  height: 1.1,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -399,6 +540,68 @@ class _NavigationItem {
 
   final IconData icon;
   final String Function(AppLocalizations) label;
+}
+
+/// Dismissible prompt shown at the top of the app while signed out. The app is
+/// fully usable without an account; this is a soft nudge toward the features
+/// that need one. Dismissal lasts for the session (see [_signInBannerDismissed]).
+class _SignInBanner extends StatelessWidget {
+  const _SignInBanner({required this.onSignIn, required this.onDismiss});
+
+  final VoidCallback onSignIn;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colors = context.theme.colors;
+    return Material(
+      color: colors.primary.withValues(alpha: 0.08),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        child: Row(
+          children: [
+            Icon(LucideIcons.circleUserRound, color: colors.primary, size: 32),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.authBannerTitle,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: colors.foreground,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.authBannerBody,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colors.mutedForeground,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onSignIn,
+              child: Text(l10n.authBannerAction),
+            ),
+            IconButton(
+              icon: const Icon(LucideIcons.x, size: 20),
+              tooltip: l10n.authBannerDismiss,
+              onPressed: onDismiss,
+              color: colors.mutedForeground,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class ReportDeepLinkPayload {

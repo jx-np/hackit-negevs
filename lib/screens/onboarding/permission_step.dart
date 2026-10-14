@@ -1,7 +1,8 @@
-import 'package:call_log_app/l10n/app_localizations.dart';
-import 'package:call_log_app/services/role_service.dart';
-import 'package:call_log_app/services/scamshield_channels.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/services/role_service.dart';
+import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -94,28 +95,28 @@ class OnboardingPermissions {
   static final List<PermissionStep> steps = [
     PermissionStep._(
       kind: PermissionStepKind.phone,
-      icon: Icons.phone_outlined,
+      icon: LucideIcons.phone,
       opensSettings: false,
       check: () => _runtimeStatus(Permission.phone),
       request: () => Permission.phone.request(),
     ),
     PermissionStep._(
       kind: PermissionStepKind.contacts,
-      icon: Icons.contacts_outlined,
+      icon: LucideIcons.users,
       opensSettings: false,
       check: () => _runtimeStatus(Permission.contacts),
       request: () => Permission.contacts.request(),
     ),
     PermissionStep._(
       kind: PermissionStepKind.callScreening,
-      icon: Icons.phone_callback_outlined,
+      icon: LucideIcons.phoneIncoming,
       opensSettings: false,
       check: () async => _fromBool(await RoleService.isCallScreening()),
       request: RoleService.requestCallScreening,
     ),
     PermissionStep._(
       kind: PermissionStepKind.notifications,
-      icon: Icons.notifications_outlined,
+      icon: LucideIcons.bell,
       opensSettings: false,
       check: () async {
         // Both the runtime permission and the Scam Shield alert channel must
@@ -133,7 +134,7 @@ class OnboardingPermissions {
     ),
     PermissionStep._(
       kind: PermissionStepKind.messageAccess,
-      icon: Icons.sms_outlined,
+      icon: LucideIcons.messageSquare,
       opensSettings: true,
       check: () async =>
           _fromBool(await NotificationListenerService.isPermissionGranted()),
@@ -141,7 +142,7 @@ class OnboardingPermissions {
     ),
     PermissionStep._(
       kind: PermissionStepKind.overlay,
-      icon: Icons.layers_outlined,
+      icon: LucideIcons.layers,
       opensSettings: true,
       check: () async =>
           _fromBool(await ScamShieldController.hasOverlayPermission()),

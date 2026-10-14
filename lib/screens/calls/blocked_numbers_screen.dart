@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
-import 'package:forui/forui.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
+import '../../widgets/ui/empty_state.dart';
 
 class BlockedNumbersScreen extends StatefulWidget {
   const BlockedNumbersScreen({super.key});
@@ -55,65 +60,78 @@ class _BlockedNumbersScreenState extends State<BlockedNumbersScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final numbers = _blocked.toList()..sort();
-    return FScaffold(
-      header: FHeader.nested(
-        title: Text(l10n.blockedNumbersTitle),
-        prefixes: [
-          FHeaderAction.back(onPress: () => Navigator.of(context).maybePop()),
-        ],
-        suffixes: [
-          FHeaderAction(
-            icon: const Icon(Icons.refresh),
-            semanticsLabel: l10n.commonRefresh,
-            onPress: _load,
-          ),
-        ],
-      ),
-      child: _isLoading
+    return AppScreen(
+      title: l10n.blockedNumbersTitle,
+      scrollable: false,
+      actions: [
+        IconButton(
+          icon: const Icon(LucideIcons.refreshCw),
+          tooltip: l10n.commonRefresh,
+          onPressed: _load,
+        ),
+      ],
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : numbers.isEmpty
-          ? _buildEmpty(context)
-          : FTileGroup.builder(
-              count: numbers.length,
-              tileBuilder: (context, index) {
+          ? EmptyState(
+              icon: LucideIcons.shieldBan,
+              title: l10n.blockedNoNumbers,
+            )
+          : ListView.separated(
+              padding: EdgeInsets.only(
+                top: context.tokens.space.sm,
+                bottom: context.tokens.space.xl2,
+              ),
+              itemCount: numbers.length,
+              separatorBuilder: (context, index) =>
+                  SizedBox(height: context.tokens.space.md),
+              itemBuilder: (context, index) {
                 final number = numbers[index];
-                return FTile(
-                  prefix: FAvatar.raw(
-                    size: 36,
-                    child: Icon(
-                      Icons.block,
-                      size: 18,
-                      color: context.theme.colors.error,
-                    ),
+                final scheme = Theme.of(context).colorScheme;
+                final theme = Theme.of(context);
+                return AppCard(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.tokens.space.lg,
+                    vertical: context.tokens.space.md,
                   ),
-                  title: Text(number),
-                  suffix: FButton.icon(
-                    onPress: () => _unblock(number),
-                    variant: FButtonVariant.ghost,
-                    size: FButtonSizeVariant.sm,
-                    child: const Icon(Icons.clear),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: context.tokens.risk.dangerContainer,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          LucideIcons.ban,
+                          size: 22,
+                          color: context.tokens.risk.danger,
+                        ),
+                      ),
+                      SizedBox(width: context.tokens.space.md),
+                      Expanded(
+                        child: Text(
+                          number,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _unblock(number),
+                        icon: const Icon(LucideIcons.x, size: 20),
+                        label: Text(l10n.callUnblock),
+                        style: TextButton.styleFrom(
+                          foregroundColor: scheme.primary,
+                          minimumSize: const Size(0, 48),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               },
             ),
-    );
-  }
-
-  Widget _buildEmpty(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.block,
-            size: 64,
-            color: context.theme.colors.mutedForeground,
-          ),
-          const SizedBox(height: 16),
-          Text(l10n.blockedNoNumbers),
-        ],
-      ),
     );
   }
 }

@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
-import 'package:call_log_app/core/model_catalog.dart';
-import 'package:call_log_app/core/notification_record.dart';
-import 'package:call_log_app/core/scam_prompt.dart';
-import 'package:call_log_app/core/scam_verdict.dart';
-import 'package:call_log_app/services/evaluation_router.dart';
-import 'package:call_log_app/services/notification_stream.dart';
-import 'package:call_log_app/services/scam_evaluator.dart';
+import 'package:scamwatch_mobile_app/core/model_catalog.dart';
+import 'package:scamwatch_mobile_app/core/notification_record.dart';
+import 'package:scamwatch_mobile_app/core/scam_prompt.dart';
+import 'package:scamwatch_mobile_app/core/scam_verdict.dart';
+import 'package:scamwatch_mobile_app/services/evaluation_router.dart';
+import 'package:scamwatch_mobile_app/services/notification_stream.dart';
+import 'package:scamwatch_mobile_app/services/scam_evaluator.dart';
 
 class _FakeEvaluator implements ScamEvaluator {
   _FakeEvaluator(this._verdict);

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 import 'package:provider/provider.dart';
 
 import '../../state/auth_controller.dart';
@@ -25,8 +28,32 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   bool _registerMode = false;
   bool _obscurePassword = true;
 
+  AuthController? _auth;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final auth = context.read<AuthController>();
+    if (!identical(auth, _auth)) {
+      _auth?.removeListener(_onAuthChanged);
+      _auth = auth..addListener(_onAuthChanged);
+    }
+  }
+
+  /// When sign-in succeeds while this screen was *pushed* on top of the app
+  /// (via [requireLogin]), pop it so the caller resumes. When it's the root
+  /// route there's nothing to pop, so we leave it — the host rebuilds and
+  /// swaps it out. Popping the root would empty the stack and show a black
+  /// screen, so [canPop] guards against that.
+  void _onAuthChanged() {
+    if (mounted && _auth?.isSignedIn == true && Navigator.of(context).canPop()) {
+      Navigator.of(context).pop(true);
+    }
+  }
+
   @override
   void dispose() {
+    _auth?.removeListener(_onAuthChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
@@ -56,9 +83,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         : controller.login(email: email, password: password));
 
     // On success the AuthController flips status to signedIn and notifies
-    // listeners; the _AuthGate (home) rebuilds and swaps this screen out
-    // automatically. Do NOT pop here — this screen is the root route, and
-    // popping it empties the navigator stack and causes a black screen.
+    // listeners. We handle the result in _onAuthChanged: if this screen was
+    // pushed (by requireLogin) it pops itself; if it's the root route it stays
+    // and the host rebuilds. Do NOT pop here directly — _onAuthChanged guards
+    // against popping the root route (which would cause a black screen).
   }
 
   String? _validateEmail(String? value) {
@@ -95,25 +123,21 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     final controller = context.watch<AuthController>();
     final busy = controller.busy;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_registerMode ? l10n.authCreateAccount : l10n.authSignIn),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
+    return AppScreen(
+      title: _registerMode ? l10n.authCreateAccount : l10n.authSignIn,
+      scrollable: true,
+      body: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 8),
+                SizedBox(height: context.tokens.space.sm),
                 Icon(
-                  Icons.account_circle,
+                  LucideIcons.circleUserRound,
                   size: 88,
                   color: theme.colorScheme.primary,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: context.tokens.space.lg),
                 Text(
                   _registerMode
                       ? l10n.authRegisterIntro
@@ -121,10 +145,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyLarge,
                 ),
-                const SizedBox(height: 28),
+                SizedBox(height: context.tokens.space.xl2),
                 if (_registerMode) ...[
                   _FieldLabel(text: l10n.authYourName),
-                  const SizedBox(height: 8),
+                  SizedBox(height: context.tokens.space.sm),
                   TextFormField(
                     controller: _nameController,
                     textCapitalization: TextCapitalization.words,
@@ -133,10 +157,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     autovalidateMode: AutovalidateMode.onUserInteraction,
                     validator: _validateName,
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: context.tokens.space.xl),
                 ],
                 _FieldLabel(text: l10n.authEmail),
-                const SizedBox(height: 8),
+                SizedBox(height: context.tokens.space.sm),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -146,9 +170,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   autovalidateMode: AutovalidateMode.onUserInteraction,
                   validator: _validateEmail,
                 ),
-                const SizedBox(height: 20),
+                SizedBox(height: context.tokens.space.xl),
                 _FieldLabel(text: l10n.authPassword),
-                const SizedBox(height: 8),
+                SizedBox(height: context.tokens.space.sm),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
@@ -158,8 +182,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                       iconSize: 28,
                       icon: Icon(
                         _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                            ? LucideIcons.eye
+                            : LucideIcons.eyeOff,
                       ),
                       onPressed: () => setState(
                         () => _obscurePassword = !_obscurePassword,
@@ -169,26 +193,26 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   validator: _validatePassword,
                 ),
                 if (controller.error != null) ...[
-                  const SizedBox(height: 20),
+                  SizedBox(height: context.tokens.space.xl),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(context.tokens.space.lg),
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.errorContainer,
-                      borderRadius: BorderRadius.circular(12),
+                      color: context.tokens.risk.dangerContainer,
+                      borderRadius: context.tokens.radii.mdRadius,
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.error_outline,
-                          color: theme.colorScheme.error,
+                          LucideIcons.circleAlert,
+                          color: context.tokens.risk.onDangerContainer,
                           size: 28,
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: context.tokens.space.md),
                         Expanded(
                           child: Text(
                             controller.error!,
                             style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onErrorContainer,
+                              color: context.tokens.risk.onDangerContainer,
                             ),
                           ),
                         ),
@@ -196,7 +220,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 28),
+                SizedBox(height: context.tokens.space.xl2),
                 SizedBox(
                   height: 64,
                   child: FilledButton(
@@ -216,7 +240,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: context.tokens.space.lg),
                 SizedBox(
                   height: 56,
                   child: TextButton(
@@ -235,8 +259,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 
@@ -249,7 +271,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
         vertical: 18,
       ),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: context.tokens.radii.mdRadius,
       ),
     );
   }

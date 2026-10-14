@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
-import 'package:forui/forui.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
+import '../../widgets/ui/empty_state.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -94,42 +99,35 @@ class _ContactsScreenState extends State<ContactsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return FScaffold(
-      header: FHeader.nested(
-        title: Text(l10n.contactsTitle),
-        titleAlignment: Alignment.centerLeft,
-        prefixes: [
-          FHeaderAction(
-            icon: const Icon(Icons.menu),
-            semanticsLabel: l10n.contactsOpenMenu,
-            onPress: () => Scaffold.of(context).openDrawer(),
-          ),
-        ],
-        suffixes: [
-          FHeaderAction(
-            icon: const Icon(Icons.refresh),
-            semanticsLabel: l10n.commonRefresh,
-            onPress: _loadContacts,
-          ),
-        ],
-      ),
-      child: Column(
+    return AppScreen(
+      title: l10n.contactsTitle,
+      scrollable: false,
+      actions: [
+        IconButton(
+          icon: const Icon(LucideIcons.refreshCw),
+          tooltip: l10n.commonRefresh,
+          onPressed: _loadContacts,
+        ),
+      ],
+      body: Column(
         children: [
-          FTextField(
-            control: FTextFieldControl.managed(
-              controller: _searchController,
-              onChange: (value) => _filterContacts(value.text),
+          TextField(
+            controller: _searchController,
+            onChanged: _filterContacts,
+            decoration: InputDecoration(
+              hintText: l10n.contactsSearchHint,
+              prefixIcon: const Icon(LucideIcons.search),
+              filled: true,
+              border: OutlineInputBorder(
+                borderRadius: context.tokens.radii.mdRadius,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
             ),
-            hint: l10n.contactsSearchHint,
-            prefixBuilder: (context, style, variants) =>
-                FTextField.prefixIconBuilder(
-                  context,
-                  style,
-                  variants,
-                  context.theme.icons.search(context),
-                ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: context.tokens.space.sm),
           Expanded(child: _buildBody(context)),
         ],
       ),
@@ -144,47 +142,104 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
     if (_error != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FAlert(
-                variant: FAlertVariant.destructive,
-                title: Text(l10n.contactsCouldNotLoad),
-                subtitle: Text(_error!),
+        child: SingleChildScrollView(
+          child: EmptyState(
+            icon: LucideIcons.circleAlert,
+            tint: Theme.of(context).colorScheme.error,
+            title: l10n.contactsCouldNotLoad,
+            message: _error,
+            action: Padding(
+              padding: EdgeInsets.only(top: context.tokens.space.lg),
+              child: FilledButton(
+                onPressed: _loadContacts,
+                child: Text(l10n.commonRetry),
               ),
-              const SizedBox(height: 16),
-              FButton(onPress: _loadContacts, child: Text(l10n.commonRetry)),
-            ],
+            ),
           ),
         ),
       );
     }
 
     if (_filteredContacts.isEmpty) {
-      return Center(child: Text(l10n.contactsNoneFound));
+      return EmptyState(
+        icon: LucideIcons.users,
+        title: l10n.contactsNoneFound,
+      );
     }
 
-    return FTileGroup.builder(
-      count: _filteredContacts.length,
-      tileBuilder: (context, index) {
+    return ListView.separated(
+      padding: EdgeInsets.only(
+        top: context.tokens.space.sm,
+        bottom: context.tokens.space.xl2,
+      ),
+      itemCount: _filteredContacts.length,
+      separatorBuilder: (context, index) =>
+          SizedBox(height: context.tokens.space.md),
+      itemBuilder: (context, index) {
         final contact = _filteredContacts[index];
-        return FTile(
-          prefix: FAvatar.raw(
-            size: 40,
-            child: Text(_getInitials(contact.displayName)),
+        final scheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+        return AppCard(
+          padding: EdgeInsets.symmetric(
+            horizontal: context.tokens.space.lg,
+            vertical: context.tokens.space.md,
           ),
-          title: Text(contact.displayName),
-          subtitle: Text(_getContactDetails(contact)),
-          suffix: contact.phones.isNotEmpty
-              ? FButton.icon(
-                  onPress: () => _callNumber(contact.phones.first.number),
-                  variant: FButtonVariant.ghost,
-                  size: FButtonSizeVariant.sm,
-                  child: const Icon(Icons.phone),
-                )
-              : null,
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    _getInitials(contact.displayName),
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: context.tokens.space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      contact.displayName,
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: context.tokens.space.xs),
+                    Text(
+                      _getContactDetails(contact),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (contact.phones.isNotEmpty)
+                IconButton(
+                  onPressed: () => _callNumber(contact.phones.first.number),
+                  icon: Icon(LucideIcons.phone, color: scheme.primary),
+                  tooltip: 'Call',
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

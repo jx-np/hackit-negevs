@@ -915,6 +915,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authToggleToRegister => '初次使用？创建账户';
 
   @override
+  String get authBannerTitle => 'Sign in to unlock more';
+
+  @override
+  String get authBannerBody => 'Post to the community, sync reports, and more.';
+
+  @override
+  String get authBannerAction => 'Sign in';
+
+  @override
+  String get authBannerDismiss => 'Dismiss';
+
+  @override
+  String get authGateMessage => 'Sign in to use this feature.';
+
+  @override
   String get communityTitle => '社区';
 
   @override

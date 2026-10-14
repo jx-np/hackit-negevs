@@ -961,6 +961,21 @@ class AppLocalizationsTa extends AppLocalizations {
   String get authToggleToRegister => 'புதியவரா? கணக்கை உருவாக்கு';
 
   @override
+  String get authBannerTitle => 'Sign in to unlock more';
+
+  @override
+  String get authBannerBody => 'Post to the community, sync reports, and more.';
+
+  @override
+  String get authBannerAction => 'Sign in';
+
+  @override
+  String get authBannerDismiss => 'Dismiss';
+
+  @override
+  String get authGateMessage => 'Sign in to use this feature.';
+
+  @override
   String get communityTitle => 'சமூகம்';
 
   @override

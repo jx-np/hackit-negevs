@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 import '../../core/model_catalog.dart';
 import '../../services/model_controller.dart';
 import '../../services/model_store.dart';
@@ -94,10 +97,17 @@ class _DevMenuPageState extends State<DevMenuPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dev menu')),
+    final tokens = context.tokens;
+    return AppScreen(
+      title: 'Dev menu',
+      scrollable: false,
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        padding: EdgeInsets.fromLTRB(
+          tokens.space.lg,
+          tokens.space.lg,
+          tokens.space.lg,
+          tokens.space.xl2,
+        ),
         children: [
           _banner(theme),
           const SizedBox(height: 16),
@@ -145,7 +155,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                 _customModelTile(theme),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.travel_explore),
+                   leading: const Icon(LucideIcons.search),
                   title: const Text('Scan for model files'),
                   subtitle: Text(
                     _scanning
@@ -158,7 +168,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.chevron_right),
+                       : const Icon(LucideIcons.chevronRight),
                   onTap: _scanning ? null : _scanForModels,
                 ),
                 Padding(
@@ -200,7 +210,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: widget.model.busy ? null : _loadFromTypedPath,
-                      icon: const Icon(Icons.upload_file_outlined),
+                       icon: const Icon(LucideIcons.fileUp),
                       label: const Text('Load model from file'),
                     ),
                   ),
@@ -288,7 +298,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.science_outlined, size: 20),
+           const Icon(LucideIcons.flaskConical, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -311,7 +321,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
   Widget _customModelTile(ThemeData theme) {
     final spec = customModelSpec;
     return ListTile(
-      leading: const Icon(Icons.sd_card_outlined),
+       leading: const Icon(LucideIcons.hardDrive),
       title: Text(spec == null ? 'No file picked' : spec.displayName),
       subtitle: Text(
         spec == null
@@ -380,7 +390,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                   itemBuilder: (_, index) {
                     final file = files[index];
                     return ListTile(
-                      leading: const Icon(Icons.insert_drive_file_outlined),
+                       leading: const Icon(LucideIcons.file),
                       title: Text(file.fileName, maxLines: 1),
                       subtitle: Text('~${file.sizeMb} MB'),
                       onTap: () => Navigator.of(sheetContext).pop(file.path),

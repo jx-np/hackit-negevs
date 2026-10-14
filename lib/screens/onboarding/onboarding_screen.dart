@@ -1,7 +1,10 @@
-import 'package:call_log_app/l10n/app_localizations.dart';
-import 'package:call_log_app/main.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/main.dart';
+import 'package:scamwatch_mobile_app/services/protection_settings.dart';
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 
 import 'permission_step.dart';
 import 'widgets/done_page.dart';
@@ -129,6 +132,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   void _finish() {
     if (_navigating || !mounted) return;
     _navigating = true;
+    // Remember that onboarding is done so future launches skip straight to the
+    // app. Fire-and-forget: navigation shouldn't wait on the write.
+    ProtectionSettings().setOnboardingComplete(true);
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 400),
@@ -170,7 +176,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Widget _buildTopBar(AppLocalizations l10n) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+       padding: EdgeInsets.fromLTRB(
+         context.tokens.space.sm,
+         context.tokens.space.sm,
+         context.tokens.space.sm,
+         0,
+       ),
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: AnimatedOpacity(
@@ -180,7 +191,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ignoring: _isWelcome,
             child: TextButton.icon(
               onPressed: _back,
-              icon: const Icon(Icons.arrow_back_rounded),
+               icon: const Icon(LucideIcons.arrowLeft),
               label: Text(l10n.onboardingBack),
             ),
           ),
@@ -243,12 +254,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+       padding: EdgeInsets.fromLTRB(
+         context.tokens.space.xl,
+         context.tokens.space.sm,
+         context.tokens.space.xl,
+         context.tokens.space.lg,
+       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           StepIndicator(count: _pageCount, index: _index),
-          const SizedBox(height: 20),
+           SizedBox(height: context.tokens.space.xl),
           ConstrainedBox(
             constraints: const BoxConstraints(
               minHeight: 68,
@@ -276,7 +292,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               ),
             ),
           ),
-          const SizedBox(height: 8),
+           SizedBox(height: context.tokens.space.sm),
           // Fixed minimum height so the layout does not jump between pages.
           ConstrainedBox(
             constraints: const BoxConstraints(

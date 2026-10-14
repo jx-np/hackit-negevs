@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
 import '../../models/api/community_models.dart';
 import '../../services/api/community_service.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
+import '../../widgets/ui/empty_state.dart';
 import 'post_detail_screen.dart';
 
 class MyPostsScreen extends StatefulWidget {
@@ -94,97 +99,134 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.myPostsTitle)),
+    return AppScreen(
+      title: l10n.myPostsTitle,
+      scrollable: false,
       body: RefreshIndicator(
         onRefresh: _load,
-        child: _buildBody(theme, l10n),
+        child: _buildBody(l10n),
       ),
     );
   }
 
-  Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildBody(AppLocalizations l10n) {
     if (_loading && _posts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
+    final tokens = context.tokens;
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(
+        top: tokens.space.sm,
+        bottom: tokens.space.xl2,
+      ),
       children: [
-        if (_error != null) _errorCard(theme),
-        if (_posts.isEmpty && _error == null) _emptyCard(theme, l10n),
-        for (final post in _posts) _postCard(theme, l10n, post),
+        if (_error != null) ...[
+          _errorCard(),
+          SizedBox(height: tokens.space.md),
+        ],
+        if (_posts.isEmpty && _error == null) _emptyCard(l10n),
+        for (var index = 0; index < _posts.length; index++) ...[
+          if (index > 0) SizedBox(height: tokens.space.md),
+          _postCard(l10n, _posts[index]),
+        ],
       ],
     );
   }
 
-  Widget _postCard(ThemeData theme, AppLocalizations l10n, FeedPost post) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => _openPost(post),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+  Widget _postCard(AppLocalizations l10n, FeedPost post) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    return AppCard(
+      onTap: () => _openPost(post),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      post.title,
-                      style: theme.textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
+              Expanded(
+                child: Text(
+                  post.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
-                  if (post.isReviewed) _reviewedBadge(theme, l10n),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 26),
-                    tooltip: l10n.myPostsDelete,
-                    color: theme.colorScheme.error,
-                    onPressed: () => _deletePost(post),
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(post.redactedExcerpt, style: theme.textTheme.bodyLarge),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.chat_bubble_outline,
-                      size: 20, color: theme.colorScheme.outline),
-                  const SizedBox(width: 6),
-                  Text('${post.commentCount}',
-                      style: theme.textTheme.bodyMedium),
-                ],
+              if (post.isReviewed) ...[
+                SizedBox(width: tokens.space.sm),
+                _reviewedBadge(l10n),
+              ],
+            ],
+          ),
+          SizedBox(height: tokens.space.sm),
+          Text(
+            post.redactedExcerpt,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyLarge,
+          ),
+          SizedBox(height: tokens.space.md),
+          Row(
+            children: [
+              Icon(
+                LucideIcons.messageCircle,
+                size: 20,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              SizedBox(width: tokens.space.xs),
+              Text(
+                '${post.commentCount}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _deletePost(post),
+                icon: const Icon(LucideIcons.trash2, size: 20),
+                label: Text(l10n.myPostsDelete),
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                  minimumSize: const Size(48, 48),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: tokens.space.md,
+                    vertical: tokens.space.sm,
+                  ),
+                  textStyle: theme.textTheme.labelLarge,
+                ),
               ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _reviewedBadge(ThemeData theme, AppLocalizations l10n) {
+  Widget _reviewedBadge(AppLocalizations l10n) {
+    final tokens = context.tokens;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space.sm,
+        vertical: tokens.space.xs,
+      ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        color: tokens.risk.safeContainer,
+        borderRadius: tokens.radii.pillRadius,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified, size: 18, color: theme.colorScheme.primary),
-          const SizedBox(width: 4),
+          Icon(LucideIcons.badgeCheck, size: 18, color: tokens.risk.safe),
+          SizedBox(width: tokens.space.xs),
           Text(
             l10n.commonReviewed,
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: theme.colorScheme.primary,
+              color: tokens.risk.onSafeContainer,
             ),
           ),
         ],
@@ -192,51 +234,34 @@ class _MyPostsScreenState extends State<MyPostsScreen> {
     );
   }
 
-  Widget _emptyCard(ThemeData theme, AppLocalizations l10n) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(Icons.post_add, size: 56, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
-            Text(
-              l10n.commonNoPostsYet,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              l10n.myPostsNoneBody,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge,
-            ),
-          ],
-        ),
+  Widget _emptyCard(AppLocalizations l10n) {
+    return AppCard(
+      child: EmptyState(
+        icon: LucideIcons.messageSquarePlus,
+        title: l10n.commonNoPostsYet,
+        message: l10n.myPostsNoneBody,
       ),
     );
   }
 
-  Widget _errorCard(ThemeData theme) {
-    return Card(
-      color: theme.colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline,
-                size: 28, color: theme.colorScheme.error),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _error!,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onErrorContainer,
-                ),
+  Widget _errorCard() {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    return AppCard(
+      color: tokens.risk.dangerContainer,
+      child: Row(
+        children: [
+          Icon(LucideIcons.circleAlert, color: tokens.risk.danger),
+          SizedBox(width: tokens.space.md),
+          Expanded(
+            child: Text(
+              _error!,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: tokens.risk.onDangerContainer,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

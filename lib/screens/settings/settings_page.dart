@@ -1,13 +1,18 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
+import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 import '../../core/model_catalog.dart';
 import '../../services/model_controller.dart';
 import '../../services/protection_settings.dart';
 import '../../services/scamshield_channels.dart';
 import '../../state/auth_controller.dart';
 import '../../state/locale_controller.dart';
+import '../../state/theme_controller.dart';
+import '../../widgets/auth/require_login.dart';
 import '../../widgets/tour/tour_controller.dart';
 import '../permissions/permissions_page.dart';
 import 'dev_menu_page.dart';
@@ -104,22 +109,29 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+    final tokens = context.tokens;
+    return AppScreen(
+      title: 'Settings',
+      scrollable: false,
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: EdgeInsets.fromLTRB(
+            tokens.space.lg,
+            tokens.space.lg,
+            tokens.space.lg,
+            tokens.space.xl2,
+          ),
           children: [
             _protectionSection(),
-            const SizedBox(height: 24),
+            SizedBox(height: tokens.space.xl2),
             _speedSection(),
-            const SizedBox(height: 24),
+            SizedBox(height: tokens.space.xl2),
             _appSection(),
-            const SizedBox(height: 24),
+            SizedBox(height: tokens.space.xl2),
             _accountSection(),
             if (kDebugMode) ...[
-              const SizedBox(height: 24),
+              SizedBox(height: tokens.space.xl2),
               _devSection(),
             ],
           ],
@@ -141,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         SettingsRow(
           leading: Icon(
-            model.installed ? Icons.verified_outlined : Icons.download_outlined,
+            model.installed ? LucideIcons.badgeCheck : LucideIcons.download,
           ),
           title: model.spec.displayName,
           subtitle:
@@ -194,7 +206,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return SettingsRow(
       enabled: !_model.busy,
       leading: Icon(
-        selected ? Icons.radio_button_checked : Icons.radio_button_off,
+        selected ? LucideIcons.circleDot : LucideIcons.circle,
         color: selected
             ? Theme.of(context).colorScheme.primary
             : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -215,33 +227,33 @@ class _SettingsPageState extends State<SettingsPage> {
           'back when an accelerator is unavailable.',
       children: [
         SettingsRow(
-          leading: const Icon(Icons.memory_outlined),
+          leading: const Icon(LucideIcons.cpu),
           title: 'Processor',
           subtitle: 'Most compatible fallback',
           trailing: _backend == ModelBackend.cpu
-              ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+              ? Icon(LucideIcons.check, color: Theme.of(context).colorScheme.primary)
               : null,
           onTap: () => _setBackend(ModelBackend.cpu),
         ),
         const Divider(height: 1),
         SettingsRow(
-          leading: const Icon(Icons.auto_awesome_outlined),
+          leading: const Icon(LucideIcons.sparkles),
           title: 'Automatic (recommended)',
           subtitle: 'NPU for matching models, then GPU or processor',
           trailing: _backend == ModelBackend.npu
-              ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+              ? Icon(LucideIcons.check, color: Theme.of(context).colorScheme.primary)
               : null,
           onTap: () => _setBackend(ModelBackend.npu),
         ),
         if (kDebugMode) ...[
           const Divider(height: 1),
           SettingsRow(
-            leading: const Icon(Icons.developer_mode_outlined),
+            leading: const Icon(LucideIcons.codeXml),
             title: 'NPU test (force)',
             subtitle: 'Debug only: send the current model directly to NPU',
             trailing: _backend == ModelBackend.npuTest
                 ? Icon(
-                    Icons.check,
+                    LucideIcons.check,
                     color: Theme.of(context).colorScheme.primary,
                   )
                 : null,
@@ -250,11 +262,11 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
         const Divider(height: 1),
         SettingsRow(
-          leading: const Icon(Icons.bolt_outlined),
+          leading: const Icon(LucideIcons.zap),
           title: 'Graphics chip (faster)',
           subtitle: 'For newer phones with a supported GPU',
           trailing: _backend == ModelBackend.gpu
-              ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+              ? Icon(LucideIcons.check, color: Theme.of(context).colorScheme.primary)
               : null,
           onTap: () => _setBackend(ModelBackend.gpu),
         ),
@@ -264,36 +276,46 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _appSection() {
     final localeController = context.watch<LocaleController>();
+    final themeController = context.watch<ThemeController>();
     return SettingsSection(
       title: 'App',
       children: [
         SettingsRow(
-          leading: const Icon(Icons.language_outlined),
+          leading: Icon(_themeIcon(themeController.mode)),
+          title: 'Appearance',
+          subtitle: _themeLabel(themeController.mode),
+          trailing: const Icon(LucideIcons.chevronRight),
+          onTap: _showThemePicker,
+        ),
+        const Divider(height: 1),
+        SettingsRow(
+          leading: const Icon(LucideIcons.languages),
           title: 'Language',
           subtitle: _languageLabel(localeController.locale?.languageCode),
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const Icon(LucideIcons.chevronRight),
           onTap: _showLanguagePicker,
         ),
         const Divider(height: 1),
         SettingsRow(
-          leading: const Icon(Icons.school_outlined),
+          leading: const Icon(LucideIcons.graduationCap),
           title: 'Show the tour again',
           subtitle: 'Replay the quick walkthrough',
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const Icon(LucideIcons.chevronRight),
           onTap: () => context.read<TourController>().start(),
         ),
         const Divider(height: 1),
         SettingsRow(
-          leading: const Icon(Icons.shield_outlined),
+          leading: const Icon(LucideIcons.shieldCheck),
           title: 'Permissions',
           subtitle: 'Check what the app is allowed to do',
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const Icon(LucideIcons.chevronRight),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => Scaffold(
-                appBar: AppBar(title: const Text('Permissions')),
-                body: const PermissionsTab(),
-              ),
+                builder: (_) => AppScreen(
+                  title: 'Permissions',
+                  scrollable: false,
+                  body: const PermissionsTab(),
+                ),
             ),
           ),
         ),
@@ -302,6 +324,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _accountSection() {
+    final auth = context.watch<AuthController>();
+    final signedIn = auth.isSignedIn;
+    final user = auth.user;
     return SettingsSection(
       title: 'Protection',
       children: [
@@ -309,8 +334,8 @@ class _SettingsPageState extends State<SettingsPage> {
           enabled: _serviceRunning,
           leading: Icon(
             _serviceRunning
-                ? Icons.stop_circle_outlined
-                : Icons.pause_circle_outlined,
+                ? LucideIcons.circleStop
+                : LucideIcons.circlePause,
           ),
           title: 'Pause protection',
           subtitle:
@@ -318,12 +343,21 @@ class _SettingsPageState extends State<SettingsPage> {
           onTap: _serviceRunning ? _stopProtection : null,
         ),
         const Divider(height: 1),
-        SettingsRow(
-          leading: const Icon(Icons.logout_outlined),
-          title: 'Sign out',
-          subtitle: 'You can sign back in at any time',
-          onTap: () => context.read<AuthController>().logout(),
-        ),
+        if (signedIn)
+          SettingsRow(
+            leading: const Icon(LucideIcons.logOut),
+            title: 'Sign out',
+            subtitle: user?.email ?? 'You can sign back in at any time',
+            onTap: () => context.read<AuthController>().logout(),
+          )
+        else
+          SettingsRow(
+            leading: const Icon(LucideIcons.logIn),
+            title: 'Sign in',
+            subtitle: 'Needed for community posts and cloud review',
+            trailing: const Icon(LucideIcons.chevronRight),
+            onTap: () => requireLogin(context),
+          ),
       ],
     );
   }
@@ -335,10 +369,10 @@ class _SettingsPageState extends State<SettingsPage> {
       caption: 'Debug build only. Not shown in release builds.',
       children: [
         SettingsRow(
-          leading: const Icon(Icons.terminal_outlined),
+          leading: const Icon(LucideIcons.terminal),
           title: 'Open Dev menu',
           subtitle: 'Custom models, cloud review, backend details',
-          trailing: const Icon(Icons.chevron_right),
+          trailing: const Icon(LucideIcons.chevronRight),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => DevMenuPage(
@@ -354,6 +388,60 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ],
     );
+  }
+
+  IconData _themeIcon(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return LucideIcons.sun;
+      case ThemeMode.dark:
+        return LucideIcons.moon;
+      case ThemeMode.system:
+        return LucideIcons.smartphone;
+    }
+  }
+
+  String _themeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+        return 'System default';
+    }
+  }
+
+  Future<void> _showThemePicker() async {
+    final controller = context.read<ThemeController>();
+    final selected = await showModalBottomSheet<ThemeMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: RadioGroup<ThemeMode>(
+          groupValue: controller.mode,
+          onChanged: (value) {
+            if (value != null) Navigator.of(sheetContext).pop(value);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final entry in const [
+                MapEntry(ThemeMode.system, 'System default'),
+                MapEntry(ThemeMode.light, 'Light'),
+                MapEntry(ThemeMode.dark, 'Dark'),
+              ])
+                RadioListTile<ThemeMode>(
+                  value: entry.key,
+                  title: Text(entry.value),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected == null) return;
+    await controller.setMode(selected);
   }
 
   String _languageLabel(String? code) {

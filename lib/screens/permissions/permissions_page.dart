@@ -1,11 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
-import 'package:forui/forui.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/widgets/ui/app_card.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:notification_listener_service/notification_listener_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/role_service.dart';
 import '../../services/scamshield_channels.dart';
@@ -29,7 +30,9 @@ class _PermissionsTabState extends State<PermissionsTab>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _refreshAll();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refreshAll();
+    });
   }
 
   @override
@@ -46,18 +49,27 @@ class _PermissionsTabState extends State<PermissionsTab>
   }
 
   Future<void> _refreshAll() async {
-    final access = Platform.isAndroid
-        ? await NotificationListenerService.isPermissionGranted()
-        : false;
-    final overlay = await ScamShieldController.hasOverlayPermission();
-    final alerts = await ScamShieldController.hasNotificationPermission();
-    final screening = await RoleService.isCallScreening();
-    final permissions = <Permission, PermissionStatus>{
-      Permission.phone: await Permission.phone.status,
-      Permission.contacts: await Permission.contacts.status,
-      Permission.notification: await Permission.notification.status,
-    };
+    final results = await Future.wait<dynamic>([
+      Platform.isAndroid
+          ? NotificationListenerService.isPermissionGranted()
+          : Future<bool>.value(false),
+      ScamShieldController.hasOverlayPermission(),
+      ScamShieldController.hasNotificationPermission(),
+      RoleService.isCallScreening(),
+      Permission.phone.status,
+      Permission.contacts.status,
+      Permission.notification.status,
+    ]);
     if (!mounted) return;
+    final access = results[0] as bool;
+    final overlay = results[1] as bool;
+    final alerts = results[2] as bool;
+    final screening = results[3] as bool;
+    final permissions = <Permission, PermissionStatus>{
+      Permission.phone: results[4] as PermissionStatus,
+      Permission.contacts: results[5] as PermissionStatus,
+      Permission.notification: results[6] as PermissionStatus,
+    };
     setState(() {
       _notificationAccess = access;
       _overlayGranted = overlay;
@@ -113,16 +125,10 @@ class _PermissionsTabState extends State<PermissionsTab>
   }
 
   Future<void> _openAppSettings() async {
-    if (Platform.isAndroid) {
-      final uri = Uri.parse('package:com.scamwatch.negavsinparis');
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    }
-    final fallback = Uri.parse('app-settings:');
-    if (await canLaunchUrl(fallback)) {
-      await launchUrl(fallback, mode: LaunchMode.externalApplication);
+    try {
+      await openAppSettings();
+    } catch (_) {
+      _showStatus('Could not open app settings.');
     }
   }
 
@@ -131,16 +137,19 @@ class _PermissionsTabState extends State<PermissionsTab>
     return RefreshIndicator(
       onRefresh: _refreshAll,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.tokens.space.sm,
+          vertical: context.tokens.space.lg,
+        ),
         children: [
           _buildIntroCard(context),
-          const SizedBox(height: 16),
+          SizedBox(height: context.tokens.space.lg),
           _buildServiceCard(context),
-          const SizedBox(height: 16),
+          SizedBox(height: context.tokens.space.lg),
           _buildCallScreeningCard(context),
-          const SizedBox(height: 16),
+          SizedBox(height: context.tokens.space.lg),
           _buildAppPermissionsCard(context),
-          const SizedBox(height: 16),
+          SizedBox(height: context.tokens.space.lg),
           _buildTroubleshootCard(context),
         ],
       ),
@@ -149,47 +158,49 @@ class _PermissionsTabState extends State<PermissionsTab>
 
   // Calm, plain-language intro that replaces the old floating status line.
   Widget _buildIntroCard(BuildContext context) {
-    final colors = context.theme.colors;
+    final scheme = Theme.of(context).colorScheme;
+    final tokens = context.tokens;
     final l10n = AppLocalizations.of(context);
-    return FCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space.lg,
+        vertical: tokens.space.xl,
+      ),
+      child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.verified_user_outlined, size: 28, color: colors.primary),
-            const SizedBox(width: 12),
+            Icon(LucideIcons.shieldCheck, size: 28, color: tokens.risk.safe),
+            SizedBox(width: tokens.space.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     l10n.permTitle,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: tokens.space.xs),
                   Text(
                     l10n.permGrantFollowing,
-                    style: TextStyle(color: colors.mutedForeground),
+                    style: TextStyle(color: scheme.onSurfaceVariant),
                   ),
                 ],
               ),
             ),
           ],
-        ),
       ),
     );
   }
 
   Widget _buildServiceCard(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return FCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    final tokens = context.tokens;
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space.lg,
+        vertical: tokens.space.xl,
+      ),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _checkTile(
@@ -198,14 +209,14 @@ class _PermissionsTabState extends State<PermissionsTab>
               _notificationAccess,
               _requestNotificationAccess,
             ),
-            const FDivider(),
+            Divider(height: tokens.space.lg),
             _checkTile(
               l10n.permOverlay,
               l10n.permOverlaySub,
               _overlayGranted,
               _requestOverlay,
             ),
-            const FDivider(),
+            Divider(height: tokens.space.lg),
             _checkTile(
               l10n.permAlerts,
               l10n.permAlertsSub,
@@ -213,7 +224,6 @@ class _PermissionsTabState extends State<PermissionsTab>
               _requestAlerts,
             ),
           ],
-        ),
       ),
     );
   }
@@ -224,12 +234,11 @@ class _PermissionsTabState extends State<PermissionsTab>
     bool ok,
     Future<void> Function() onFix,
   ) {
-    final colors = context.theme.colors;
     return _permissionRow(
       title: title,
       subtitle: subtitle,
       granted: ok,
-      statusColor: ok ? colors.primary : colors.secondaryForeground,
+      statusColor: ok ? context.tokens.risk.safe : context.tokens.risk.danger,
       onGrant: onFix,
     );
   }
@@ -241,69 +250,66 @@ class _PermissionsTabState extends State<PermissionsTab>
     required Color statusColor,
     required Future<void> Function() onGrant,
   }) {
+    final tokens = context.tokens;
     final l10n = AppLocalizations.of(context);
-    return FTile(
-      prefix: Icon(
-        granted ? Icons.check_circle : Icons.error_outline,
-        color: granted ? context.theme.colors.primary : statusColor,
-      ),
-      title: Text(title),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(color: statusColor),
-      ),
-      suffix: granted
-          ? Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.check, size: 18, color: context.theme.colors.primary),
-                const SizedBox(width: 4),
-                Text(l10n.permGranted),
-              ],
-            )
-          : FButton(
-              onPress: onGrant,
-              size: FButtonSizeVariant.sm,
-              mainAxisSize: MainAxisSize.min,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(granted ? LucideIcons.circleCheck : LucideIcons.circleAlert,
+            color: granted ? tokens.risk.safe : tokens.risk.danger),
+        SizedBox(width: tokens.space.md),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+          SizedBox(height: tokens.space.xs),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: statusColor)),
+        ])),
+        SizedBox(width: tokens.space.md),
+        granted
+          ? Icon(LucideIcons.check, size: 18, color: tokens.risk.safe)
+          : FilledButton(
+              onPressed: onGrant,
+              style: FilledButton.styleFrom(minimumSize: const Size(0, 46)),
               child: Text(l10n.permGrant),
             ),
+      ],
     );
   }
 
   Widget _buildCallScreeningCard(BuildContext context) {
-    final colors = context.theme.colors;
+    final tokens = context.tokens;
+    final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
-    return FCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space.lg,
+        vertical: tokens.space.xl,
+      ),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.phone_in_talk, size: 28),
-                const SizedBox(width: 12),
+                Icon(LucideIcons.phoneCall, size: 28),
+                SizedBox(width: tokens.space.md),
                 Expanded(
                   child: Text(
                     l10n.permScreeningRole,
-                      style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                   ),
                 ),
                 Icon(
                   _isCallScreening
-                      ? Icons.check_circle
-                      : Icons.radio_button_unchecked,
-                    color: _isCallScreening
-                      ? colors.primary
-                      : colors.mutedForeground,
+                       ? LucideIcons.circleCheck
+                       : LucideIcons.circle,
+                    color: _isCallScreening ? tokens.risk.safe : scheme.onSurfaceVariant,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(l10n.permScreeningRoleSub),
-            const SizedBox(height: 16),
-            FButton(
-              onPress: _isCallScreening ? null : _enableCallScreening,
+            SizedBox(height: tokens.space.sm),
+            Text(l10n.permScreeningRoleSub, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+            SizedBox(height: tokens.space.lg),
+            FilledButton(
+              onPressed: _isCallScreening ? null : _enableCallScreening,
               child: Text(
                 _isCallScreening
                     ? l10n.permScreeningActive
@@ -311,103 +317,110 @@ class _PermissionsTabState extends State<PermissionsTab>
               ),
             ),
             if (!_isCallScreening) ...[
-              const SizedBox(height: 12),
-              FAlert(
-                variant: FAlertVariant.destructive,
-                title: Text(l10n.permScreeningNotGranted),
-                subtitle: Text(l10n.permScreeningTapHint),
+              SizedBox(height: tokens.space.md),
+              Container(
+                padding: EdgeInsets.all(tokens.space.lg),
+                decoration: BoxDecoration(color: tokens.risk.warningContainer, borderRadius: tokens.radii.mdRadius),
+                child: Row(children: [
+                  Icon(LucideIcons.circleAlert, color: tokens.risk.onWarningContainer),
+                  SizedBox(width: tokens.space.md),
+                  Expanded(child: Text('${l10n.permScreeningNotGranted}\n${l10n.permScreeningTapHint}', style: TextStyle(color: tokens.risk.onWarningContainer))),
+                ]),
               ),
             ],
           ],
-        ),
       ),
     );
   }
 
   Widget _buildAppPermissionsCard(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return FCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    final tokens = context.tokens;
+    final scheme = Theme.of(context).colorScheme;
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space.lg,
+        vertical: tokens.space.xl,
+      ),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.settings, size: 28),
-                const SizedBox(width: 12),
+                const Icon(LucideIcons.settings, size: 28),
+                SizedBox(width: tokens.space.md),
                 Expanded(
                   child: Text(
                     l10n.permTitle,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                      fontWeight: FontWeight.w700,
+                    ).copyWith(color: scheme.onSurface),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(l10n.permGrantFollowing),
-            const SizedBox(height: 8),
+            SizedBox(height: tokens.space.sm),
+            Text(l10n.permGrantFollowing, style: TextStyle(color: scheme.onSurfaceVariant)),
+            SizedBox(height: tokens.space.sm),
             _buildPermissionTile(
               permission: Permission.phone,
               title: l10n.permPhoneCallLog,
               grantedMessage: l10n.permPhoneGranted,
             ),
-            const FDivider(),
+            Divider(height: tokens.space.lg),
             _buildPermissionTile(
               permission: Permission.contacts,
               title: l10n.permContacts,
               grantedMessage: l10n.permContactsGranted,
             ),
-            const FDivider(),
+            Divider(height: tokens.space.lg),
             _buildPermissionTile(
               permission: Permission.notification,
               title: l10n.permNotifications,
               grantedMessage: l10n.permNotificationsGranted,
             ),
           ],
-        ),
       ),
     );
   }
 
   Widget _buildTroubleshootCard(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return FCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    final tokens = context.tokens;
+    final scheme = Theme.of(context).colorScheme;
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space.lg,
+        vertical: tokens.space.xl,
+      ),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                const Icon(Icons.build, size: 28),
-                const SizedBox(width: 12),
+                const Icon(LucideIcons.wrench, size: 28),
+                SizedBox(width: tokens.space.md),
                 Expanded(
                   child: Text(
                     l10n.permStillNotWorking,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                      fontWeight: FontWeight.w700,
+                    ).copyWith(color: scheme.onSurface),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(l10n.permOpenSettingsBody),
-            const SizedBox(height: 16),
-            FButton(
-              onPress: _openAppSettings,
-              prefix: const Icon(Icons.settings),
-              child: Text(l10n.permOpenAppSettings),
+            SizedBox(height: tokens.space.sm),
+            Text(l10n.permOpenSettingsBody, style: TextStyle(color: scheme.onSurfaceVariant)),
+            SizedBox(height: tokens.space.lg),
+            FilledButton.icon(
+              onPressed: _openAppSettings,
+              icon: const Icon(LucideIcons.settings),
+              label: Text(l10n.permOpenAppSettings),
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildPermissionTile({
@@ -442,8 +455,10 @@ class _PermissionsTabState extends State<PermissionsTab>
 
   Color _getPermissionColor(Permission permission) {
     final status = _permissions[permission];
-    if (status == PermissionStatus.granted) return Colors.green;
-    if (status == PermissionStatus.permanentlyDenied) return Colors.red;
-    return Colors.orange;
+    if (status == PermissionStatus.granted) return context.tokens.risk.safe;
+    if (status == PermissionStatus.permanentlyDenied || status == PermissionStatus.denied) {
+      return context.tokens.risk.danger;
+    }
+    return context.tokens.risk.warning;
   }
 }

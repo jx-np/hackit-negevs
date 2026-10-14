@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 
 import 'tour_controller.dart';
 import 'tour_models.dart';

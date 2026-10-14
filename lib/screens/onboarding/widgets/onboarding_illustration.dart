@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Calm green used to show that something is turned on.
 const Color kOnboardingDoneColor = Color(0xFF2E7D32);
@@ -39,7 +40,7 @@ class OnboardingIllustration extends StatelessWidget {
             child: FadeTransition(opacity: animation, child: child),
           ),
           child: Icon(
-            done ? Icons.check_rounded : icon,
+             done ? LucideIcons.check : icon,
             key: ValueKey<bool>(done),
             size: 64,
             color: accent,

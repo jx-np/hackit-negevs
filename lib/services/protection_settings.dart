@@ -64,6 +64,7 @@ class ProtectionSettings {
   static const String _kModelBackend = 'model_backend';
   static const String _kProtectionSetupComplete = 'protection_setup_complete';
   static const String _kSeenTutorial = 'seen_tutorial';
+  static const String _kOnboardingComplete = 'onboarding_complete';
   static const int _maxHistory = 60;
 
   final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
@@ -85,6 +86,15 @@ class ProtectionSettings {
 
   Future<void> setSeenTutorial(bool value) =>
       _prefs.setBool(_kSeenTutorial, value);
+
+  /// Whether the first-run onboarding walkthrough has been completed. The app
+  /// root opens on onboarding until this is set, after which it opens on the
+  /// main app. Independent of auth and of the coach-mark tutorial.
+  Future<bool> onboardingComplete() async =>
+      await _prefs.getBool(_kOnboardingComplete) ?? false;
+
+  Future<void> setOnboardingComplete(bool value) =>
+      _prefs.setBool(_kOnboardingComplete, value);
 
   Future<String> selectedModelId() async =>
       await _prefs.getString(_kModelId) ?? modelCatalog.first.id;

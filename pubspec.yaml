@@ -1,4 +1,4 @@
-name: call_log_app
+name: scamwatch_mobile_app
 description: "ScamWatch Android Mobile App"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -46,6 +46,7 @@ dependencies:
   url_launcher: ^6.2.1
   forui: ^0.27.0
   remixicon: ^4.9.3
+  lucide_icons_flutter: ^3.1.25
   material_ui: ^1.4.0
   notification_listener_service: ^1.0.0
   flutter_edge_ai: ^2.3.2
@@ -77,8 +78,8 @@ flutter:
 
   # Generate localization classes from ARB files in lib/l10n.
   generate: true
-  assets:
-    - final_dataset.csv
+  # assets:
+  #   - final_dataset.csv
   # Include the Material Icons font used by Icons.* widgets.
   uses-material-design: true
 

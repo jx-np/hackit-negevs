@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 
 import '../../core/scam_verdict.dart';
 import '../../services/notification_log.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/empty_state.dart';
 
 class ActivityTab extends StatefulWidget {
   const ActivityTab({
@@ -82,7 +86,7 @@ class _ActivityTabState extends State<ActivityTab> {
               IconButton(
                 tooltip: l10n.commonClear,
                 onPressed: widget.entries.isEmpty ? null : widget.onClear,
-                icon: const Icon(Icons.delete_outline),
+                 icon: const Icon(LucideIcons.trash2),
               ),
             ],
           ),
@@ -91,15 +95,25 @@ class _ActivityTabState extends State<ActivityTab> {
           child: RefreshIndicator(
             onRefresh: widget.onRefresh,
             child: entries.isEmpty
-                ? ListView(
-                    children: [
-                      const SizedBox(height: 120),
-                      Center(child: Text(l10n.activityNoMessages)),
-                    ],
-                  )
-                : ListView.separated(
-                    itemCount: entries.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
+                 ? ListView(
+                     children: [
+                       SizedBox(height: context.tokens.space.xl3),
+                       EmptyState(
+                         icon: LucideIcons.inbox,
+                         title: l10n.activityNoMessages,
+                       ),
+                     ],
+                   )
+                 : ListView.separated(
+                     padding: EdgeInsets.fromLTRB(
+                       context.tokens.space.lg,
+                       context.tokens.space.sm,
+                       context.tokens.space.lg,
+                       context.tokens.space.xl2,
+                     ),
+                     itemCount: entries.length,
+                     separatorBuilder: (_, _) =>
+                         SizedBox(height: context.tokens.space.md),
                     itemBuilder: (context, index) =>
                         _ActivityTile(entry: entries[index]),
                   ),
@@ -128,16 +142,23 @@ class _ActivityTileState extends State<_ActivityTile> {
     final entry = widget.entry;
     final verdict = entry.verdict;
     final scam = verdict?.shouldAlert ?? false;
+    final tokens = context.tokens;
+    final scheme = Theme.of(context).colorScheme;
     final icon = !entry.isChecked
-        ? Icons.hourglass_empty
+        ? LucideIcons.clock
         : scam
-            ? Icons.gpp_bad
-            : Icons.gpp_good;
+            ? LucideIcons.shieldAlert
+            : LucideIcons.shieldCheck;
     final color = !entry.isChecked
-        ? Colors.grey
+        ? scheme.onSurfaceVariant
         : scam
-            ? Colors.red
-            : Colors.green;
+            ? tokens.risk.danger
+            : tokens.risk.safe;
+    final iconBackground = !entry.isChecked
+        ? scheme.surfaceContainerHighest
+        : scam
+            ? tokens.risk.dangerContainer
+            : tokens.risk.safeContainer;
     final meta = StringBuffer()
       ..write('${entry.record.appLabel} · ${_time(entry.capturedAt)}');
     if (verdict == null) {
@@ -147,36 +168,70 @@ class _ActivityTileState extends State<_ActivityTile> {
       if (verdict.escalated) meta.write(l10n.activityCloudSuffix);
       meta.write(' · ${(verdict.confidence * 100).round()}%');
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ListTile(
-          leading: Icon(icon, color: color),
-          title: Text(
-            entry.record.title.isEmpty
-                ? entry.record.appLabel
-                : entry.record.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: Column(
+    return AppCard(
+      padding: EdgeInsets.all(tokens.space.lg),
+      onTap: () => setState(() => _expanded = !_expanded),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (entry.record.content.isNotEmpty)
-                Text(
-                  entry.record.content,
-                  maxLines: _expanded ? null : 2,
-                  overflow: _expanded ? null : TextOverflow.ellipsis,
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconBackground,
+                  shape: BoxShape.circle,
                 ),
-              const SizedBox(height: 2),
-              Text(meta.toString(), style: Theme.of(context).textTheme.bodySmall),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              SizedBox(width: tokens.space.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.record.title.isEmpty
+                          ? entry.record.appLabel
+                          : entry.record.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    if (entry.record.content.isNotEmpty) ...[
+                      SizedBox(height: tokens.space.xs),
+                      Text(
+                        entry.record.content,
+                        maxLines: _expanded ? null : 2,
+                        overflow: _expanded ? null : TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                    SizedBox(height: tokens.space.xs),
+                    Text(
+                      meta.toString(),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: _expanded ? 'Collapse' : 'Expand',
+                icon: Icon(
+                  _expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
+                ),
+                onPressed: () => setState(() => _expanded = !_expanded),
+              ),
             ],
           ),
-          trailing: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
-          onTap: () => setState(() => _expanded = !_expanded),
-        ),
-        if (_expanded) _details(context, verdict),
-      ],
+          if (_expanded) _details(context, verdict),
+        ],
+      ),
     );
   }
 
@@ -184,7 +239,7 @@ class _ActivityTileState extends State<_ActivityTile> {
     final l10n = AppLocalizations.of(context);
     if (verdict == null) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
+        padding: EdgeInsets.only(top: context.tokens.space.lg),
         child: Text(
           l10n.activityNotCheckedYet,
           style: Theme.of(context).textTheme.bodySmall,
@@ -193,33 +248,33 @@ class _ActivityTileState extends State<_ActivityTile> {
     }
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(72, 0, 16, 16),
+      padding: EdgeInsets.only(top: context.tokens.space.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _row(theme, l10n.activityVerdict, verdict.label.title),
+          _row(context, l10n.activityVerdict, verdict.label.title),
           _row(
-            theme,
+            context,
             l10n.activityConfidence,
             '${(verdict.confidence * 100).round()}%',
           ),
           _row(
-            theme,
+            context,
             l10n.activityCheckedBy,
             verdict.escalated
                 ? l10n.activityEscalatedSuffix(verdict.source.wire)
                 : verdict.source.wire,
           ),
-          _row(theme, l10n.activityReason, verdict.reason),
-          const SizedBox(height: 8),
+          _row(context, l10n.activityReason, verdict.reason),
+          SizedBox(height: context.tokens.space.md),
           Text(l10n.activityAiThinking, style: theme.textTheme.labelLarge),
-          const SizedBox(height: 4),
+          SizedBox(height: context.tokens.space.xs),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(10),
+             padding: EdgeInsets.all(context.tokens.space.md),
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+               borderRadius: context.tokens.radii.smRadius,
             ),
             child: SelectableText(
               verdict.raw.trim().isEmpty
@@ -235,9 +290,10 @@ class _ActivityTileState extends State<_ActivityTile> {
     );
   }
 
-  Widget _row(ThemeData theme, String label, String value) {
+  Widget _row(BuildContext context, String label, String value) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(top: 4),
+      padding: EdgeInsets.only(top: context.tokens.space.xs),
       child: RichText(
         text: TextSpan(
           style: theme.textTheme.bodySmall,

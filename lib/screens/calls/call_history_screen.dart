@@ -1,10 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:call_log/call_log.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:forui/forui.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,6 +18,10 @@ import '../../services/call_database.dart';
 import '../../services/call_event_service.dart';
 import '../../services/report_service.dart';
 import '../../services/role_service.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
+import '../../widgets/ui/empty_state.dart';
 import 'blocked_numbers_screen.dart';
 
 class CallHistoryScreen extends StatefulWidget {
@@ -357,107 +362,110 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   }
 
   Color _statusColor(CallRecord record) {
-    if (record.direction == CallRecord.directionOutgoing) return Colors.blue;
+    final tokens = context.tokens;
+    final scheme = Theme.of(context).colorScheme;
+    if (record.direction == CallRecord.directionOutgoing) {
+      return scheme.primary;
+    }
     switch (record.status) {
       case CallRecord.statusAnswered:
-        return Colors.green;
+        return tokens.risk.safe;
       case CallRecord.statusRejected:
-        return Colors.orange;
+        return tokens.risk.warning;
       case CallRecord.statusMissed:
-        return Colors.red;
+        return tokens.risk.danger;
       case CallRecord.statusBlocked:
-        return Colors.red.shade900;
+        return tokens.risk.danger;
       default:
-        return Colors.grey;
+        return scheme.onSurfaceVariant;
     }
   }
 
   IconData _statusIcon(CallRecord record) {
     if (record.direction == CallRecord.directionOutgoing) {
-      return Icons.call_made;
+      return LucideIcons.phoneOutgoing;
     }
     switch (record.status) {
       case CallRecord.statusAnswered:
-        return Icons.call_received;
+        return LucideIcons.phoneIncoming;
       case CallRecord.statusRejected:
-        return Icons.call_end;
+        return LucideIcons.phoneOff;
       case CallRecord.statusMissed:
-        return Icons.call_missed;
+        return LucideIcons.phoneMissed;
       case CallRecord.statusBlocked:
-        return Icons.block;
+        return LucideIcons.ban;
       default:
-        return Icons.call;
+        return LucideIcons.phone;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.callHistoryTitle),
-        actions: [
-          IconButton(
-            tooltip: l10n.callBlockedNumbers,
-            icon: const Icon(Icons.block),
-            onPressed: _openBlockedNumbers,
-          ),
-          IconButton(
-            tooltip: l10n.commonRefresh,
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadHistory,
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _needsPhonePermission
-          ? _buildPermissionGate()
-          : _error != null
-          ? _buildError()
-          : _records.isEmpty
-          ? Center(child: Text(l10n.callNoUnknown))
-          : _buildList(context),
+    return AppScreen(
+      title: l10n.callHistoryTitle,
+      scrollable: false,
+      actions: [
+        IconButton(
+          tooltip: l10n.callBlockedNumbers,
+          icon: const Icon(LucideIcons.shieldBan),
+          onPressed: _openBlockedNumbers,
+        ),
+        IconButton(
+          tooltip: l10n.commonRefresh,
+          icon: const Icon(LucideIcons.refreshCw),
+          onPressed: _loadHistory,
+        ),
+      ],
+      body: _buildBody(context, l10n),
     );
+  }
+
+  Widget _buildBody(BuildContext context, AppLocalizations l10n) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_needsPhonePermission) {
+      return _buildPermissionGate();
+    }
+    if (_error != null) {
+      return _buildError();
+    }
+    if (_records.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _loadHistory,
+        child: ListView(
+          children: [
+            SizedBox(height: context.tokens.space.xl4),
+            EmptyState(
+              icon: LucideIcons.phoneCall,
+              title: l10n.callNoUnknown,
+            ),
+          ],
+        ),
+      );
+    }
+    return _buildList(context);
   }
 
   Widget _buildPermissionGate() {
     final l10n = AppLocalizations.of(context);
+    final tokens = context.tokens;
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Icon(Icons.phone_locked, size: 48, color: Theme.of(context).colorScheme.error),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.callPhonePermNeeded,
-                      style: Theme.of(context).textTheme.titleLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.callPhonePermBody,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton.icon(
+      child: SingleChildScrollView(
+        child: EmptyState(
+          icon: LucideIcons.phoneOff,
+          tint: Theme.of(context).colorScheme.error,
+          title: l10n.callPhonePermNeeded,
+          message: l10n.callPhonePermBody,
+          action: Padding(
+            padding: EdgeInsets.only(top: tokens.space.lg),
+            child: FilledButton.icon(
               onPressed: _grantPhonePermission,
-              icon: const Icon(Icons.phone),
+              icon: const Icon(LucideIcons.phone),
               label: Text(l10n.callGrantPhone),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -465,106 +473,121 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
 
   Widget _buildError() {
     final l10n = AppLocalizations.of(context);
+    final tokens = context.tokens;
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
-                    const SizedBox(height: 12),
-                    Text(
-                      l10n.callCouldNotLoad,
-                      style: Theme.of(context).textTheme.titleLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _error!,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
+      child: SingleChildScrollView(
+        child: EmptyState(
+          icon: LucideIcons.circleAlert,
+          tint: Theme.of(context).colorScheme.error,
+          title: l10n.callCouldNotLoad,
+          message: _error,
+          action: Padding(
+            padding: EdgeInsets.only(top: tokens.space.lg),
+            child: FilledButton(
               onPressed: _loadHistory,
               child: Text(l10n.commonRetry),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildList(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _records.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final l10n = AppLocalizations.of(context);
-        final record = _records[index];
-        final isBlocked = _blockedNumbers.contains(record.normalizedNumber);
-        return Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            minVerticalPadding: 12,
-            leading: CircleAvatar(
-              radius: 24,
-              backgroundColor: (isBlocked
-                      ? Theme.of(context).colorScheme.error
-                      : _statusColor(record))
-                  .withValues(alpha: 0.14),
-              child: Icon(
-                isBlocked ? Icons.block : _statusIcon(record),
-                color: isBlocked
-                    ? Theme.of(context).colorScheme.error
-                    : _statusColor(record),
-              ),
+    final tokens = context.tokens;
+    return RefreshIndicator(
+      onRefresh: _loadHistory,
+      child: ListView.separated(
+        padding: EdgeInsets.only(
+          top: tokens.space.sm,
+          bottom: tokens.space.xl2,
+        ),
+        itemCount: _records.length,
+        separatorBuilder: (_, _) => SizedBox(height: tokens.space.md),
+        itemBuilder: (context, index) {
+          final record = _records[index];
+          final isBlocked = _blockedNumbers.contains(record.normalizedNumber);
+          return _recordCard(context, record, isBlocked);
+        },
+      ),
+    );
+  }
+
+  Widget _recordCard(BuildContext context, CallRecord record, bool isBlocked) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final tokens = context.tokens;
+    final accent = isBlocked ? scheme.error : _statusColor(record);
+    return AppCard(
+      padding: EdgeInsets.symmetric(
+        horizontal: tokens.space.lg,
+        vertical: tokens.space.md,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
             ),
-            title: Text(
-              record.rawNumber,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            child: Icon(
+              isBlocked ? LucideIcons.ban : _statusIcon(record),
+              color: accent,
+              size: 22,
             ),
-            subtitle: Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: _statusLabel(record),
-                    style: TextStyle(
-                      color: _statusColor(record),
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (record.status == CallRecord.statusAnswered &&
-                      record.durationSeconds > 0)
-                    TextSpan(text: l10n.callDurationSuffix(record.durationSeconds)),
-                  if (record.reported)
-                    TextSpan(
-                      text: l10n.callReportedSuffix,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  TextSpan(text: ' • ${_formatTimestamp(record.timestamp)}'),
-                ],
-              ),
-            ),
-            trailing: _buildMenu(record, isBlocked),
           ),
-        );
-      },
+          SizedBox(width: tokens.space.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record.rawNumber,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: tokens.space.xs),
+                Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: _statusLabel(record),
+                        style: TextStyle(
+                          color: accent,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (record.status == CallRecord.statusAnswered &&
+                          record.durationSeconds > 0)
+                        TextSpan(
+                          text: l10n.callDurationSuffix(record.durationSeconds),
+                        ),
+                      if (record.reported)
+                        TextSpan(
+                          text: l10n.callReportedSuffix,
+                          style: TextStyle(
+                            color: scheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      TextSpan(
+                        text: ' • ${_formatTimestamp(record.timestamp)}',
+                      ),
+                    ],
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _buildMenu(record, isBlocked),
+        ],
+      ),
     );
   }
 

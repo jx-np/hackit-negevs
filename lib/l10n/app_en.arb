@@ -406,6 +406,12 @@
   "authToggleToLogin": "Already have an account? Sign in",
   "authToggleToRegister": "New here? Create an account",
 
+  "authBannerTitle": "Sign in to unlock more",
+  "authBannerBody": "Post to the community, sync reports, and more.",
+  "authBannerAction": "Sign in",
+  "authBannerDismiss": "Dismiss",
+  "authGateMessage": "Sign in to use this feature.",
+
   "communityTitle": "Community",
   "communityShareScam": "Share a scam",
   "communityAll": "All",

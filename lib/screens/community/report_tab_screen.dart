@@ -1,12 +1,16 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
 import '../../services/api/community_service.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
 
 class ReportTabScreen extends StatefulWidget {
   const ReportTabScreen({
@@ -175,187 +179,125 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tokens = context.tokens;
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          l10n.reportTabTitle,
-          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+    return AppScreen(
+      title: l10n.reportTabTitle,
+      bottomBar: SizedBox(
+        height: 56,
+        child: FilledButton.icon(
+          onPressed: _submitting ? null : _submit,
+          icon: _submitting
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(LucideIcons.send, size: 22),
+          label: Text(
+            _submitting ? l10n.commonSharing : l10n.commonShare,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l10n.commonShareIntro,
-                style: theme.textTheme.bodyLarge,
+      body: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.commonShareIntro, style: theme.textTheme.bodyLarge),
+            SizedBox(height: tokens.space.xl),
+            if (widget.numberReport) ...[
+              _FieldLabel(l10n.commonTitle),
+              SizedBox(height: tokens.space.sm),
+              TextFormField(
+                controller: _numberController,
+                validator: _validateNumber,
+                keyboardType: TextInputType.phone,
+                style: theme.textTheme.titleMedium,
+                decoration: _fieldDecoration(l10n.commonTitleHint),
               ),
-              const SizedBox(height: 24),
-              if (widget.numberReport) ...[
-                _FieldLabel(l10n.commonTitle),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _numberController,
-                  validator: _validateNumber,
-                  keyboardType: TextInputType.phone,
-                  style: theme.textTheme.titleMedium,
-                  decoration: _fieldDecoration(l10n.commonTitleHint),
+              SizedBox(height: tokens.space.xl),
+              _FieldLabel(l10n.commonMessage),
+              SizedBox(height: tokens.space.md),
+              _ReasonSelector(
+                reasons: _reasons,
+                selected: _reason,
+                labelFor: _reasonLabel,
+                enabled: !_submitting,
+                onSelected: (value) => setState(() => _reason = value),
+              ),
+            ] else ...[
+              _FieldLabel(l10n.commonTitle),
+              SizedBox(height: tokens.space.sm),
+              TextFormField(
+                controller: _titleController,
+                validator: _validateTitle,
+                style: theme.textTheme.titleMedium,
+                decoration: _fieldDecoration(l10n.commonTitleHint),
+              ),
+              SizedBox(height: tokens.space.xl),
+              _FieldLabel(l10n.commonMessage),
+              SizedBox(height: tokens.space.sm),
+              TextFormField(
+                controller: _textController,
+                validator: _validateText,
+                minLines: 4,
+                maxLines: 10,
+                style: theme.textTheme.bodyLarge,
+                decoration: _fieldDecoration(l10n.commonMessageHint),
+              ),
+              SizedBox(height: tokens.space.xl),
+              _FieldLabel(l10n.commonPhotos),
+              SizedBox(height: tokens.space.md),
+              if (_images.isNotEmpty) ...[
+                Wrap(
+                  spacing: tokens.space.md,
+                  runSpacing: tokens.space.md,
+                  children: [
+                    for (final XFile image in _images)
+                      _PhotoThumbnail(
+                        file: image,
+                        onRemove: () => _removePhoto(image),
+                        removeLabel: l10n.commonRemovePhoto,
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                _FieldLabel(l10n.commonMessage),
-                const SizedBox(height: 8),
-                RadioGroup<String>(
-                  groupValue: _reason,
-                  onChanged: (value) {
-                    if (_submitting || value == null) return;
-                    setState(() => _reason = value);
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final String reason in _reasons)
-                        RadioListTile<String>(
-                          value: reason,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(
-                            _reasonLabel(reason),
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ] else ...[
-                _FieldLabel(l10n.commonTitle),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _titleController,
-                  validator: _validateTitle,
-                  style: theme.textTheme.titleMedium,
-                  decoration: _fieldDecoration(l10n.commonTitleHint),
-                ),
-                const SizedBox(height: 24),
-                _FieldLabel(l10n.commonMessage),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _textController,
-                  validator: _validateText,
-                  minLines: 4,
-                  maxLines: 10,
-                  style: theme.textTheme.bodyLarge,
-                  decoration: _fieldDecoration(l10n.commonMessageHint),
-                ),
-                const SizedBox(height: 24),
-                _FieldLabel(l10n.commonPhotos),
-                const SizedBox(height: 12),
-                if (_images.isNotEmpty) ...[
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      for (final XFile image in _images)
-                        _PhotoThumbnail(
-                          file: image,
-                          onRemove: () => _removePhoto(image),
-                          removeLabel: l10n.commonRemovePhoto,
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                OutlinedButton.icon(
-                  onPressed: _submitting ? null : _addPhoto,
-                  icon: const Icon(Icons.add_a_photo_outlined, size: 24),
-                  label: Text(
-                    l10n.commonAddPhoto,
-                    style: const TextStyle(fontSize: 18),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
+                SizedBox(height: tokens.space.md),
               ],
-              if (_justShared) ...[
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline,
-                        color: theme.colorScheme.onPrimaryContainer,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          l10n.reportTabTrackIt,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              OutlinedButton.icon(
+                onPressed: _submitting ? null : _addPhoto,
+                icon: const Icon(LucideIcons.imagePlus, size: 22),
+                label: Text(
+                  l10n.commonAddPhoto,
+                  style: const TextStyle(fontSize: 16),
                 ),
-              ],
-              if (_error != null) ...[
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: theme.colorScheme.onErrorContainer,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onErrorContainer,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 28),
-              SizedBox(
-                height: 64,
-                child: FilledButton.icon(
-                  onPressed: _submitting ? null : _submit,
-                  icon: _submitting
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.publish, size: 26),
-                  label: Text(
-                    _submitting ? l10n.commonSharing : l10n.commonShare,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                style: OutlinedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: tokens.space.lg),
                 ),
               ),
             ],
-          ),
+            if (_justShared) ...[
+              SizedBox(height: tokens.space.xl),
+              _StatusNote(
+                icon: LucideIcons.circleCheck,
+                message: l10n.reportTabTrackIt,
+                background: tokens.risk.safeContainer,
+                foreground: tokens.risk.onSafeContainer,
+                accent: tokens.risk.safe,
+              ),
+            ],
+            if (_error != null) ...[
+              SizedBox(height: tokens.space.xl),
+              _StatusNote(
+                icon: LucideIcons.circleAlert,
+                message: _error!,
+                background: tokens.risk.dangerContainer,
+                foreground: tokens.risk.onDangerContainer,
+                accent: tokens.risk.danger,
+              ),
+            ],
+          ],
         ),
       ),
     );
@@ -366,9 +308,116 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       hintText: hint,
       filled: true,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: context.tokens.radii.mdRadius,
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+    );
+  }
+}
+
+class _ReasonSelector extends StatelessWidget {
+  const _ReasonSelector({
+    required this.reasons,
+    required this.selected,
+    required this.labelFor,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final List<String> reasons;
+  final String selected;
+  final String Function(String) labelFor;
+  final bool enabled;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    final scheme = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final String reason in reasons) ...[
+          AppCard(
+            padding: EdgeInsets.symmetric(
+              horizontal: tokens.space.lg,
+              vertical: tokens.space.sm,
+            ),
+            color: reason == selected
+                ? scheme.primary.withValues(alpha: 0.08)
+                : null,
+            border: reason == selected
+                ? Border.all(color: scheme.primary, width: 1.5)
+                : Border.all(color: scheme.outlineVariant),
+            onTap: enabled ? () => onSelected(reason) : null,
+            child: Row(
+              children: [
+                Icon(
+                  reason == selected
+                      ? LucideIcons.circleDot
+                      : LucideIcons.circle,
+                  size: 22,
+                  color: reason == selected
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                ),
+                SizedBox(width: tokens.space.md),
+                Text(
+                  labelFor(reason),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: reason == selected
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (reason != reasons.last) SizedBox(height: tokens.space.sm),
+        ],
+      ],
+    );
+  }
+}
+
+class _StatusNote extends StatelessWidget {
+  const _StatusNote({
+    required this.icon,
+    required this.message,
+    required this.background,
+    required this.foreground,
+    required this.accent,
+  });
+
+  final IconData icon;
+  final String message;
+  final Color background;
+  final Color foreground;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    return Container(
+      padding: EdgeInsets.all(tokens.space.lg),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: tokens.radii.mdRadius,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: accent),
+          SizedBox(width: tokens.space.md),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodyLarge?.copyWith(color: foreground),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -386,6 +435,7 @@ class _PhotoThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     return SizedBox(
       width: 96,
       height: 96,
@@ -393,7 +443,7 @@ class _PhotoThumbnail extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: tokens.radii.mdRadius,
             child: Image.file(
               File(file.path),
               fit: BoxFit.cover,
@@ -410,7 +460,7 @@ class _PhotoThumbnail extends StatelessWidget {
                 iconSize: 20,
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(),
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(LucideIcons.x, color: Colors.white),
                 onPressed: onRemove,
               ),
             ),

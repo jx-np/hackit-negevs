@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:call_log_app/l10n/app_localizations.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
 import '../../models/api/guidance_models.dart';
 import '../../services/api/guidance_service.dart';
+import '../../theme/app_tokens.dart';
+import '../../widgets/ui/app_card.dart';
+import '../../widgets/ui/app_screen.dart';
+import '../../widgets/ui/empty_state.dart';
 
 class GuidanceScreen extends StatefulWidget {
   const GuidanceScreen({super.key, required this.client});
@@ -117,8 +122,9 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.guidanceTitle)),
+    return AppScreen(
+      title: l10n.guidanceTitle,
+      scrollable: false,
       body: RefreshIndicator(
         onRefresh: _load,
         child: _buildBody(theme),
@@ -128,30 +134,43 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
 
   Widget _buildBody(ThemeData theme) {
     final l10n = AppLocalizations.of(context);
+    final tokens = context.tokens;
     if (_loading && _items.isEmpty && _resources.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(
+        top: tokens.space.sm,
+        bottom: tokens.space.xl2,
+      ),
       children: [
         Text(
           l10n.guidanceWhatHappened,
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.space.md),
         _scenarioChips(theme),
-        const SizedBox(height: 20),
-        if (_error != null) _errorCard(theme),
-        for (final item in _items) _guidanceCard(theme, item),
+        SizedBox(height: tokens.space.xl),
+        if (_error != null) ...[
+          _errorCard(theme),
+          SizedBox(height: tokens.space.md),
+        ],
+        for (final item in _items) ...[
+          _guidanceCard(theme, item),
+          SizedBox(height: tokens.space.md),
+        ],
         if (_items.isEmpty && _error == null) _emptyGuidance(theme),
         if (_resources.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          SizedBox(height: tokens.space.md),
           Text(
             l10n.guidanceWhoToContact,
             style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           ),
-          const SizedBox(height: 12),
-          for (final resource in _resources) _resourceCard(theme, resource),
+          SizedBox(height: tokens.space.md),
+          for (final resource in _resources) ...[
+            _resourceCard(theme, resource),
+            SizedBox(height: tokens.space.md),
+          ],
         ],
       ],
     );
@@ -159,9 +178,10 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
 
   Widget _scenarioChips(ThemeData theme) {
     final l10n = AppLocalizations.of(context);
+    final tokens = context.tokens;
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: tokens.space.sm,
+      runSpacing: tokens.space.sm,
       children: [
         ChoiceChip(
           label: Text(l10n.guidanceShowAll),
@@ -182,28 +202,26 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
   }
 
   Widget _guidanceCard(ThemeData theme, GuidanceItem item) {
+    final tokens = context.tokens;
     final Color accent = item.isEmergency
-        ? theme.colorScheme.error
+        ? tokens.risk.danger
         : item.isUrgent
-            ? Colors.orange.shade800
+            ? tokens.risk.warning
             : theme.colorScheme.primary;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return AppCard(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(
-                  item.isEmergency || item.isUrgent
-                      ? Icons.priority_high
-                      : Icons.lightbulb_outline,
-                  size: 32,
-                  color: accent,
-                ),
-                const SizedBox(width: 12),
+                    item.isEmergency || item.isUrgent
+                       ? LucideIcons.triangleAlert
+                       : LucideIcons.lightbulb,
+                   size: 32,
+                   color: accent,
+                 ),
+                 SizedBox(width: tokens.space.md),
                 Expanded(
                   child: Text(
                     item.title,
@@ -213,24 +231,21 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(item.body, style: theme.textTheme.bodyLarge),
-            for (final resource in item.resources) ...[
-              const SizedBox(height: 12),
-              _resourceActions(theme, resource),
-            ],
-          ],
-        ),
+             SizedBox(height: tokens.space.md),
+             Text(item.body, style: theme.textTheme.bodyLarge),
+             for (final resource in item.resources) ...[
+               SizedBox(height: tokens.space.md),
+               _resourceActions(theme, resource),
+             ],
+           ],
       ),
     );
   }
 
   Widget _resourceCard(ThemeData theme, HelpResource resource) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    final tokens = context.tokens;
+    return AppCard(
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -239,13 +254,12 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
                   ?.copyWith(fontWeight: FontWeight.w700),
             ),
             if ((resource.description ?? '').isNotEmpty) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: tokens.space.sm),
               Text(resource.description!, style: theme.textTheme.bodyLarge),
             ],
-            const SizedBox(height: 12),
+            SizedBox(height: tokens.space.md),
             _resourceActions(theme, resource),
           ],
-        ),
       ),
     );
   }
@@ -259,7 +273,7 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
           height: 56,
           child: FilledButton.icon(
             onPressed: () => _callNumber(resource.contactInstructions!),
-            icon: const Icon(Icons.call, size: 24),
+            icon: const Icon(LucideIcons.phone, size: 24),
             label: Text(
               resource.contactInstructions!,
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
@@ -274,7 +288,7 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
           height: 56,
           child: OutlinedButton.icon(
             onPressed: () => _openUrl(resource.url!),
-            icon: const Icon(Icons.open_in_new, size: 24),
+            icon: const Icon(LucideIcons.externalLink, size: 24),
             label: Text(
               l10n.guidanceOpenWebsite,
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
@@ -289,51 +303,32 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
 
   Widget _emptyGuidance(ThemeData theme) {
     final l10n = AppLocalizations.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(Icons.help_outline,
-                size: 56, color: theme.colorScheme.primary),
-            const SizedBox(height: 12),
-            Text(
-              l10n.guidanceNoAdvice,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.guidanceNoAdviceBody,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge,
-            ),
-          ],
-        ),
+    return AppCard(
+      child: EmptyState(
+        icon: LucideIcons.circleHelp,
+        title: l10n.guidanceNoAdvice,
+        message: l10n.guidanceNoAdviceBody,
       ),
     );
   }
 
   Widget _errorCard(ThemeData theme) {
-    return Card(
-      color: theme.colorScheme.errorContainer,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+    final tokens = context.tokens;
+    return AppCard(
+      color: tokens.risk.dangerContainer,
+      child: Row(
           children: [
-            Icon(Icons.error_outline,
-                size: 28, color: theme.colorScheme.onErrorContainer),
-            const SizedBox(width: 12),
+            Icon(LucideIcons.circleAlert, size: 28, color: tokens.risk.danger),
+            SizedBox(width: tokens.space.md),
             Expanded(
               child: Text(
                 _error!,
-                style: theme.textTheme.bodyLarge
-                    ?.copyWith(color: theme.colorScheme.onErrorContainer),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: tokens.risk.onDangerContainer,
+                ),
               ),
             ),
           ],
-        ),
       ),
     );
   }

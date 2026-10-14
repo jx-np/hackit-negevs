@@ -63,7 +63,52 @@ var (
 	// user identity and a linking check for a resource-open (violates the
 	// resource_opens CHECK(user_id IS NOT NULL OR check_id IS NOT NULL)).
 	ErrOwnershipRequired = errors.New("checks: user or check reference required")
+	// ErrPhoneNumberRequired is returned when a phone-number report omits a
+	// number or supplies one that normalizes to empty (no usable digits).
+	ErrPhoneNumberRequired = errors.New("checks: phone_number is required")
+	// ErrReasonRequired is returned when a phone-number report omits a reason or
+	// supplies one that is empty after trimming.
+	ErrReasonRequired = errors.New("checks: reason is required")
+	// ErrReasonTooLong is returned when a report reason exceeds the allowed
+	// length (maxReasonLength characters).
+	ErrReasonTooLong = errors.New("checks: reason is too long")
+	// ErrPhoneReportDuplicate is returned when the same user already reported the
+	// same phone number inside the current reputation window. Reports older than
+	// the window no longer count, so the user may report the number again once
+	// its earlier report has aged out.
+	ErrPhoneReportDuplicate = errors.New("checks: phone number already reported by this user")
+	// ErrImageRequired is returned when an upload request carries no image data.
+	ErrImageRequired = errors.New("checks: image is required")
+	// ErrUnsupportedMediaType is returned when an uploaded image is not one of
+	// the accepted formats (image/jpeg, image/png, image/webp).
+	ErrUnsupportedMediaType = errors.New("checks: unsupported media type")
+	// ErrImageTooLarge is returned when an uploaded image exceeds the maximum
+	// accepted byte size.
+	ErrImageTooLarge = errors.New("checks: image is too large")
 )
+
+// Accepted upload media types. Mirrors the private_uploads.media_type CHECK
+// constraint.
+const (
+	MediaTypeJPEG = "image/jpeg"
+	MediaTypePNG  = "image/png"
+	MediaTypeWebP = "image/webp"
+)
+
+// MaxUploadBytes caps a single uploaded image. Screenshots are small; this
+// bound protects storage and the OCR worker from oversized inputs.
+const MaxUploadBytes = 10 << 20 // 10 MiB
+
+// SupportedUploadMediaType reports whether the given media type is an accepted
+// upload format.
+func SupportedUploadMediaType(mediaType string) bool {
+	switch mediaType {
+	case MediaTypeJPEG, MediaTypePNG, MediaTypeWebP:
+		return true
+	default:
+		return false
+	}
+}
 
 // Check is the internal representation of a private_checks row.
 type Check struct {
@@ -81,14 +126,15 @@ type Check struct {
 
 // Upload is the internal representation of a private_uploads row.
 type Upload struct {
-	ID          int64
-	CheckID     *int64
-	OwnerUserID *int64
-	StorageKey  string
-	MediaType   string
-	ByteSize    int64
-	Status      string
-	CreatedAt   time.Time
+	ID                 int64
+	CheckID            *int64
+	OwnerUserID        *int64
+	StorageKey         string
+	RedactedStorageKey *string
+	MediaType          string
+	ByteSize           int64
+	Status             string
+	CreatedAt          time.Time
 }
 
 // Signal is a single detected warning sign with human-readable evidence and

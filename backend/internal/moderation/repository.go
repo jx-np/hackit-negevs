@@ -238,7 +238,9 @@ func (r *PostgresRepository) ReportVisible(ctx context.Context, id int64) (bool,
 	const q = `
 		SELECT EXISTS (
 			SELECT 1 FROM reports
-			WHERE id = $1 AND deleted_at IS NULL AND review_status NOT IN ('hidden', 'removed')
+			WHERE id = $1 AND deleted_at IS NULL
+			  AND review_status NOT IN ('hidden', 'removed')
+			  AND category_id IS NOT NULL
 		)`
 	var ok bool
 	if err := r.pool.QueryRow(ctx, q, id).Scan(&ok); err != nil {

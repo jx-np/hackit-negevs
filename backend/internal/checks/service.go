@@ -1,11 +1,17 @@
 package checks
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"errors"
+	"io"
 	"strconv"
 	"strings"
 	"time"
+
+	"scamshield/internal/pii"
+	"scamshield/internal/storage"
 )
 
 // Pagination bounds for private history listing.
@@ -19,20 +25,36 @@ const (
 	// similarReportsLimit caps how many similar community reports are attached to
 	// a ready assessment.
 	similarReportsLimit = 5
+
+	// uploadStoragePrefix namespaces raw screenshot uploads within the store.
+	uploadStoragePrefix = "uploads"
+	// redactedStoragePrefix namespaces PII-redacted image derivatives.
+	redactedStoragePrefix = "redacted"
+
+	// processUploadTimeout bounds the OCR + redaction + analysis work so a
+	// stuck Python backend cannot leave a check in "processing" forever.
+	processUploadTimeout = 60 * time.Second
 )
 
 // Service holds checks business logic. It is transport-agnostic.
 type Service struct {
-	repo   Repository
-	phones PhoneRepository
-	now    func() time.Time
+	repo     Repository
+	phones   PhoneRepository
+	store    storage.Store
+	redactor pii.Redactor
+	now      func() time.Time
 }
 
-// NewService constructs a checks Service. phones is the phone-number reputation
-// source used by the trust-score lookup; it may share the same *pgxpool.Pool
-// implementation as repo.
-func NewService(repo Repository, phones PhoneRepository) *Service {
-	return &Service{repo: repo, phones: phones, now: time.Now}
+// NewService constructs a checks Service.
+//
+// phones is the phone-number reputation source used by the trust-score lookup;
+// it may share the same *pgxpool.Pool implementation as repo. store persists
+// raw screenshot uploads and their redacted derivatives. redactor is the
+// go-python PII-removal bridge; when it is a no-op stub (no Python service
+// configured), screenshot checks fail cleanly rather than persisting
+// un-redacted content.
+func NewService(repo Repository, phones PhoneRepository, store storage.Store, redactor pii.Redactor) *Service {
+	return &Service{repo: repo, phones: phones, store: store, redactor: redactor, now: time.Now}
 }
 
 // CreateTextInput carries a synchronous text-check request.
@@ -48,6 +70,20 @@ type CreateUploadInput struct {
 	OwnerUserID *int64
 	UploadID    int64
 	Locale      string
+}
+
+// CreateUploadBlobInput carries a raw screenshot to persist as a standalone
+// upload. The upload is not yet attached to a check; a later POST /detection
+// referencing the returned upload ID starts the OCR + redaction pipeline.
+type CreateUploadBlobInput struct {
+	// OwnerUserID is nil for anonymous uploads (owner_user_id stored as NULL).
+	OwnerUserID *int64
+	// MediaType is the declared image content type; it must be one of the
+	// supported screenshot types.
+	MediaType string
+	// Body streams the raw image bytes. The service enforces a hard size cap
+	// while reading; callers should also bound the request body.
+	Body io.Reader
 }
 
 // CheckResult is the service-level result of creating or fetching a check. When
@@ -125,6 +161,63 @@ func (s *Service) CreateUploadCheck(ctx context.Context, in CreateUploadInput) (
 	return CheckResult{Check: check}, nil
 }
 
+// CreateUpload persists a raw screenshot as a standalone upload and returns it.
+// It validates the declared media type, streams the body to the blob store
+// while enforcing a hard size cap, and records a private_uploads row in
+// "uploaded" status. The upload is not yet attached to a check; the caller
+// obtains the upload ID and later references it from POST /detection, which
+// starts the OCR + redaction pipeline via CreateUploadCheck.
+//
+// PRIVACY: the stored object may contain raw, un-redacted screenshot bytes.
+// The returned Upload exposes only the opaque storage key; raw bytes are never
+// logged here and never served publicly.
+func (s *Service) CreateUpload(ctx context.Context, in CreateUploadBlobInput) (Upload, error) {
+	if s.store == nil {
+		// No blob store configured; uploads cannot be accepted.
+		return Upload{}, ErrUploadNotFound
+	}
+	if !SupportedUploadMediaType(in.MediaType) {
+		return Upload{}, ErrUnsupportedMediaType
+	}
+	if in.Body == nil {
+		return Upload{}, ErrImageRequired
+	}
+
+	// Enforce the hard size cap while reading. Read one extra byte so an image
+	// exactly at the limit passes while anything larger is rejected without
+	// buffering the whole oversized payload.
+	limited := io.LimitReader(in.Body, MaxUploadBytes+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return Upload{}, err
+	}
+	if len(data) == 0 {
+		return Upload{}, ErrImageRequired
+	}
+	if int64(len(data)) > MaxUploadBytes {
+		return Upload{}, ErrImageTooLarge
+	}
+
+	key, err := s.store.Put(ctx, uploadStoragePrefix, in.MediaType, bytes.NewReader(data))
+	if err != nil {
+		return Upload{}, err
+	}
+
+	upload, err := s.repo.CreateUpload(ctx, CreateUploadParams{
+		OwnerUserID: in.OwnerUserID,
+		StorageKey:  key,
+		MediaType:   in.MediaType,
+		ByteSize:    int64(len(data)),
+	})
+	if err != nil {
+		// Best-effort cleanup of the orphaned blob; the row never persisted.
+		_ = s.store.Delete(ctx, key)
+		return Upload{}, err
+	}
+
+	return upload, nil
+}
+
 // GetCheck returns a check for the requesting principal. Ownership is strict:
 // the requester must be the owner. Anonymous checks (no owner) are not
 // retrievable by anyone, so they resolve to ErrCheckNotFound. Ownership
@@ -188,6 +281,53 @@ func (s *Service) ListMyChecks(ctx context.Context, ownerUserID int64, limit int
 	return ListPage{Items: items, NextCursor: next}, nil
 }
 
+// RedactedImage is a check's PII-redacted screenshot derivative, ready to be
+// streamed to its owner. Body must be closed by the caller.
+type RedactedImage struct {
+	Body      io.ReadCloser
+	MediaType string
+	Size      int64
+}
+
+// OpenRedactedImage returns the redacted screenshot derivative for a check, for
+// streaming to the requesting principal. Ownership is strict and mirrors
+// GetCheck: the requester must be the check's owner, and anonymous checks are
+// never retrievable, so any ownership failure resolves to ErrCheckNotFound to
+// avoid leaking existence. A check that is not ready, has no linked upload, or
+// whose upload has no redacted derivative yet also resolves to ErrCheckNotFound.
+//
+// Only the redacted derivative is ever served; the raw upload is never exposed.
+func (s *Service) OpenRedactedImage(ctx context.Context, checkID int64, requesterUserID *int64) (RedactedImage, error) {
+	if s.store == nil {
+		return RedactedImage{}, ErrCheckNotFound
+	}
+
+	check, err := s.repo.GetCheckByID(ctx, checkID)
+	if err != nil {
+		return RedactedImage{}, err
+	}
+	if check.OwnerUserID == nil || requesterUserID == nil || *check.OwnerUserID != *requesterUserID {
+		return RedactedImage{}, ErrCheckNotFound
+	}
+
+	upload, err := s.repo.GetUploadByCheckID(ctx, checkID)
+	if err != nil {
+		return RedactedImage{}, err
+	}
+	if upload.RedactedStorageKey == nil || *upload.RedactedStorageKey == "" {
+		return RedactedImage{}, ErrCheckNotFound
+	}
+
+	obj, err := s.store.Get(ctx, *upload.RedactedStorageKey)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return RedactedImage{}, ErrCheckNotFound
+		}
+		return RedactedImage{}, err
+	}
+	return RedactedImage{Body: obj.Body, MediaType: obj.MediaType, Size: obj.Size}, nil
+}
+
 // RecordResourceOpen records the privacy-safe success metric. It requires either
 // an authenticated user or a linking check to satisfy the table constraint. It
 // never receives or stores message content.
@@ -198,26 +338,112 @@ func (s *Service) RecordResourceOpen(ctx context.Context, p ResourceOpenParams) 
 	return s.repo.RecordResourceOpen(ctx, p)
 }
 
-// ProcessUpload is the entry point a future asynchronous OCR worker would call
-// after CreateUploadCheck has parked a check in "processing". It performs OCR on
-// the stored image, redacts sensitive data from the extracted text, runs the
-// same rules-first analyzer, and persists a ready assessment (or marks the check
-// failed).
+// StartProcessUpload launches ProcessUpload in its own goroutine on a detached
+// background context so the deferred POST /detection response can return
+// immediately while the OCR + PII-redaction pipeline runs. The worker has its
+// own timeout (processUploadTimeout) and marks the check failed on any error,
+// so a dropped request or caller never leaves a check stuck in "processing".
 //
-// It is implemented as a non-blocking stub for now: OCR and redaction adapters
-// are not wired in this phase, so it records a failure rather than fabricating a
-// result. The signature and flow are stable so the real worker can drop in.
+// Errors are intentionally swallowed here: ProcessUpload persists failure state
+// itself and must not log raw content, so there is nothing for the caller to do
+// with the returned error.
+func (s *Service) StartProcessUpload(checkID, uploadID int64) {
+	go func() {
+		_ = s.ProcessUpload(context.Background(), checkID, uploadID)
+	}()
+}
+
+// ProcessUpload runs the OCR + PII-redaction pipeline for a screenshot check
+// that CreateUploadCheck parked in "processing". It fetches the raw image from
+// the blob store, hands it to the go-python redaction bridge, persists the
+// redacted image derivative, runs the same rules-first analyzer over the
+// redacted text, and completes the check with a ready assessment. Any failure
+// marks the check (and its upload) failed rather than persisting un-redacted
+// content.
 //
-// TODO(checks): inject OCR and redaction adapters (behind interfaces) and
-// replace the stub body: 1) fetch the image via upload.StorageKey, 2) run OCR,
-// 3) redact PII from the extracted text, 4) call Analyze(redactedText, locale),
-// 5) persist via repo.CompleteCheckFromUpload. Bound the work with a timeout and
-// emit observable failure states. Never log extracted_text.
+// It is designed to run in its own goroutine with a background context; the
+// work is bounded by processUploadTimeout so a stuck Python backend cannot leave
+// a check in "processing" forever.
+//
+// PRIVACY: this method handles raw screenshot bytes and extracted text. It must
+// never log image bytes, OCR text, or any raw message content. Only
+// non-content metadata (region counts, statuses) is observable.
 func (s *Service) ProcessUpload(ctx context.Context, checkID, uploadID int64) error {
-	// No OCR adapter is available yet. Mark the check failed so it does not sit
-	// in "processing" forever; a real worker will replace this with a completed
-	// assessment. This keeps the state machine honest without blocking callers.
-	return s.repo.FailCheck(ctx, checkID, &uploadID)
+	ctx, cancel := context.WithTimeout(ctx, processUploadTimeout)
+	defer cancel()
+
+	// On any error path we mark the check failed so it never sits in
+	// "processing" and no un-redacted content is ever persisted.
+	fail := func(cause error) error {
+		if ferr := s.repo.FailCheck(ctx, checkID, &uploadID); ferr != nil {
+			return errors.Join(cause, ferr)
+		}
+		return cause
+	}
+
+	if s.store == nil || s.redactor == nil {
+		// No pipeline configured (e.g. stub redactor / missing store): fail
+		// cleanly rather than completing with un-redacted content.
+		return fail(pii.ErrUnavailable)
+	}
+
+	upload, err := s.repo.GetUploadByID(ctx, uploadID)
+	if err != nil {
+		return fail(err)
+	}
+
+	// Fetch the raw image bytes. The reader is closed before any further work.
+	obj, err := s.store.Get(ctx, upload.StorageKey)
+	if err != nil {
+		return fail(err)
+	}
+	imageData, err := io.ReadAll(obj.Body)
+	closeErr := obj.Body.Close()
+	if err != nil {
+		return fail(err)
+	}
+	if closeErr != nil {
+		return fail(closeErr)
+	}
+
+	// Resolve the locale from the parked check so analysis matches the request.
+	locale := defaultLocale
+	if check, err := s.repo.GetCheckByID(ctx, checkID); err == nil {
+		locale = normalizeLocale(check.Locale)
+	}
+
+	// Hand the raw image to the go-python redaction bridge. On ErrUnavailable
+	// (or any error) we fail the check: never persist un-redacted content.
+	result, err := s.redactor.Redact(ctx, pii.Input{
+		Image:     imageData,
+		MediaType: upload.MediaType,
+		Locale:    locale,
+	})
+	if err != nil {
+		return fail(err)
+	}
+
+	// Persist the redacted image derivative. Its media type comes from the
+	// redactor; fall back to the original upload type if unset.
+	redactedMediaType := result.RedactedImageMediaType
+	if redactedMediaType == "" {
+		redactedMediaType = upload.MediaType
+	}
+	redactedKey, err := s.store.Put(ctx, redactedStoragePrefix, redactedMediaType, bytes.NewReader(result.RedactedImage))
+	if err != nil {
+		return fail(err)
+	}
+
+	// Run the pure rules-first analyzer over the redacted (PII-free) text.
+	assessment := Analyze(result.RedactedText, locale)
+
+	if err := s.repo.CompleteCheckFromUpload(ctx, checkID, uploadID, result.RedactedText, redactedKey, assessment); err != nil {
+		// The redacted blob is now orphaned; best-effort cleanup, then fail.
+		_ = s.store.Delete(ctx, redactedKey)
+		return fail(err)
+	}
+
+	return nil
 }
 
 // --- helpers ---

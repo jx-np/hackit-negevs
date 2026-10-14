@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -21,6 +22,16 @@ type CreateCheckParams struct {
 	Verdict     *string
 	Assessment  *Assessment
 	CompletedAt *time.Time
+}
+
+// CreateUploadParams carries the fields needed to insert a private_uploads row
+// for a freshly stored image. The upload starts unlinked and in status
+// 'uploaded'; ProcessUpload later links it to a check and redacts it.
+type CreateUploadParams struct {
+	OwnerUserID *int64
+	StorageKey  string
+	MediaType   string
+	ByteSize    int64
 }
 
 // CheckListItem is the reduced projection returned by list queries. It never
@@ -52,17 +63,25 @@ type Repository interface {
 	// whether more remain. cursor is nil for the first page.
 	ListChecksByOwner(ctx context.Context, ownerUserID int64, limit int, cursor *Cursor) ([]CheckListItem, error)
 
+	// CreateUpload inserts a private_uploads row for a freshly stored image and
+	// returns it with server-set fields (id, created_at) populated. The upload
+	// starts unlinked (check_id NULL) in status 'uploaded'.
+	CreateUpload(ctx context.Context, p CreateUploadParams) (Upload, error)
 	// GetUploadByID returns an upload by primary key. Returns ErrUploadNotFound
 	// if absent.
 	GetUploadByID(ctx context.Context, id int64) (Upload, error)
+	// GetUploadByCheckID returns the upload linked to a check. Returns
+	// ErrUploadNotFound if the check has no linked upload.
+	GetUploadByCheckID(ctx context.Context, checkID int64) (Upload, error)
 	// LinkUploadToCheck sets private_uploads.check_id and marks the upload
 	// processing, in a single statement.
 	LinkUploadToCheck(ctx context.Context, uploadID, checkID int64) error
 
-	// CompleteCheckFromUpload stores an assessment produced by the (future) OCR
-	// worker: it sets extracted_text, verdict, assessment, status='ready', and
-	// completed_at, and marks the upload ready. Used by ProcessUpload.
-	CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText string, a Assessment) error
+	// CompleteCheckFromUpload stores an assessment produced by the OCR worker:
+	// it sets extracted_text, verdict, assessment, status='ready', and
+	// completed_at on the check, and sets the upload's redacted_storage_key and
+	// marks it ready. Used by ProcessUpload.
+	CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText, redactedStorageKey string, a Assessment) error
 	// FailCheck marks a check (and optionally its upload) failed.
 	FailCheck(ctx context.Context, checkID int64, uploadID *int64) error
 
@@ -128,6 +147,30 @@ func (r *PostgresRepository) CreateCheck(ctx context.Context, p CreateCheckParam
 		return Check{}, fmt.Errorf("checks: insert check: %w", err)
 	}
 	return c, nil
+}
+
+// CreateUpload implements Repository. The row starts unlinked (check_id NULL)
+// in status 'uploaded'; the redacted copy is attached later by the OCR worker.
+func (r *PostgresRepository) CreateUpload(ctx context.Context, p CreateUploadParams) (Upload, error) {
+	const q = `
+		INSERT INTO private_uploads (owner_user_id, storage_key, media_type, byte_size, status)
+		VALUES ($1, $2, $3, $4, 'uploaded')
+		RETURNING id, created_at`
+
+	u := Upload{
+		OwnerUserID: p.OwnerUserID,
+		StorageKey:  p.StorageKey,
+		MediaType:   p.MediaType,
+		ByteSize:    p.ByteSize,
+		Status:      UploadStatusUploaded,
+	}
+	err := r.pool.QueryRow(ctx, q,
+		p.OwnerUserID, p.StorageKey, p.MediaType, p.ByteSize,
+	).Scan(&u.ID, &u.CreatedAt)
+	if err != nil {
+		return Upload{}, fmt.Errorf("checks: insert upload: %w", err)
+	}
+	return u, nil
 }
 
 // GetCheckByID implements Repository.
@@ -207,18 +250,40 @@ func (r *PostgresRepository) ListChecksByOwner(ctx context.Context, ownerUserID 
 // GetUploadByID implements Repository.
 func (r *PostgresRepository) GetUploadByID(ctx context.Context, id int64) (Upload, error) {
 	const q = `
-		SELECT id, check_id, owner_user_id, storage_key, media_type, byte_size, status, created_at
+		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at
 		FROM private_uploads
 		WHERE id = $1`
 	var u Upload
 	err := r.pool.QueryRow(ctx, q, id).Scan(
-		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return Upload{}, ErrUploadNotFound
 		}
 		return Upload{}, fmt.Errorf("checks: get upload: %w", err)
+	}
+	return u, nil
+}
+
+// GetUploadByCheckID implements Repository. When several uploads reference the
+// same check, the most recently created row wins.
+func (r *PostgresRepository) GetUploadByCheckID(ctx context.Context, checkID int64) (Upload, error) {
+	const q = `
+		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at
+		FROM private_uploads
+		WHERE check_id = $1
+		ORDER BY created_at DESC, id DESC
+		LIMIT 1`
+	var u Upload
+	err := r.pool.QueryRow(ctx, q, checkID).Scan(
+		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Upload{}, ErrUploadNotFound
+		}
+		return Upload{}, fmt.Errorf("checks: get upload by check: %w", err)
 	}
 	return u, nil
 }
@@ -236,7 +301,7 @@ func (r *PostgresRepository) LinkUploadToCheck(ctx context.Context, uploadID, ch
 }
 
 // CompleteCheckFromUpload implements Repository.
-func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText string, a Assessment) error {
+func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText, redactedStorageKey string, a Assessment) error {
 	assessmentJSON, err := json.Marshal(a)
 	if err != nil {
 		return fmt.Errorf("checks: marshal assessment: %w", err)
@@ -256,8 +321,8 @@ func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkI
 		return fmt.Errorf("checks: complete check: %w", err)
 	}
 
-	const updUpload = `UPDATE private_uploads SET status = 'ready' WHERE id = $1`
-	if _, err := tx.Exec(ctx, updUpload, uploadID); err != nil {
+	const updUpload = `UPDATE private_uploads SET status = 'ready', redacted_storage_key = $2 WHERE id = $1`
+	if _, err := tx.Exec(ctx, updUpload, uploadID, redactedStorageKey); err != nil {
 		return fmt.Errorf("checks: mark upload ready: %w", err)
 	}
 
@@ -391,21 +456,111 @@ func (r *PostgresRepository) FindSimilarReports(ctx context.Context, text string
 	return out, nil
 }
 
-// GetPhoneReputation implements PhoneRepository as a stub. The phone-number
-// scam database is owned by the data team and not yet wired, so every lookup
-// currently reports the number as unseen (Found=false), which the service maps
-// to the neutral DefaultTrustScore. This satisfies the interface and lets the
-// endpoint work end to end today.
+// GetPhoneReputation implements PhoneRepository against the phone_reports
+// ledger and the phone_classifications table. It counts only reports filed
+// within the reputation window (now - reputationWindow, now], so stale reports
+// stop influencing a number's reputation — important because scammers spoof or
+// cycle numbers. It also reads any classification whose window is still active
+// (window_end > now). A number with no in-window reports and no active
+// classification returns Found=false.
+func (r *PostgresRepository) GetPhoneReputation(ctx context.Context, normalized string, now time.Time) (PhoneReputation, error) {
+	windowStart := now.Add(-reputationWindow)
+
+	var reportCount int64
+	err := r.pool.QueryRow(ctx,
+		`SELECT count(*) FROM phone_reports
+		 WHERE phone_number = $1 AND created_at > $2 AND created_at <= $3`,
+		normalized, windowStart, now,
+	).Scan(&reportCount)
+	if err != nil {
+		return PhoneReputation{}, fmt.Errorf("checks: count phone reports: %w", err)
+	}
+
+	// An active classification applies independently of in-window report count,
+	// so a classified number still surfaces its label even if reports have aged
+	// out of the window.
+	var classification string
+	err = r.pool.QueryRow(ctx,
+		`SELECT classification FROM phone_classifications
+		 WHERE phone_number = $1 AND window_start <= $2 AND window_end > $2`,
+		normalized, now,
+	).Scan(&classification)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return PhoneReputation{}, fmt.Errorf("checks: read phone classification: %w", err)
+	}
+
+	return PhoneReputation{
+		Found:          reportCount > 0 || classification != "",
+		ReportCount:    reportCount,
+		Classification: classification,
+	}, nil
+}
+
+// InsertPhoneReport appends a community report to the append-only phone_reports
+// ledger. The classification system reads this ledger separately to assign a
+// windowed classification.
 //
-// TODO(checks): replace the stub body with a real query against the phone
-// reputation table once the data team provides it, e.g.:
+// A user may hold at most one live report per phone number: the insert is
+// skipped when the reporter already has a report for the same number inside the
+// reputation window, and ErrPhoneReportDuplicate is returned instead. Reports
+// older than the window have expired — they no longer affect reputation — so the
+// user is free to report the number again.
 //
-//	SELECT trust_score, report_count FROM phone_reputations WHERE phone_e164 = $1
-//
-// returning Found=true with the stored score/count, and Found=false on no row.
-// Keep the normalized (E.164-style) number as the lookup key.
-func (r *PostgresRepository) GetPhoneReputation(ctx context.Context, normalized string) (PhoneReputation, error) {
-	_ = ctx
-	_ = normalized
-	return PhoneReputation{Found: false}, nil
+// The check runs inside a transaction behind an advisory lock keyed on
+// (number, reporter) so concurrent requests from the same user cannot both pass
+// the guard and append duplicate rows. The endpoint is always authenticated, so
+// reporter is non-nil in practice; the anonymous case (NULL reporter) is left
+// undeduplicated because there is no identity to key on.
+func (r *PostgresRepository) InsertPhoneReport(ctx context.Context, report PhoneReport, now time.Time) error {
+	var reporter *int64
+	if report.ReporterUserID > 0 {
+		reporter = &report.ReporterUserID
+	}
+	cutoff := now.Add(-reputationWindow)
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("checks: begin phone report tx: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
+
+	if reporter != nil {
+		const lock = `SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`
+		// The separator must be a character a normalized number can never
+		// contain, so two different (number, reporter) pairs cannot collide on
+		// the same key. It must not be a NUL byte: Postgres rejects NUL inside
+		// text values. Normalized numbers are digits plus an optional leading
+		// '+', so ':' is safe.
+		key := report.PhoneNumber + ":" + strconv.FormatInt(*reporter, 10)
+		if _, err := tx.Exec(ctx, lock, key); err != nil {
+			return fmt.Errorf("checks: lock phone report: %w", err)
+		}
+	}
+
+	// RETURNING yields no row when the reporter's existing report is still
+	// inside the window, which is the duplicate signal.
+	const insert = `
+		INSERT INTO phone_reports (phone_number, reason, reporter_user_id, created_at)
+		SELECT $1, $2, $3, $4
+		WHERE NOT EXISTS (
+			SELECT 1 FROM phone_reports
+			WHERE phone_number = $1
+			  AND reporter_user_id = $3
+			  AND created_at > $5
+		)
+		RETURNING id`
+	var id int64
+	if err := tx.QueryRow(ctx, insert,
+		report.PhoneNumber, report.Reason, reporter, now, cutoff,
+	).Scan(&id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrPhoneReportDuplicate
+		}
+		return fmt.Errorf("checks: insert phone report: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("checks: commit phone report tx: %w", err)
+	}
+	return nil
 }

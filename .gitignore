@@ -52,6 +52,3 @@ model_dl.err
 
 # Vendored upstream source checkouts
 flutter_gemma/
-
-# random stuff
-windows/flutter/generated_*

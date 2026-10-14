@@ -88,6 +88,12 @@ func Unprocessable(w http.ResponseWriter, r *http.Request, message string, field
 	WriteFieldError(w, r, http.StatusUnprocessableEntity, "unprocessable_entity", message, fields)
 }
 
+// PayloadTooLarge writes a 413 response, used when an uploaded body exceeds the
+// permitted size.
+func PayloadTooLarge(w http.ResponseWriter, r *http.Request, message string) {
+	WriteError(w, r, http.StatusRequestEntityTooLarge, "payload_too_large", message)
+}
+
 // TooManyRequests writes a 429 response.
 func TooManyRequests(w http.ResponseWriter, r *http.Request, message string) {
 	WriteError(w, r, http.StatusTooManyRequests, "rate_limited", message)

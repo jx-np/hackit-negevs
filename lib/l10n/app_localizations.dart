@@ -1809,7 +1809,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabTitle.
   ///
   /// In en, this message translates to:
-  /// **'Report a scam'**
+  /// **'Report'**
   String get reportTabTitle;
 
   /// No description provided for @reportTabThankYou.

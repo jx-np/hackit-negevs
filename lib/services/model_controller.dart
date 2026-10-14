@@ -36,6 +36,8 @@ class ModelController extends ChangeNotifier {
     if (_busy) return;
     if (isBundled) {
       if (!_installed) await installBundled();
+    } else if (_spec.isBuiltIn) {
+      // Built-in models are owned by the OS; there is no app file to register.
     } else if (await ModelStore.exists(_spec)) {
       await _registerPersistent();
     }
@@ -185,6 +187,8 @@ class ModelController extends ChangeNotifier {
     if (_busy) return;
     if (isBundled) {
       if (!_installed) await installBundled();
+    } else if (_spec.isBuiltIn) {
+      // Built-in models are prepared by [GemmaModelManager.install].
     } else if (await ModelStore.exists(_spec)) {
       await _registerPersistent();
     }
@@ -198,7 +202,7 @@ class ModelController extends ChangeNotifier {
     notifyListeners();
     try {
       final token = await _settings.hfToken();
-      if (isBundled) {
+      if (isBundled || _spec.isBuiltIn) {
         await _manager.ensureInstalled(onProgress: _report, token: token);
       } else if (await ModelStore.ensureAccess()) {
         final path = await ModelStore.pathFor(_spec);

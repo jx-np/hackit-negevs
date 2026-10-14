@@ -246,30 +246,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.9+2"
-  flutter_gemma:
+  flutter_edge_ai:
     dependency: "direct main"
     description:
-      name: flutter_gemma
-      sha256: "729183ef16740ea55860289862f04bb188b94b70ae8aa97ded61b20675c0891c"
+      name: flutter_edge_ai
+      sha256: "1be99ff7d86c68332571ea3252844457dfc3f69afda0f6f2da7622ce4a7787ec"
       url: "https://pub.dev"
     source: hosted
-    version: "1.9.0"
-  flutter_gemma_litertlm:
+    version: "2.3.2"
+  flutter_edge_ai_builtin_ai:
     dependency: "direct main"
     description:
-      name: flutter_gemma_litertlm
-      sha256: d8dd950d684d291e307732189a729753ab213fd9ad02e33d764fcc75c17400b4
+      name: flutter_edge_ai_builtin_ai
+      sha256: "67034a525444f3f83c007948c092df33e044d1dc508cc10d7abacd1a43ab935b"
       url: "https://pub.dev"
     source: hosted
-    version: "1.8.0"
-  flutter_gemma_mediapipe:
+    version: "0.3.5"
+  flutter_edge_ai_litertlm:
     dependency: "direct main"
     description:
-      name: flutter_gemma_mediapipe
-      sha256: "1f5543f5bcbbdb7fa76b532507056a07187776a77fc68497f1d8be9d5c91ed0d"
+      name: flutter_edge_ai_litertlm
+      sha256: a804f2b0eea6f7d4446b1bc1ef76af0acdd7a3c77e0b3d2040eaacfc335b1c7a
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.6"
+    version: "1.13.2"
+  flutter_edge_ai_mediapipe:
+    dependency: "direct main"
+    description:
+      name: flutter_edge_ai_mediapipe
+      sha256: "60b6c136d473735d43a67b48a57547c2da20d6b2e2cb4d895c6e7c9191dc095c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.2.2"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -278,6 +286,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
+  flutter_local_ai:
+    dependency: transitive
+    description:
+      name: flutter_local_ai
+      sha256: "842f769db0a56744f8642917555381ea7c00907c72dd908a7e79af0a9e551117"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.1"
   flutter_localizations:
     dependency: "direct main"
     description: flutter

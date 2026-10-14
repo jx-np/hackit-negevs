@@ -983,7 +983,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get createAddMessage => 'செய்தி உரையைச் சேர்க்கவும்.';
 
   @override
-  String get reportTabTitle => 'ஒரு மோசடியைப் புகாரளி';
+  String get reportTabTitle => 'புகாரளி';
 
   @override
   String get reportTabThankYou => 'சமூகத்துடன் பகிரப்பட்டது. நன்றி!';

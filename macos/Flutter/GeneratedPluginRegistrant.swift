@@ -7,7 +7,8 @@ import Foundation
 
 import connectivity_plus
 import file_selector_macos
-import flutter_gemma
+import flutter_edge_ai
+import flutter_local_ai
 import flutter_secure_storage_macos
 import large_file_handler
 import shared_preferences_foundation
@@ -17,7 +18,8 @@ import url_launcher_macos
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   ConnectivityPlusPlugin.register(with: registry.registrar(forPlugin: "ConnectivityPlusPlugin"))
   FileSelectorPlugin.register(with: registry.registrar(forPlugin: "FileSelectorPlugin"))
-  FlutterGemmaPlugin.register(with: registry.registrar(forPlugin: "FlutterGemmaPlugin"))
+  FlutterEdgeAiPlugin.register(with: registry.registrar(forPlugin: "FlutterEdgeAiPlugin"))
+  FlutterLocalAiPlugin.register(with: registry.registrar(forPlugin: "FlutterLocalAiPlugin"))
   FlutterSecureStoragePlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStoragePlugin"))
   LargeFileHandlerPlugin.register(with: registry.registrar(forPlugin: "LargeFileHandlerPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))

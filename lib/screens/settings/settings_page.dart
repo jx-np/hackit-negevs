@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
-import 'package:forui/forui.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/model_catalog.dart';
@@ -140,43 +139,50 @@ class _SettingsPageState extends State<SettingsPage> {
           'A small assistant runs on your phone and quietly reviews messages '
           'for common scam patterns. Nothing leaves your device.',
       children: [
-        FTile(
-          prefix: Icon(
+        SettingsRow(
+          leading: Icon(
             model.installed ? Icons.verified_outlined : Icons.download_outlined,
           ),
-          title: Text(model.spec.displayName),
-          subtitle: Text(
-            model.installed
+          title: model.spec.displayName,
+          subtitle:
+            model.spec.isBuiltIn
+              ? 'Uses Android system AI when available'
+              : model.installed
                 ? 'Ready to protect you'
                 : downloading
                     ? 'Setting up… $progress%'
                     : 'About ${model.spec.approxSizeMb} MB · one-time download',
-          ),
-          suffix: model.installed
+          trailing: model.installed
               ? TextButton(
                   onPressed: model.busy ? null : _deleteModel,
                   child: const Text('Remove'),
                 )
               : TextButton(
                   onPressed: model.busy ? null : _downloadModel,
-                  child: Text(downloading ? '$progress%' : 'Download'),
+                  child: Text(
+                    downloading
+                        ? '$progress%'
+                        : model.spec.isBuiltIn
+                            ? 'Prepare'
+                            : 'Download',
+                  ),
                 ),
         ),
         if (downloading)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: LinearProgressIndicator(value: progress / 100),
           ),
         if (model.error.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(
               model.error,
-              style: TextStyle(color: context.theme.colors.error),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
         for (final spec in allModels) ...[
-          const FDivider(),
+          const Divider(height: 1),
           _modelChoiceTile(spec),
         ],
       ],
@@ -185,46 +191,72 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _modelChoiceTile(ScamModelSpec spec) {
     final selected = spec.id == _model.spec.id;
-    return FTile(
+    return SettingsRow(
       enabled: !_model.busy,
-      prefix: Icon(
+      leading: Icon(
         selected ? Icons.radio_button_checked : Icons.radio_button_off,
         color: selected
-            ? context.theme.colors.primary
-            : context.theme.colors.mutedForeground,
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
-      title: Text(spec.displayName),
-      subtitle: Text('About ${spec.approxSizeMb} MB'),
-      onPress: () => _selectModel(spec),
+      title: spec.displayName,
+        subtitle: spec.isBuiltIn
+          ? 'Android system model · no app download'
+          : 'About ${spec.approxSizeMb} MB',
+      onTap: () => _selectModel(spec),
     );
   }
 
-  // Speed: let people trade accuracy/compatibility for speed by using the GPU.
+  // Let the runtime choose the fastest available accelerator.
   Widget _speedSection() {
     return SettingsSection(
       title: 'Checking speed',
-      caption:
-          'The processor is the most compatible choice. The graphics chip can '
-          'be faster on newer phones, but it is not supported everywhere.',
+        caption: 'Automatic uses the phone\'s NPU, GPU, or processor and falls '
+          'back when an accelerator is unavailable.',
       children: [
-        FTile(
-          prefix: const Icon(Icons.memory_outlined),
-          title: const Text('Processor (recommended)'),
-          subtitle: const Text('Works on every phone'),
-          suffix: _backend == ModelBackend.cpu
-              ? Icon(Icons.check, color: context.theme.colors.primary)
+        SettingsRow(
+          leading: const Icon(Icons.memory_outlined),
+          title: 'Processor',
+          subtitle: 'Most compatible fallback',
+          trailing: _backend == ModelBackend.cpu
+              ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
               : null,
-          onPress: () => _setBackend(ModelBackend.cpu),
+          onTap: () => _setBackend(ModelBackend.cpu),
         ),
-        const FDivider(),
-        FTile(
-          prefix: const Icon(Icons.bolt_outlined),
-          title: const Text('Graphics chip (faster)'),
-          subtitle: const Text('For newer phones with a supported GPU'),
-          suffix: _backend == ModelBackend.gpu
-              ? Icon(Icons.check, color: context.theme.colors.primary)
+        const Divider(height: 1),
+        SettingsRow(
+          leading: const Icon(Icons.auto_awesome_outlined),
+          title: 'Automatic (recommended)',
+          subtitle: 'NPU for matching models, then GPU or processor',
+          trailing: _backend == ModelBackend.npu
+              ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
               : null,
-          onPress: () => _setBackend(ModelBackend.gpu),
+          onTap: () => _setBackend(ModelBackend.npu),
+        ),
+        if (kDebugMode) ...[
+          const Divider(height: 1),
+          SettingsRow(
+            leading: const Icon(Icons.developer_mode_outlined),
+            title: 'NPU test (force)',
+            subtitle: 'Debug only: send the current model directly to NPU',
+            trailing: _backend == ModelBackend.npuTest
+                ? Icon(
+                    Icons.check,
+                    color: Theme.of(context).colorScheme.primary,
+                  )
+                : null,
+            onTap: () => _setBackend(ModelBackend.npuTest),
+          ),
+        ],
+        const Divider(height: 1),
+        SettingsRow(
+          leading: const Icon(Icons.bolt_outlined),
+          title: 'Graphics chip (faster)',
+          subtitle: 'For newer phones with a supported GPU',
+          trailing: _backend == ModelBackend.gpu
+              ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+              : null,
+          onTap: () => _setBackend(ModelBackend.gpu),
         ),
       ],
     );
@@ -235,28 +267,28 @@ class _SettingsPageState extends State<SettingsPage> {
     return SettingsSection(
       title: 'App',
       children: [
-        FTile(
-          prefix: const Icon(Icons.language_outlined),
-          title: const Text('Language'),
-          subtitle: Text(_languageLabel(localeController.locale?.languageCode)),
-          suffix: const Icon(Icons.chevron_right),
-          onPress: _showLanguagePicker,
+        SettingsRow(
+          leading: const Icon(Icons.language_outlined),
+          title: 'Language',
+          subtitle: _languageLabel(localeController.locale?.languageCode),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showLanguagePicker,
         ),
-        const FDivider(),
-        FTile(
-          prefix: const Icon(Icons.school_outlined),
-          title: const Text('Show the tour again'),
-          subtitle: const Text('Replay the quick walkthrough'),
-          suffix: const Icon(Icons.chevron_right),
-          onPress: () => context.read<TourController>().start(),
+        const Divider(height: 1),
+        SettingsRow(
+          leading: const Icon(Icons.school_outlined),
+          title: 'Show the tour again',
+          subtitle: 'Replay the quick walkthrough',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.read<TourController>().start(),
         ),
-        const FDivider(),
-        FTile(
-          prefix: const Icon(Icons.shield_outlined),
-          title: const Text('Permissions'),
-          subtitle: const Text('Check what the app is allowed to do'),
-          suffix: const Icon(Icons.chevron_right),
-          onPress: () => Navigator.of(context).push(
+        const Divider(height: 1),
+        SettingsRow(
+          leading: const Icon(Icons.shield_outlined),
+          title: 'Permissions',
+          subtitle: 'Check what the app is allowed to do',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => Scaffold(
                 appBar: AppBar(title: const Text('Permissions')),
@@ -273,25 +305,24 @@ class _SettingsPageState extends State<SettingsPage> {
     return SettingsSection(
       title: 'Protection',
       children: [
-        FTile(
+        SettingsRow(
           enabled: _serviceRunning,
-          prefix: Icon(
+          leading: Icon(
             _serviceRunning
                 ? Icons.stop_circle_outlined
                 : Icons.pause_circle_outlined,
           ),
-          title: const Text('Pause protection'),
-          subtitle: Text(
+          title: 'Pause protection',
+          subtitle:
             _serviceRunning ? 'Currently running' : 'Currently paused',
-          ),
-          onPress: _serviceRunning ? _stopProtection : null,
+          onTap: _serviceRunning ? _stopProtection : null,
         ),
-        const FDivider(),
-        FTile(
-          prefix: const Icon(Icons.logout_outlined),
-          title: const Text('Sign out'),
-          subtitle: const Text('You can sign back in at any time'),
-          onPress: () => context.read<AuthController>().logout(),
+        const Divider(height: 1),
+        SettingsRow(
+          leading: const Icon(Icons.logout_outlined),
+          title: 'Sign out',
+          subtitle: 'You can sign back in at any time',
+          onTap: () => context.read<AuthController>().logout(),
         ),
       ],
     );
@@ -303,12 +334,12 @@ class _SettingsPageState extends State<SettingsPage> {
       title: 'Dev menu',
       caption: 'Debug build only. Not shown in release builds.',
       children: [
-        FTile(
-          prefix: const Icon(Icons.terminal_outlined),
-          title: const Text('Open Dev menu'),
-          subtitle: const Text('Custom models, cloud review, backend details'),
-          suffix: const Icon(Icons.chevron_right),
-          onPress: () => Navigator.of(context).push(
+        SettingsRow(
+          leading: const Icon(Icons.terminal_outlined),
+          title: 'Open Dev menu',
+          subtitle: 'Custom models, cloud review, backend details',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => DevMenuPage(
                 model: _model,

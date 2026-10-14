@@ -393,24 +393,23 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return FScaffold(
-      header: FHeader.nested(
+    return Scaffold(
+      appBar: AppBar(
         title: Text(l10n.callHistoryTitle),
-        titleAlignment: Alignment.centerLeft,
-        suffixes: [
-          FHeaderAction(
+        actions: [
+          IconButton(
+            tooltip: l10n.callBlockedNumbers,
             icon: const Icon(Icons.block),
-            semanticsLabel: l10n.callBlockedNumbers,
-            onPress: _openBlockedNumbers,
+            onPressed: _openBlockedNumbers,
           ),
-          FHeaderAction(
+          IconButton(
+            tooltip: l10n.commonRefresh,
             icon: const Icon(Icons.refresh),
-            semanticsLabel: l10n.commonRefresh,
-            onPress: _loadHistory,
+            onPressed: _loadHistory,
           ),
         ],
       ),
-      child: _isLoading
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _needsPhonePermission
           ? _buildPermissionGate()
@@ -430,16 +429,33 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FAlert(
-              variant: FAlertVariant.destructive,
-              title: Text(l10n.callPhonePermNeeded),
-              subtitle: Text(l10n.callPhonePermBody),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(Icons.phone_locked, size: 48, color: Theme.of(context).colorScheme.error),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.callPhonePermNeeded,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.callPhonePermBody,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            FButton(
-              onPress: _grantPhonePermission,
-              prefix: const Icon(Icons.phone),
-              child: Text(l10n.callGrantPhone),
+            FilledButton.icon(
+              onPressed: _grantPhonePermission,
+              icon: const Icon(Icons.phone),
+              label: Text(l10n.callGrantPhone),
             ),
           ],
         ),
@@ -455,13 +471,33 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            FAlert(
-              variant: FAlertVariant.destructive,
-              title: Text(l10n.callCouldNotLoad),
-              subtitle: Text(_error!),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+                    const SizedBox(height: 12),
+                    Text(
+                      l10n.callCouldNotLoad,
+                      style: Theme.of(context).textTheme.titleLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            FButton(onPress: _loadHistory, child: Text(l10n.commonRetry)),
+            FilledButton(
+              onPressed: _loadHistory,
+              child: Text(l10n.commonRetry),
+            ),
           ],
         ),
       ),
@@ -469,51 +505,64 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   }
 
   Widget _buildList(BuildContext context) {
-    return FTileGroup.builder(
-      count: _records.length,
-      tileBuilder: (context, index) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _records.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
         final l10n = AppLocalizations.of(context);
         final record = _records[index];
         final isBlocked = _blockedNumbers.contains(record.normalizedNumber);
-        return FTile(
-          variant: isBlocked ? FItemVariant.destructive : FItemVariant.primary,
-          prefix: FAvatar.raw(
-            size: 40,
-            child: Icon(
-              isBlocked ? Icons.block : _statusIcon(record),
-              size: 20,
-              color: isBlocked
-                  ? context.theme.colors.error
-                  : _statusColor(record),
+        return Card(
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            minVerticalPadding: 12,
+            leading: CircleAvatar(
+              radius: 24,
+              backgroundColor: (isBlocked
+                      ? Theme.of(context).colorScheme.error
+                      : _statusColor(record))
+                  .withValues(alpha: 0.14),
+              child: Icon(
+                isBlocked ? Icons.block : _statusIcon(record),
+                color: isBlocked
+                    ? Theme.of(context).colorScheme.error
+                    : _statusColor(record),
+              ),
             ),
-          ),
-          title: Text(record.rawNumber),
-          subtitle: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: _statusLabel(record),
-                  style: TextStyle(
-                    color: _statusColor(record),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                if (record.status == CallRecord.statusAnswered &&
-                    record.durationSeconds > 0)
-                  TextSpan(text: l10n.callDurationSuffix(record.durationSeconds)),
-                if (record.reported)
+            title: Text(
+              record.rawNumber,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            subtitle: Text.rich(
+              TextSpan(
+                children: [
                   TextSpan(
-                    text: l10n.callReportedSuffix,
+                    text: _statusLabel(record),
                     style: TextStyle(
-                      color: context.theme.colors.primary,
-                      fontWeight: FontWeight.w600,
+                      color: _statusColor(record),
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                TextSpan(text: ' • ${_formatTimestamp(record.timestamp)}'),
-              ],
+                  if (record.status == CallRecord.statusAnswered &&
+                      record.durationSeconds > 0)
+                    TextSpan(text: l10n.callDurationSuffix(record.durationSeconds)),
+                  if (record.reported)
+                    TextSpan(
+                      text: l10n.callReportedSuffix,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  TextSpan(text: ' • ${_formatTimestamp(record.timestamp)}'),
+                ],
+              ),
             ),
+            trailing: _buildMenu(record, isBlocked),
           ),
-          suffix: _buildMenu(record, isBlocked),
         );
       },
     );

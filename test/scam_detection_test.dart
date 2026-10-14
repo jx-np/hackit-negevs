@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:call_log_app/core/model_catalog.dart';
 import 'package:call_log_app/core/notification_record.dart';
 import 'package:call_log_app/core/scam_prompt.dart';

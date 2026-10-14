@@ -48,9 +48,10 @@ dependencies:
   remixicon: ^4.9.3
   material_ui: ^1.4.0
   notification_listener_service: ^1.0.0
-  flutter_gemma: ^1.9.0
-  flutter_gemma_mediapipe: ^1.0.6
-  flutter_gemma_litertlm: ^1.8.0
+  flutter_edge_ai: ^2.3.2
+  flutter_edge_ai_builtin_ai: ^0.3.5
+  flutter_edge_ai_mediapipe: ^1.2.2
+  flutter_edge_ai_litertlm: ^1.13.2
   http: ^1.6.0
   flutter_secure_storage: ^9.2.2
   image_picker: ^1.1.2
@@ -76,11 +77,16 @@ flutter:
 
   # Generate localization classes from ARB files in lib/l10n.
   generate: true
-
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
+  assets:
+    - final_dataset.csv
+  # Include the Material Icons font used by Icons.* widgets.
   uses-material-design: true
+
+hooks:
+  user_defines:
+    flutter_edge_ai_litertlm:
+      qualcomm_npu: true
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -969,7 +969,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAddMessage => 'Please add the message text.';
 
   @override
-  String get reportTabTitle => 'Report a scam';
+  String get reportTabTitle => 'Report';
 
   @override
   String get reportTabThankYou => 'Shared with the community. Thank you!';

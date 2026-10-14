@@ -34,7 +34,8 @@ class BackgroundRunner {
   bool _forceCloud = false;
 
   StreamSubscription<IncomingNotification>? _subscription;
-  final Map<String, String> _lastContent = <String, String>{};
+  final Map<String, _NotificationFingerprint> _lastNotification =
+      <String, _NotificationFingerprint>{};
 
   final List<_PendingEvaluation> _queue = [];
   bool _draining = false;
@@ -262,13 +263,14 @@ class BackgroundRunner {
       appLabelFor(event.packageName),
     );
     final id = NotificationLog.idFor(record);
-    if (_lastContent[id] == record.content) {
-      _trace('ignored: duplicate content for $id');
+    final fingerprint = _NotificationFingerprint.from(record);
+    if (_lastNotification[id] == fingerprint) {
+      _trace('ignored: duplicate event for $id');
       return;
     }
-    _lastContent[id] = record.content;
-    if (_lastContent.length > 200) {
-      _lastContent.remove(_lastContent.keys.first);
+    _lastNotification[id] = fingerprint;
+    if (_lastNotification.length > 200) {
+      _lastNotification.remove(_lastNotification.keys.first);
     }
 
     // A failed log write must never stop the notification from being
@@ -476,4 +478,23 @@ class _PendingEvaluation {
 
   final String id;
   final NotificationRecord record;
+}
+
+class _NotificationFingerprint {
+  const _NotificationFingerprint(this.content, this.postedAt);
+
+  factory _NotificationFingerprint.from(NotificationRecord record) =>
+      _NotificationFingerprint(record.content, record.postedAt);
+
+  final String content;
+  final DateTime postedAt;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _NotificationFingerprint &&
+      other.content == content &&
+      other.postedAt == postedAt;
+
+  @override
+  int get hashCode => Object.hash(content, postedAt);
 }

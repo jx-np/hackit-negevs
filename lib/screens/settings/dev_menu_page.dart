@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/model_catalog.dart';
@@ -117,6 +118,21 @@ class _DevMenuPageState extends State<DevMenuPage> {
                     title: const Text('GPU'),
                     subtitle: const Text('Faster on supported devices'),
                   ),
+                  RadioListTile<ModelBackend>(
+                    value: ModelBackend.npu,
+                    title: const Text('Automatic'),
+                    subtitle: const Text(
+                      'NPU for matching models, then GPU or CPU',
+                    ),
+                  ),
+                  if (kDebugMode)
+                    RadioListTile<ModelBackend>(
+                      value: ModelBackend.npuTest,
+                      title: const Text('NPU test (force)'),
+                      subtitle: const Text(
+                        'Send the current model directly to the NPU',
+                      ),
+                    ),
                 ],
               ),
             ),

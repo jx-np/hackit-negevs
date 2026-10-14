@@ -979,7 +979,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get createAddMessage => 'Sila tambah teks mesej.';
 
   @override
-  String get reportTabTitle => 'Lapor penipuan';
+  String get reportTabTitle => 'Lapor';
 
   @override
   String get reportTabThankYou => 'Dikongsi dengan komuniti. Terima kasih!';

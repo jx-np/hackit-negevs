@@ -1,4 +1,5 @@
-import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'package:flutter_edge_ai_builtin_ai/flutter_edge_ai_builtin_ai.dart';
 
 const String kCustomModelId = 'custom-local';
 
@@ -45,9 +46,11 @@ class ScamModelSpec {
   /// for [kCustomModelId]; when present the file is used in place instead of
   /// being downloaded into the ScamShield folder.
   final String? filePath;
+
+  bool get isBuiltIn => fileType == ModelFileType.builtIn;
 }
 
-const List<ScamModelSpec> modelCatalog = [
+final List<ScamModelSpec> modelCatalog = [
   ScamModelSpec(
     id: 'gemma-4-e2b',
     displayName: 'Gemma4 E2B',
@@ -58,6 +61,17 @@ const List<ScamModelSpec> modelCatalog = [
     approxSizeMb: 3100,
     contextTokens: 4096,
     note: 'Runs entirely on your phone. Downloads once, then works offline.',
+  ),
+  ScamModelSpec(
+    id: 'gemini-nano',
+    displayName: 'Gemini Nano (system AI)',
+    url: '',
+    fileName: BuiltInAiModels.geminiNano.name,
+    modelType: ModelType.general,
+    fileType: ModelFileType.builtIn,
+    approxSizeMb: 0,
+    contextTokens: 4096,
+    note: 'Uses the model supplied by Android when Gemini Nano is available.',
   ),
 ];
 

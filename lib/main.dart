@@ -99,6 +99,8 @@ ThemeData _materialTheme(FColors colors) {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: colors.card,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      hintStyle: TextStyle(color: colors.mutedForeground),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: colors.border),
@@ -110,6 +112,24 @@ ThemeData _materialTheme(FColors colors) {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: colors.primary, width: 2),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(0, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       ),
     ),
   );
@@ -159,7 +179,7 @@ class MyApp extends StatelessWidget {
             final media = MediaQuery.of(context);
             final clamped = media.textScaler.clamp(
               minScaleFactor: 1.0,
-              maxScaleFactor: 1.5,
+              maxScaleFactor: 1.8,
             );
             return MediaQuery(
               data: media.copyWith(textScaler: clamped),
@@ -327,10 +347,9 @@ class _HomePageState extends State<HomePage> {
         targets: targets,
         child: screens[_currentIndex],
       ),
-      bottomNavigationBar: MediaQuery.withNoTextScaling(
-        child: NavigationBarTheme(
+      bottomNavigationBar: NavigationBarTheme(
           data: NavigationBarThemeData(
-            height: 76,
+            height: 84,
             labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             backgroundColor: context.theme.colors.card,
             indicatorColor: context.theme.colors.primary.withValues(
@@ -339,7 +358,7 @@ class _HomePageState extends State<HomePage> {
             labelTextStyle: WidgetStateProperty.resolveWith((states) {
               final selected = states.contains(WidgetState.selected);
               return TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                 color: selected
                     ? context.theme.colors.primary
@@ -347,7 +366,7 @@ class _HomePageState extends State<HomePage> {
               );
             }),
           ),
-          child: NavigationBar(
+        child: NavigationBar(
             selectedIndex: _currentIndex,
             onDestinationSelected: (index) {
               setState(() {
@@ -369,7 +388,6 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
             ],
-          ),
         ),
       ),
     );

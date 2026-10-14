@@ -1,6 +1,7 @@
-import 'package:flutter_gemma/flutter_gemma.dart';
-import 'package:flutter_gemma_litertlm/flutter_gemma_litertlm.dart';
-import 'package:flutter_gemma_mediapipe/flutter_gemma_mediapipe.dart';
+import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'package:flutter_edge_ai_builtin_ai/flutter_edge_ai_builtin_ai.dart';
+import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
+import 'package:flutter_edge_ai_mediapipe/flutter_edge_ai_mediapipe.dart';
 
 import '../core/model_catalog.dart';
 
@@ -15,15 +16,19 @@ class GemmaModelManager {
 
   Future<void> ensureInitialized() async {
     if (_initialized) return;
-    await FlutterGemma.initialize(
-      inferenceEngines: [MediaPipeEngine(), const LiteRtLmEngine()],
+    await FlutterEdgeAi.initialize(
+      inferenceEngines: [
+        MediaPipeEngine(),
+        const LiteRtLmEngine(),
+        const BuiltInAiEngine(),
+      ],
     );
     _initialized = true;
   }
 
   Future<bool> isInstalled() async {
     await ensureInitialized();
-    final models = await FlutterGemma.listInstalledModels();
+    final models = await FlutterEdgeAi.listInstalledModels();
     return models.any((m) => m.contains(spec.fileName));
   }
 
@@ -38,7 +43,7 @@ class GemmaModelManager {
 
   Future<void> registerFromFile(String path) async {
     await ensureInitialized();
-    await FlutterGemma.installModel(
+    await FlutterEdgeAi.installModel(
       modelType: spec.modelType,
       fileType: spec.fileType,
     ).fromFile(path).install();
@@ -49,10 +54,17 @@ class GemmaModelManager {
     String? token,
   }) async {
     await ensureInitialized();
-    final builder = FlutterGemma.installModel(
+    final builder = FlutterEdgeAi.installModel(
       modelType: spec.modelType,
       fileType: spec.fileType,
     );
+    if (spec.isBuiltIn) {
+      await BuiltInAi.ensureReady(
+        onProgress: (progress) => onProgress?.call(progress),
+      );
+      await builder.fromBundled(spec.fileName).install();
+      return;
+    }
     final asset = spec.assetPath;
     if (asset != null) {
       await builder
@@ -80,10 +92,10 @@ class GemmaModelManager {
 
   Future<void> delete() async {
     await ensureInitialized();
-    final models = await FlutterGemma.listInstalledModels();
+    final models = await FlutterEdgeAi.listInstalledModels();
     for (final model in models) {
       if (model.contains(spec.fileName)) {
-        await FlutterGemma.uninstallModel(model);
+        await FlutterEdgeAi.uninstallModel(model);
       }
     }
   }

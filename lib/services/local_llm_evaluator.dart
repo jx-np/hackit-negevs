@@ -1,4 +1,5 @@
-import 'package:flutter_gemma/flutter_gemma.dart';
+import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'package:flutter/foundation.dart';
 
 import '../core/notification_record.dart';
 import '../core/scam_prompt.dart';
@@ -97,7 +98,7 @@ class LocalLlmEvaluator implements ScamEvaluator {
     await _models.ensureInitialized();
     if (_model != null) return;
     final spec = _models.spec;
-    if (await ModelStore.exists(spec)) {
+    if (!kIsWeb && await ModelStore.exists(spec)) {
       final path = await ModelStore.pathFor(spec);
       if (path != null) await _models.registerFromFile(path);
     }
@@ -107,12 +108,38 @@ class LocalLlmEvaluator implements ScamEvaluator {
       );
     }
     final backend = await _settings.modelBackend();
-    _model = await FlutterGemma.getActiveModel(
+    final preferredBackend = _preferredBackend(backend);
+    debugPrint(
+      '[ScamShield] requested backend=${backend.name}, '
+      'effective backend=${preferredBackend.name}, '
+      'model=${_models.spec.fileName}',
+    );
+    _model = await FlutterEdgeAi.getActiveModel(
       maxTokens: _models.spec.contextTokens,
-      preferredBackend: backend == ModelBackend.gpu
-          ? PreferredBackend.gpu
-          : PreferredBackend.cpu,
+      preferredBackend: preferredBackend,
     ).timeout(_loadTimeout);
+  }
+
+  PreferredBackend _preferredBackend(ModelBackend backend) {
+    if (_models.spec.isBuiltIn) return PreferredBackend.cpu;
+    if (backend == ModelBackend.npuTest) {
+      return kDebugMode ? PreferredBackend.npu : PreferredBackend.gpu;
+    }
+    if (backend != ModelBackend.npu) {
+      return backend == ModelBackend.gpu
+          ? PreferredBackend.gpu
+          : PreferredBackend.cpu;
+    }
+
+    // Qualcomm NPU inference requires a model compiled for a specific SoC.
+    // The catalog's generic Gemma 4 bundle is not such a bundle, so let the
+    // runtime use its broadly compatible GPU path until a matching file is
+    // installed.
+    final name = _models.spec.fileName.toLowerCase();
+    final npuBundle = name.contains('_qualcomm_') ||
+        name.contains('_google_tensor_') ||
+        name.contains('_intel_');
+    return npuBundle ? PreferredBackend.npu : PreferredBackend.gpu;
   }
 
   @override

@@ -936,7 +936,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createAddMessage => '请添加信息内容。';
 
   @override
-  String get reportTabTitle => '举报诈骗';
+  String get reportTabTitle => '举报';
 
   @override
   String get reportTabThankYou => '已分享到社区。谢谢你！';

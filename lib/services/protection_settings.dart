@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/model_catalog.dart';
@@ -39,10 +40,10 @@ const int kMaxCustomModelContext = 131072;
 /// Hardware backend the on-device model runs on. CPU works on every device;
 /// GPU is faster on phones with a supported GPU but can fail to initialise on
 /// some hardware, in which case the engine falls back automatically.
-enum ModelBackend { cpu, gpu }
+enum ModelBackend { cpu, gpu, npu, npuTest }
 
-/// Default on-device backend. CPU is the safe choice that works everywhere.
-const ModelBackend kDefaultModelBackend = ModelBackend.cpu;
+/// Ask LiteRT-LM to try NPU, then GPU, then CPU when available.
+const ModelBackend kDefaultModelBackend = ModelBackend.npu;
 
 class ProtectionSettings {
   static const String _kEnabled = 'protection_enabled';
@@ -61,6 +62,7 @@ class ProtectionSettings {
   static const String _kCustomContext = 'custom_model_context';
   static const String _kCustomThinking = 'custom_model_thinking';
   static const String _kModelBackend = 'model_backend';
+  static const String _kProtectionSetupComplete = 'protection_setup_complete';
   static const String _kSeenTutorial = 'seen_tutorial';
   static const int _maxHistory = 60;
 
@@ -71,6 +73,12 @@ class ProtectionSettings {
 
   Future<void> setProtectionEnabled(bool value) =>
       _prefs.setBool(_kEnabled, value);
+
+    Future<bool> protectionSetupComplete() async =>
+      await _prefs.getBool(_kProtectionSetupComplete) ?? false;
+
+    Future<void> setProtectionSetupComplete(bool value) =>
+      _prefs.setBool(_kProtectionSetupComplete, value);
 
   Future<bool> seenTutorial() async =>
       await _prefs.getBool(_kSeenTutorial) ?? false;
@@ -88,6 +96,9 @@ class ProtectionSettings {
   /// name so an unknown or legacy value falls back to the safe CPU default.
   Future<ModelBackend> modelBackend() async {
     final stored = await _prefs.getString(_kModelBackend);
+    if (stored == ModelBackend.npuTest.name && !kDebugMode) {
+      return kDefaultModelBackend;
+    }
     return ModelBackend.values.firstWhere(
       (backend) => backend.name == stored,
       orElse: () => kDefaultModelBackend,

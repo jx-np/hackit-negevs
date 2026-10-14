@@ -139,22 +139,61 @@ class _SafetyScreenState extends State<SafetyScreen>
       );
       return;
     }
+    final firstActivation =
+        value && !await _settings.protectionSetupComplete();
     setState(() => _busy = true);
     try {
+      if (firstActivation) {
+        await _settings.setModelBackend(ModelBackend.npu);
+      }
       await _settings.setProtectionEnabled(value);
       await ScamShieldController.setShieldEnabled(value);
       if (value) {
-        await ScamShieldController.ensureServiceRunning();
+        final started = await ScamShieldController.ensureServiceRunning();
+        if (!started) {
+          throw StateError('Could not start scam protection.');
+        }
+        await ScamShieldController.syncSettings();
+        if (firstActivation) {
+          final gpuReady = await _warmUpAndCheck();
+          if (!gpuReady) {
+            await _settings.setModelBackend(ModelBackend.cpu);
+            await ScamShieldController.syncSettings();
+            final cpuReady = await _warmUpAndCheck();
+            if (!cpuReady) {
+              throw StateError('Could not load the on-device model.');
+            }
+          }
+          await _settings.setProtectionSetupComplete(true);
+        }
       } else {
         await ScamShieldController.stopService();
       }
-    } catch (_) {}
+    } catch (error) {
+      debugPrint('[ScamShield] Protection setup failed: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Protection could not start: $error')),
+        );
+      }
+    }
     if (!mounted) return;
     setState(() {
       _protectionEnabled = value;
       _busy = false;
     });
     await _refresh();
+  }
+
+  Future<bool> _warmUpAndCheck() async {
+    try {
+      await ScamShieldController.warmUpModel();
+      final status = await ScamShieldController.status();
+      return status.modelReady && !status.modelError;
+    } catch (error) {
+      debugPrint('[ScamShield] Model warm-up failed: $error');
+      return false;
+    }
   }
 
   Future<void> _clear() async {
@@ -255,7 +294,7 @@ class _SafetyScreenState extends State<SafetyScreen>
           children: [
             Row(
               children: [
-                _shield(scheme),
+                ExcludeSemantics(child: _shield(scheme)),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
@@ -275,6 +314,11 @@ class _SafetyScreenState extends State<SafetyScreen>
                                 ? l10n.safetyWeCheck
                                 : l10n.safetyTurnOnToCheck,
                         style: theme.textTheme.bodyMedium,
+                        semanticsLabel: on
+                            ? l10n.safetyWeCheck
+                            : !_modelInstalled
+                                ? l10n.safetyDownloadFirstPeriod
+                                : l10n.safetyTurnOnToCheck,
                       ),
                     ],
                   ),

@@ -8,7 +8,7 @@ import '../core/model_catalog.dart';
 import 'scamshield_channels.dart';
 
 /// Stores downloaded models in the device's public Downloads folder so they
-/// survive an uninstall/reinstall. `flutter_gemma`'s own storage lives in the
+/// survive an uninstall/reinstall. Flutter Edge AI's own storage lives in the
 /// app-private directory, which Android deletes on uninstall.
 class ModelStore {
   static const String _folder = 'ScamShield';
@@ -127,7 +127,7 @@ class ModelStore {
 
   /// Looks for model files the user has put on the device. The manifest
   /// already grants `MANAGE_EXTERNAL_STORAGE`, so the file can be handed to
-  /// `FlutterGemma.installModel(...).fromFile(path)` in place — no copy, no
+  /// `FlutterEdgeAi.installModel(...).fromFile(path)` in place — no copy, no
   /// content-URI shim (both would be fatal for a multi-gigabyte model).
   static Future<List<FoundModelFile>> scanForModels({
     int maxDepth = 3,

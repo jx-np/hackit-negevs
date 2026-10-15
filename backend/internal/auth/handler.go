@@ -3,10 +3,20 @@ package auth
 import (
 	"errors"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
 	"scamshield/internal/httpx"
+)
+
+var (
+	// emailRe is the canonical address shape: local part of allowed characters,
+	// then @, then dot-separated labels ending in a 2+ character TLD.
+	emailRe = regexp.MustCompile(`^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$`)
+	// displayNameRe allows plain letters, digits and at most one interior space.
+	// No leading/trailing spaces, no punctuation or non-ASCII characters.
+	displayNameRe = regexp.MustCompile(`^[A-Za-z0-9]+( [A-Za-z0-9]+)?$`)
 )
 
 // Handler exposes the auth HTTP endpoints.
@@ -240,7 +250,7 @@ func validateRegister(req registerRequest) map[string]string {
 	fields := map[string]string{}
 	if strings.TrimSpace(req.Email) == "" {
 		fields["email"] = "is required"
-	} else if !strings.Contains(req.Email, "@") {
+	} else if !emailRe.MatchString(strings.TrimSpace(req.Email)) {
 		fields["email"] = "must be a valid email address"
 	}
 	if req.Password == "" {
@@ -250,6 +260,8 @@ func validateRegister(req registerRequest) map[string]string {
 	}
 	if strings.TrimSpace(req.DisplayName) == "" {
 		fields["display_name"] = "is required"
+	} else if !displayNameRe.MatchString(req.DisplayName) {
+		fields["display_name"] = "may only contain letters, digits and at most one space"
 	}
 	return fields
 }

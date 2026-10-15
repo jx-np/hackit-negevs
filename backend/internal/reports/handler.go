@@ -2,6 +2,7 @@ package reports
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -54,6 +55,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, requireAuth, optionalAuth, 
 	mux.Handle("GET /api/v1/community/feed", global(optionalAuth(http.HandlerFunc(h.listFeed))))
 	mux.Handle("GET /api/v1/community/feed/search", global(optionalAuth(http.HandlerFunc(h.searchFeed))))
 	mux.Handle("GET /api/v1/community/posts/{id}", global(optionalAuth(http.HandlerFunc(h.getPost))))
+	mux.Handle("GET /api/v1/community/posts/{id}/image", global(http.HandlerFunc(h.getPostImage)))
 	mux.Handle("GET /api/v1/community/scam-types", global(http.HandlerFunc(h.listCategories)))
 	mux.Handle("GET /api/v1/community/tags", global(http.HandlerFunc(h.listTags)))
 
@@ -90,15 +92,20 @@ type topCommentDTO struct {
 }
 
 type postCardDTO struct {
-	PostID          string          `json:"post_id"`
-	Title           string          `json:"title"`
-	RedactedExcerpt string          `json:"redacted_excerpt"`
-	Category        categoryDTO     `json:"category"`
-	Tags            []tagDTO        `json:"tags"`
-	ReviewStatus    string          `json:"review_status"`
-	CreatedAt       string          `json:"created_at"`
-	CommentCount    int64           `json:"comment_count"`
-	TopComments     []topCommentDTO `json:"top_comments"`
+	PostID          string `json:"post_id"`
+	Title           string `json:"title"`
+	RedactedExcerpt string `json:"redacted_excerpt"`
+	// Category is null until the classifier assigns one. Unclassified posts are
+	// only ever returned to their own author.
+	Category     *categoryDTO      `json:"category"`
+	Tags         []tagDTO          `json:"tags"`
+	ReviewStatus string            `json:"review_status"`
+	CreatedAt    string            `json:"created_at"`
+	CommentCount int64             `json:"comment_count"`
+	Reactions    reactionCountsDTO `json:"reactions"`
+	MyVote       int16             `json:"my_vote"`
+	IsMine       bool              `json:"is_mine"`
+	TopComments  []topCommentDTO   `json:"top_comments"`
 }
 
 type reactionCountsDTO struct {
@@ -107,10 +114,11 @@ type reactionCountsDTO struct {
 }
 
 type postDetailDTO struct {
-	PostID       string            `json:"post_id"`
-	Title        string            `json:"title"`
-	RedactedText string            `json:"redacted_text"`
-	Category     categoryDTO       `json:"category"`
+	PostID       string `json:"post_id"`
+	Title        string `json:"title"`
+	RedactedText string `json:"redacted_text"`
+	// Category is null until the classifier assigns one.
+	Category     *categoryDTO      `json:"category"`
 	Tags         []tagDTO          `json:"tags"`
 	ReviewStatus string            `json:"review_status"`
 	CreatedAt    string            `json:"created_at"`
@@ -118,6 +126,9 @@ type postDetailDTO struct {
 	CommentCount int64             `json:"comment_count"`
 	Reactions    reactionCountsDTO `json:"reactions"`
 	MyVote       int16             `json:"my_vote"`
+	// RedactedImageURL points at the post's own redacted image copy when one was
+	// attached at publish time. Absent when the post has no image.
+	RedactedImageURL string `json:"redacted_image_url,omitempty"`
 }
 
 type feedResponse struct {
@@ -137,7 +148,6 @@ type createPostRequest struct {
 	CheckID            string   `json:"check_id"`
 	Title              string   `json:"title"`
 	RedactedText       string   `json:"redacted_text"`
-	ScamType           string   `json:"scam_type"`
 	Tags               []string `json:"tags"`
 	ConfirmPublication bool     `json:"confirm_publication"`
 	Locale             string   `json:"locale"`
@@ -170,11 +180,12 @@ func (h *Handler) listFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	page, err := h.svc.Feed(r.Context(), FeedInput{
-		Sort:         q.Get("sort"),
-		CategorySlug: q.Get("scam_type"),
-		TagSlug:      q.Get("tag"),
-		RawCursor:    q.Get("cursor"),
-		Limit:        limit,
+		Sort:            q.Get("sort"),
+		CategorySlug:    q.Get("scam_type"),
+		TagSlug:         q.Get("tag"),
+		RawCursor:       q.Get("cursor"),
+		Limit:           limit,
+		RequesterUserID: principalUserID(r),
 	})
 	if err != nil {
 		h.writeServiceError(w, r, err)
@@ -190,10 +201,11 @@ func (h *Handler) searchFeed(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	page, err := h.svc.Search(r.Context(), SearchInput{
-		Query:        q.Get("q"),
-		CategorySlug: q.Get("scam_type"),
-		RawCursor:    q.Get("cursor"),
-		Limit:        limit,
+		Query:           q.Get("q"),
+		CategorySlug:    q.Get("scam_type"),
+		RawCursor:       q.Get("cursor"),
+		Limit:           limit,
+		RequesterUserID: principalUserID(r),
 	})
 	if err != nil {
 		h.writeServiceError(w, r, err)
@@ -216,6 +228,34 @@ func (h *Handler) getPost(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, toDetailResponse(rep))
 }
 
+// getPostImage streams a published post's redacted image. The image is a copy
+// made at publish time from the author's own completed check, so it is safe to
+// serve publicly: it contains only the redacted (PII-removed) derivative, never
+// the raw upload. Posts without an image, or that are hidden/removed/deleted,
+// resolve to 404 so existence is never leaked.
+func (h *Handler) getPostImage(w http.ResponseWriter, r *http.Request) {
+	id, ok := decodeID(r.PathValue("id"))
+	if !ok {
+		httpx.NotFound(w, r, "post not found")
+		return
+	}
+	img, err := h.svc.OpenPostImage(r.Context(), id)
+	if err != nil {
+		h.writeServiceError(w, r, err)
+		return
+	}
+	defer img.Body.Close()
+
+	w.Header().Set("Content-Type", img.MediaType)
+	if img.Size > 0 {
+		w.Header().Set("Content-Length", strconv.FormatInt(img.Size, 10))
+	}
+	// Published post images are public and immutable, so they can be cached.
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.Copy(w, img.Body)
+}
+
 func (h *Handler) listCategories(w http.ResponseWriter, r *http.Request) {
 	cats, err := h.svc.ListCategories(r.Context())
 	if err != nil {
@@ -223,8 +263,8 @@ func (h *Handler) listCategories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	items := make([]categoryDTO, 0, len(cats))
-	for _, c := range cats {
-		items = append(items, toCategoryDTO(c))
+	for i := range cats {
+		items = append(items, *toCategoryDTO(&cats[i]))
 	}
 	httpx.WriteJSON(w, http.StatusOK, categoriesResponse{Items: items})
 }
@@ -276,7 +316,6 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 		AuthorUserID:       p.UserID,
 		Title:              req.Title,
 		RedactedText:       req.RedactedText,
-		ScamTypeSlug:       req.ScamType,
 		TagSlugs:           req.Tags,
 		ConfirmPublication: req.ConfirmPublication,
 		SourceLocale:       req.Locale,
@@ -416,8 +455,11 @@ func (h *Handler) authAndID(w http.ResponseWriter, r *http.Request) (auth.Princi
 
 // --- mapping ---
 
-func toCategoryDTO(c Category) categoryDTO {
-	dto := categoryDTO{Slug: c.Slug, NameKey: c.NameKey}
+func toCategoryDTO(c *Category) *categoryDTO {
+	if c == nil {
+		return nil
+	}
+	dto := &categoryDTO{Slug: c.Slug, NameKey: c.NameKey}
 	if c.DescriptionKey != nil {
 		dto.DescriptionKey = *c.DescriptionKey
 	}
@@ -456,6 +498,9 @@ func toCardDTO(c ReportCard) postCardDTO {
 		ReviewStatus:    c.ReviewStatus,
 		CreatedAt:       c.CreatedAt.UTC().Format(time.RFC3339),
 		CommentCount:    c.CommentCount,
+		Reactions:       reactionCountsDTO{Up: c.UpCount, Down: c.DownCount},
+		MyVote:          c.MyVote,
+		IsMine:          c.IsMine,
 		TopComments:     top,
 	}
 }
@@ -469,7 +514,7 @@ func toFeedResponse(page Page) feedResponse {
 }
 
 func toDetailResponse(rep Report) postDetailDTO {
-	return postDetailDTO{
+	dto := postDetailDTO{
 		PostID:       encodeID(rep.ID),
 		Title:        rep.Title,
 		RedactedText: rep.RedactedText,
@@ -482,6 +527,10 @@ func toDetailResponse(rep Report) postDetailDTO {
 		Reactions:    reactionCountsDTO{Up: rep.UpCount, Down: rep.DownCount},
 		MyVote:       rep.MyVote,
 	}
+	if rep.RedactedImageKey != nil {
+		dto.RedactedImageURL = "/api/v1/community/posts/" + dto.PostID + "/image"
+	}
+	return dto
 }
 
 // --- request parsing & error mapping ---
@@ -520,7 +569,9 @@ func (h *Handler) writeServiceError(w http.ResponseWriter, r *http.Request, err 
 	case errors.Is(err, ErrBodyRequired):
 		httpx.Unprocessable(w, r, "redacted_text is required", map[string]string{"redacted_text": "must not be empty"})
 	case errors.Is(err, ErrUnknownCategory):
-		httpx.Unprocessable(w, r, "unknown scam_type", map[string]string{"scam_type": "must be a known category slug"})
+		// No longer client-supplied (the classifier assigns it), so this is a
+		// server-side resolution failure.
+		httpx.InternalError(w, r, "post category could not be resolved")
 	case errors.As(err, &unknownTags):
 		httpx.Unprocessable(w, r, "unknown tags", map[string]string{"tags": strings.Join(unknownTags.Slugs, ", ")})
 	case errors.Is(err, ErrInvalidVote):

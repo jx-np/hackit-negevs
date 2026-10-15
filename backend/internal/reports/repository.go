@@ -29,11 +29,15 @@ type FeedQuery struct {
 type CreateReportParams struct {
 	AuthorUserID  int64
 	SourceCheckID *int64
-	CategoryID    int64
-	Title         string
-	RedactedText  string
-	SourceLocale  string
-	TagIDs        []int64
+	// CategoryID is nil when the post is still unclassified by the classifier.
+	CategoryID   *int64
+	Title        string
+	RedactedText string
+	SourceLocale string
+	TagIDs       []int64
+	// RedactedImageKey is the storage key of the post's own redacted image
+	// copy, or nil when the post has no image.
+	RedactedImageKey *string
 }
 
 // UpdateReportParams carries the mutable fields of a report edit. Nil pointers
@@ -52,7 +56,8 @@ type UpdateReportParams struct {
 type Repository interface {
 	// ListFeed returns a page of feed cards matching q, ordered by
 	// (created_at, id) descending, excluding deleted/hidden/removed rows.
-	ListFeed(ctx context.Context, q FeedQuery) ([]ReportCard, error)
+	// requesterUserID scopes the per-card IsMine flag; nil for anonymous.
+	ListFeed(ctx context.Context, q FeedQuery, requesterUserID *int64) ([]ReportCard, error)
 	// ListByAuthor returns a page of an author's own reports in any status
 	// (excluding soft-deleted rows), ordered by (created_at, id) descending.
 	ListByAuthor(ctx context.Context, authorUserID int64, limit int, cursor *Cursor) ([]ReportCard, error)
@@ -89,6 +94,17 @@ type Repository interface {
 	// CheckOwnedBy reports whether the given check exists and is owned by the
 	// user. Used to validate source_check_id linkage.
 	CheckOwnedBy(ctx context.Context, checkID, userID int64) (bool, error)
+	// RedactedImageKeyForCheck returns the redacted image storage key of the
+	// most recent upload linked to a check that the user owns, if any. ok is
+	// false when the user does not own the check, the check has no linked
+	// upload, or the upload has no redacted image yet. Used at publish time to
+	// locate the source blob to copy into the post's own image.
+	RedactedImageKeyForCheck(ctx context.Context, checkID, ownerUserID int64) (key string, ok bool, err error)
+	// GetReportImageKey returns the post's redacted image storage key when the
+	// post exists and is publicly visible (not deleted/hidden/removed and
+	// classified). ok is false when the post is not publicly visible or has no
+	// image. Used by the public post-image serve route.
+	GetReportImageKey(ctx context.Context, id int64) (key string, ok bool, err error)
 
 	// SetReaction upserts a vote and returns the resulting up/down counts.
 	SetReaction(ctx context.Context, reportID, userID int64, vote int16) (up, down int64, err error)
@@ -111,15 +127,31 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 // cardSelectSQL is the shared card projection. comment_count is a derived
-// scalar subquery counting only visible comments.
+// scalar subquery counting only visible comments. is_mine compares the row's
+// author against the requester bound to $1 (0 for anonymous callers never
+// matches a real author id, so is_mine is false). categories is LEFT JOINed
+// because a post stays unclassified until the classifier assigns a category;
+// its columns are therefore nullable.
 const cardSelectSQL = `
 	SELECT
 		r.id, r.title, left(r.redacted_text, 280) AS excerpt,
 		r.review_status, r.created_at,
 		c.id, c.slug, c.name_key, c.description_key,
-		(SELECT count(*) FROM comments cm WHERE cm.report_id = r.id AND cm.status = 'visible') AS comment_count
+		(SELECT count(*) FROM comments cm WHERE cm.report_id = r.id AND cm.status = 'visible') AS comment_count,
+		(SELECT count(*) FROM report_reactions rx WHERE rx.report_id = r.id AND rx.vote = 1) AS up_count,
+		(SELECT count(*) FROM report_reactions rx WHERE rx.report_id = r.id AND rx.vote = -1) AS down_count,
+		COALESCE(r.author_user_id = $1, false) AS is_mine,
+		COALESCE((SELECT rx.vote FROM report_reactions rx WHERE rx.report_id = r.id AND rx.user_id = $1), 0) AS my_vote
 	FROM reports r
-	JOIN categories c ON c.id = r.category_id`
+	LEFT JOIN categories c ON c.id = r.category_id`
+
+// classifiedOrMine restricts a query to rows other users may see: classified
+// posts, plus the requester's own still-unclassified posts. placeholder is the
+// bind parameter holding the requester id (0 for anonymous, which matches no
+// author row).
+func classifiedOrMine(placeholder string) string {
+	return fmt.Sprintf("(r.category_id IS NOT NULL OR r.author_user_id = %s)", placeholder)
+}
 
 // requesterOrZero returns *id or 0 for scoping my_vote in the detail query.
 func requesterOrZero(id *int64) int64 {
@@ -129,12 +161,27 @@ func requesterOrZero(id *int64) int64 {
 	return *id
 }
 
+// categoryFromRow builds a Category from a LEFT JOINed categories row, returning
+// nil when the row is absent (post not yet classified).
+func categoryFromRow(id *int64, slug, nameKey, descriptionKey *string) *Category {
+	if id == nil || slug == nil || nameKey == nil {
+		return nil
+	}
+	return &Category{
+		ID:             *id,
+		Slug:           *slug,
+		NameKey:        *nameKey,
+		DescriptionKey: descriptionKey,
+	}
+}
+
 // ListFeed implements Repository.
-func (r *PostgresRepository) ListFeed(ctx context.Context, q FeedQuery) ([]ReportCard, error) {
+func (r *PostgresRepository) ListFeed(ctx context.Context, q FeedQuery, requesterUserID *int64) ([]ReportCard, error) {
 	var sb strings.Builder
 	sb.WriteString(cardSelectSQL)
 
-	args := []any{}
+	// $1 is always the requester id (scopes is_mine); nil for anonymous.
+	args := []any{requesterUserID}
 
 	if q.TagSlug != "" {
 		// Join through report_tags to a specific tag slug.
@@ -143,6 +190,7 @@ func (r *PostgresRepository) ListFeed(ctx context.Context, q FeedQuery) ([]Repor
 	}
 
 	sb.WriteString("\n\tWHERE r.deleted_at IS NULL AND r.review_status NOT IN ('hidden', 'removed')")
+	fmt.Fprintf(&sb, "\n\tAND %s", classifiedOrMine("$1"))
 
 	if q.CategorySlug != "" {
 		args = append(args, q.CategorySlug)
@@ -200,18 +248,19 @@ func (r *PostgresRepository) queryCards(ctx context.Context, query string, args 
 	)
 	for rows.Next() {
 		var (
-			card ReportCard
-			cat  Category
+			card                      ReportCard
+			catID                     *int64
+			catSlug, catName, catDesc *string
 		)
 		if err := rows.Scan(
 			&card.ID, &card.Title, &card.Excerpt,
 			&card.ReviewStatus, &card.CreatedAt,
-			&cat.ID, &cat.Slug, &cat.NameKey, &cat.DescriptionKey,
-			&card.CommentCount,
+			&catID, &catSlug, &catName, &catDesc,
+			&card.CommentCount, &card.UpCount, &card.DownCount, &card.IsMine, &card.MyVote,
 		); err != nil {
 			return nil, fmt.Errorf("reports: scan feed row: %w", err)
 		}
-		card.Category = cat
+		card.Category = categoryFromRow(catID, catSlug, catName, catDesc)
 		cards = append(cards, card)
 		ids = append(ids, card.ID)
 	}
@@ -336,28 +385,34 @@ func (r *PostgresRepository) GetReportDetail(ctx context.Context, id int64, requ
 			r.id, r.author_user_id, r.source_check_id, r.category_id,
 			r.title, r.redacted_text, r.source_locale, r.review_status,
 			r.publication_confirmed_at, r.created_at, r.updated_at, r.deleted_at,
+			r.redacted_image_key,
 			c.id, c.slug, c.name_key, c.description_key,
 			(SELECT count(*) FROM comments cm WHERE cm.report_id = r.id AND cm.status = 'visible'),
 			(SELECT count(*) FROM report_reactions rx WHERE rx.report_id = r.id AND rx.vote = 1),
 			(SELECT count(*) FROM report_reactions rx WHERE rx.report_id = r.id AND rx.vote = -1),
 			COALESCE((SELECT rx.vote FROM report_reactions rx WHERE rx.report_id = r.id AND rx.user_id = $2), 0)
 		FROM reports r
-		JOIN categories c ON c.id = r.category_id
+		LEFT JOIN categories c ON c.id = r.category_id
 		WHERE r.id = $1`)
 
 	if !includeHidden {
 		sb.WriteString("\n\t\t\tAND r.deleted_at IS NULL AND r.review_status NOT IN ('hidden', 'removed')")
+		// Unclassified posts are author-only; privileged (moderator) callers use
+		// includeHidden and see them. $2 holds the requester id here.
+		fmt.Fprintf(&sb, "\n\t\t\tAND %s", classifiedOrMine("$2"))
 	}
 
 	var (
-		rep Report
-		cat Category
+		rep                       Report
+		catID                     *int64
+		catSlug, catName, catDesc *string
 	)
 	err := r.pool.QueryRow(ctx, sb.String(), id, requester).Scan(
 		&rep.ID, &rep.AuthorUserID, &rep.SourceCheckID, &rep.CategoryID,
 		&rep.Title, &rep.RedactedText, &rep.SourceLocale, &rep.ReviewStatus,
 		&rep.PublicationConfirmedAt, &rep.CreatedAt, &rep.UpdatedAt, &rep.DeletedAt,
-		&cat.ID, &cat.Slug, &cat.NameKey, &cat.DescriptionKey,
+		&rep.RedactedImageKey,
+		&catID, &catSlug, &catName, &catDesc,
 		&rep.CommentCount, &rep.UpCount, &rep.DownCount, &rep.MyVote,
 	)
 	if err != nil {
@@ -366,7 +421,7 @@ func (r *PostgresRepository) GetReportDetail(ctx context.Context, id int64, requ
 		}
 		return Report{}, fmt.Errorf("reports: get report detail: %w", err)
 	}
-	rep.Category = cat
+	rep.Category = categoryFromRow(catID, catSlug, catName, catDesc)
 
 	tagsByReport, err := r.tagsForReports(ctx, []int64{rep.ID})
 	if err != nil {
@@ -499,12 +554,12 @@ func (r *PostgresRepository) CreateReport(ctx context.Context, p CreateReportPar
 	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
 
 	const ins = `
-		INSERT INTO reports (author_user_id, source_check_id, category_id, title, redacted_text, source_locale, review_status, publication_confirmed_at)
-		VALUES ($1, $2, $3, $4, $5, $6, 'unverified', now())
+		INSERT INTO reports (author_user_id, source_check_id, category_id, title, redacted_text, source_locale, redacted_image_key, review_status, publication_confirmed_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 'unverified', now())
 		RETURNING id`
 	var id int64
 	if err := tx.QueryRow(ctx, ins,
-		p.AuthorUserID, p.SourceCheckID, p.CategoryID, p.Title, p.RedactedText, p.SourceLocale,
+		p.AuthorUserID, p.SourceCheckID, p.CategoryID, p.Title, p.RedactedText, p.SourceLocale, p.RedactedImageKey,
 	).Scan(&id); err != nil {
 		return 0, fmt.Errorf("reports: insert report: %w", err)
 	}
@@ -622,6 +677,58 @@ func (r *PostgresRepository) CheckOwnedBy(ctx context.Context, checkID, userID i
 	return ok, nil
 }
 
+// RedactedImageKeyForCheck implements Repository. It returns the redacted image
+// storage key of a check owned by the given user, if one exists. The owner scope
+// guards against attaching another user's upload to a post.
+func (r *PostgresRepository) RedactedImageKeyForCheck(ctx context.Context, checkID, ownerUserID int64) (string, bool, error) {
+	const q = `
+		SELECT u.redacted_storage_key
+		FROM private_uploads u
+		JOIN private_checks c ON c.id = u.check_id
+		WHERE u.check_id = $1
+		  AND c.owner_user_id = $2
+		  AND u.redacted_storage_key IS NOT NULL
+		ORDER BY u.created_at DESC
+		LIMIT 1`
+	var key *string
+	err := r.pool.QueryRow(ctx, q, checkID, ownerUserID).Scan(&key)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", false, nil
+		}
+		return "", false, fmt.Errorf("reports: redacted image key for check: %w", err)
+	}
+	if key == nil || *key == "" {
+		return "", false, nil
+	}
+	return *key, true, nil
+}
+
+// GetReportImageKey implements Repository. It returns the post's redacted image
+// storage key only when the post is publicly visible, mirroring ReportVisible.
+func (r *PostgresRepository) GetReportImageKey(ctx context.Context, id int64) (string, bool, error) {
+	const q = `
+		SELECT redacted_image_key
+		FROM reports
+		WHERE id = $1
+		  AND deleted_at IS NULL
+		  AND review_status NOT IN ('hidden', 'removed')
+		  AND category_id IS NOT NULL
+		  AND redacted_image_key IS NOT NULL`
+	var key *string
+	err := r.pool.QueryRow(ctx, q, id).Scan(&key)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", false, nil
+		}
+		return "", false, fmt.Errorf("reports: get report image key: %w", err)
+	}
+	if key == nil || *key == "" {
+		return "", false, nil
+	}
+	return *key, true, nil
+}
+
 // SetReaction implements Repository.
 func (r *PostgresRepository) SetReaction(ctx context.Context, reportID, userID int64, vote int16) (int64, int64, error) {
 	const q = `
@@ -661,7 +768,9 @@ func (r *PostgresRepository) ReportVisible(ctx context.Context, id int64) (bool,
 	const q = `
 		SELECT EXISTS (
 			SELECT 1 FROM reports
-			WHERE id = $1 AND deleted_at IS NULL AND review_status NOT IN ('hidden', 'removed')
+			WHERE id = $1 AND deleted_at IS NULL
+			  AND review_status NOT IN ('hidden', 'removed')
+			  AND category_id IS NOT NULL
 		)`
 	var ok bool
 	if err := r.pool.QueryRow(ctx, q, id).Scan(&ok); err != nil {

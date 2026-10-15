@@ -46,9 +46,9 @@ var (
 	ErrTitleRequired = errors.New("reports: title is required")
 	// ErrBodyRequired is returned when redacted_text is empty (after scrubbing).
 	ErrBodyRequired = errors.New("reports: redacted_text is required")
-	// ErrUnknownCategory is returned when the supplied scam_type slug does not
-	// resolve to a category.
-	ErrUnknownCategory = errors.New("reports: unknown scam_type")
+	// ErrUnknownCategory is returned when a scam_type slug does not resolve to a
+	// category.
+	ErrUnknownCategory = errors.New("reports: unknown category")
 	// ErrUnknownTags is returned when one or more supplied tag slugs do not
 	// resolve to existing tags. The offending slugs are carried by the
 	// UnknownTagsError type.
@@ -88,10 +88,12 @@ type Tag struct {
 // counts and requester-scoped flags. Not every field is populated by every
 // query; list projections fill the card subset while detail queries fill all.
 type Report struct {
-	ID                     int64
-	AuthorUserID           *int64
-	SourceCheckID          *int64
-	CategoryID             int64
+	ID            int64
+	AuthorUserID  *int64
+	SourceCheckID *int64
+	// CategoryID is nil while the post is unclassified. Unclassified posts are
+	// visible only to their author and to moderators.
+	CategoryID             *int64
 	Title                  string
 	RedactedText           string
 	SourceLocale           string
@@ -101,9 +103,16 @@ type Report struct {
 	DeletedAt              *time.Time
 	PublicationConfirmedAt time.Time
 
-	// Joined category and tags.
-	Category Category
+	// Joined category and tags. Category is nil for unclassified posts.
+	Category *Category
 	Tags     []Tag
+
+	// RedactedImageKey references the post's own redacted image copy in blob
+	// storage, or nil when the post has no image. It is a storage key, never
+	// exposed directly; the handler derives a public image URL from it. The
+	// blob is an independent copy made at publish time from the author's own
+	// completed check, so it survives the private check's expiry/deletion.
+	RedactedImageKey *string
 
 	// Derived counts.
 	CommentCount int64
@@ -118,17 +127,29 @@ type Report struct {
 // ReportCard is the reduced feed projection. It carries a truncated excerpt of
 // the redacted text rather than the full body.
 type ReportCard struct {
-	ID           int64
-	Title        string
-	Excerpt      string
-	Category     Category
+	ID      int64
+	Title   string
+	Excerpt string
+	// Category is nil for unclassified posts (author-only visibility).
+	Category     *Category
 	Tags         []Tag
 	ReviewStatus string
 	CreatedAt    time.Time
 	CommentCount int64
+	UpCount      int64
+	DownCount    int64
 	// TopComments holds up to a few of the most active top-level comments for a
 	// preview on the feed card. Ordered most-active first.
 	TopComments []TopComment
+
+	// Requester-scoped field: IsMine is true when the requesting user authored
+	// this post. It is false for anonymous requesters and for posts authored by
+	// other users (post authorship is never otherwise exposed publicly).
+	IsMine bool
+
+	// Requester-scoped field: MyVote is the requesting user's reaction vote
+	// (-1, 0, 1), zero-valued for anonymous requesters.
+	MyVote int16
 }
 
 // TopComment is a small preview of a post's comment shown on the feed card. It

@@ -3,11 +3,15 @@ package reports
 import (
 	"context"
 	"encoding/base64"
+	"errors"
+	"io"
 	"strconv"
 	"strings"
 	"time"
 
 	"scamshield/internal/auth"
+	"scamshield/internal/classifier"
+	"scamshield/internal/storage"
 )
 
 // Pagination and content bounds.
@@ -21,17 +25,27 @@ const (
 
 	// defaultLocale is used when a report omits a source locale.
 	defaultLocale = "en-SG"
+
+	// postImageStoragePrefix groups the post-owned redacted image copies in the
+	// blob store, kept separate from the private check uploads/redacted objects.
+	postImageStoragePrefix = "post-images"
 )
 
 // Service holds reports business logic. It is transport-agnostic.
 type Service struct {
-	repo Repository
-	now  func() time.Time
+	repo       Repository
+	classifier classifier.Classifier
+	store      storage.Store
+	now        func() time.Time
 }
 
-// NewService constructs a reports Service.
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo, now: time.Now}
+// NewService constructs a reports Service. The classifier assigns the scam
+// category on publish; pass nil to disable classification (every post then
+// stays unclassified and author-only). The store holds the post's own redacted
+// image copy; pass nil to disable image attachment (posts then publish without
+// an image).
+func NewService(repo Repository, cl classifier.Classifier, store storage.Store) *Service {
+	return &Service{repo: repo, classifier: cl, store: store, now: time.Now}
 }
 
 // Page is a page of feed/author cards with an opaque next cursor.
@@ -47,6 +61,8 @@ type FeedInput struct {
 	TagSlug      string
 	RawCursor    string
 	Limit        int
+	// RequesterUserID scopes the per-card IsMine flag; nil for anonymous.
+	RequesterUserID *int64
 }
 
 // SearchInput carries a feed search request.
@@ -55,6 +71,8 @@ type SearchInput struct {
 	CategorySlug string
 	RawCursor    string
 	Limit        int
+	// RequesterUserID scopes the per-card IsMine flag; nil for anonymous.
+	RequesterUserID *int64
 }
 
 // Feed returns a page of public feed cards. An unparseable cursor is rejected
@@ -72,7 +90,7 @@ func (s *Service) Feed(ctx context.Context, in FeedInput) (Page, error) {
 		TagSlug:      strings.TrimSpace(in.TagSlug),
 		Limit:        limit + 1,
 		Cursor:       cursor,
-	})
+	}, in.RequesterUserID)
 	if err != nil {
 		return Page{}, err
 	}
@@ -94,7 +112,7 @@ func (s *Service) Search(ctx context.Context, in SearchInput) (Page, error) {
 		CategorySlug: strings.TrimSpace(in.CategorySlug),
 		Limit:        limit + 1,
 		Cursor:       cursor,
-	})
+	}, in.RequesterUserID)
 	if err != nil {
 		return Page{}, err
 	}
@@ -144,21 +162,23 @@ func (s *Service) ListTags(ctx context.Context, q string, limit int) ([]Tag, err
 	return s.repo.ListTags(ctx, strings.TrimSpace(q), limit)
 }
 
-// CreateInput carries a publish request.
+// CreateInput carries a publish request. The scam category is assigned by the
+// classifier, never by the client.
 type CreateInput struct {
 	AuthorUserID       int64
 	CheckID            *int64
 	Title              string
 	RedactedText       string
-	ScamTypeSlug       string
 	TagSlugs           []string
 	ConfirmPublication bool
 	SourceLocale       string
 }
 
-// Create publishes a new report. It enforces explicit confirmation, resolves
-// the category and tags, re-scrubs the body server-side, and links a source
-// check only when the caller owns it.
+// Create publishes a new report. It enforces explicit confirmation, re-scrubs
+// the body server-side, asks the classifier for the scam category, and links a
+// source check only when the caller owns it. When classification fails or
+// yields no category the post is still created but stays unclassified, i.e.
+// visible only to its author until it is classified.
 func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 	if !in.ConfirmPublication {
 		return Report{}, ErrConfirmationRequired
@@ -175,14 +195,11 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 		return Report{}, ErrBodyRequired
 	}
 
-	slug := strings.TrimSpace(in.ScamTypeSlug)
-	if slug == "" {
-		return Report{}, ErrUnknownCategory
-	}
-	cat, err := s.repo.GetCategoryBySlug(ctx, slug)
-	if err != nil {
-		return Report{}, err
-	}
+	locale := normalizeLocale(in.SourceLocale)
+
+	// Classification runs on the scrubbed body only. Failure is not fatal: the
+	// post is stored unclassified and hidden from other users.
+	categoryID := s.classifyCategory(ctx, body, locale)
 
 	tagIDs, err := s.resolveTags(ctx, in.TagSlugs)
 	if err != nil {
@@ -202,15 +219,27 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 		}
 	}
 
-	locale := normalizeLocale(in.SourceLocale)
+	// When the post is backed by the author's own check, copy that check's
+	// redacted image into a fresh, post-owned object so the published post keeps
+	// its image even after the private check expires or is deleted. Only the
+	// redacted derivative is ever copied; the raw upload is never touched.
+	// Copy failure is not fatal: the post still publishes without an image.
+	var redactedImageKey *string
+	if sourceCheckID != nil {
+		if key, ok := s.copyCheckImage(ctx, *sourceCheckID, in.AuthorUserID); ok {
+			redactedImageKey = &key
+		}
+	}
+
 	id, err := s.repo.CreateReport(ctx, CreateReportParams{
-		AuthorUserID:  in.AuthorUserID,
-		SourceCheckID: sourceCheckID,
-		CategoryID:    cat.ID,
-		Title:         title,
-		RedactedText:  body,
-		SourceLocale:  locale,
-		TagIDs:        tagIDs,
+		AuthorUserID:     in.AuthorUserID,
+		SourceCheckID:    sourceCheckID,
+		CategoryID:       categoryID,
+		Title:            title,
+		RedactedText:     body,
+		SourceLocale:     locale,
+		TagIDs:           tagIDs,
+		RedactedImageKey: redactedImageKey,
 	})
 	if err != nil {
 		return Report{}, err
@@ -218,6 +247,86 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 
 	requesterID := in.AuthorUserID
 	return s.repo.GetReportDetail(ctx, id, &requesterID, true)
+}
+
+// classifyCategory asks the classifier for a category and resolves it to a
+// categories id. It returns nil when there is no classifier, when the
+// classifier fails, or when the predicted slug does not exist — in all of those
+// cases the post remains unclassified rather than the publish failing. Only the
+// scrubred text is passed on, and no result is logged.
+func (s *Service) classifyCategory(ctx context.Context, scrubbedBody, locale string) *int64 {
+	if s.classifier == nil {
+		return nil
+	}
+	res, err := s.classifier.Classify(ctx, scrubbedBody, locale)
+	if err != nil || !res.Classified() {
+		return nil
+	}
+	cat, err := s.repo.GetCategoryBySlug(ctx, res.Slug)
+	if err != nil {
+		// Unknown predicted slug: leave the post unclassified.
+		return nil
+	}
+	return &cat.ID
+}
+
+// copyCheckImage copies the redacted image of the author's own check into a
+// fresh, post-owned storage object and returns the new key. It returns ok=false
+// (and no error) whenever there is nothing to copy or the copy cannot be made:
+// no store configured, the check has no redacted image, or any storage error.
+// Publishing never fails because of an image copy. The raw upload is never
+// read; only the already-redacted derivative is copied.
+func (s *Service) copyCheckImage(ctx context.Context, checkID, ownerUserID int64) (string, bool) {
+	if s.store == nil {
+		return "", false
+	}
+	srcKey, ok, err := s.repo.RedactedImageKeyForCheck(ctx, checkID, ownerUserID)
+	if err != nil || !ok {
+		return "", false
+	}
+	obj, err := s.store.Get(ctx, srcKey)
+	if err != nil {
+		return "", false
+	}
+	defer obj.Body.Close()
+	newKey, err := s.store.Put(ctx, postImageStoragePrefix, obj.MediaType, obj.Body)
+	if err != nil {
+		return "", false
+	}
+	return newKey, true
+}
+
+// PostImage is a published post's redacted image ready to stream to a client.
+// The caller must close Body.
+type PostImage struct {
+	Body      io.ReadCloser
+	MediaType string
+	Size      int64
+}
+
+// OpenPostImage opens the redacted image of a publicly visible post for
+// streaming. It resolves missing posts, posts without an image, and posts that
+// are not publicly visible all to ErrReportNotFound so the route never reveals
+// which posts exist or carry an image. Only the redacted copy is served.
+func (s *Service) OpenPostImage(ctx context.Context, id int64) (PostImage, error) {
+	if s.store == nil {
+		return PostImage{}, ErrReportNotFound
+	}
+	key, ok, err := s.repo.GetReportImageKey(ctx, id)
+	if err != nil {
+		return PostImage{}, err
+	}
+	if !ok {
+		return PostImage{}, ErrReportNotFound
+	}
+	obj, err := s.store.Get(ctx, key)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return PostImage{}, ErrReportNotFound
+		}
+		return PostImage{}, err
+	}
+	return PostImage{Body: obj.Body, MediaType: obj.MediaType, Size: obj.Size}, nil
 }
 
 // UpdateInput carries an edit request. Nil pointers leave a field unchanged.

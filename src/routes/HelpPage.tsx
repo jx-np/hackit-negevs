@@ -40,7 +40,7 @@ function GuidanceCard({ item }: { item: GuidanceItem }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="relative overflow-hidden rounded-lg border border-scam-line bg-scam-800 p-5"
+      className="relative overflow-hidden rounded-2xl border border-scam-line bg-scam-800 shadow-card p-5"
     >
       <span className={`absolute inset-y-0 left-0 w-1 ${meta.strip}`} aria-hidden />
       <div className="flex items-center gap-2">
@@ -68,7 +68,7 @@ function ResourceCard({ resource }: { resource: Resource }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="group flex flex-col rounded-lg border border-scam-line bg-scam-800 p-5 transition hover:border-scam-muted/60 hover:bg-scam-750"
+      className="group flex flex-col rounded-2xl border border-scam-line bg-scam-800 shadow-card p-5 transition hover:border-scam-muted/60 hover:bg-scam-750"
     >
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-semibold text-scam-text group-hover:text-white">
@@ -112,7 +112,7 @@ function SectionError({ message }: { message: string }) {
 
 function CardSkeleton() {
   return (
-    <div className="rounded-lg border border-scam-line bg-scam-800 p-5">
+    <div className="rounded-2xl border border-scam-line bg-scam-800 shadow-card p-5">
       <div className="h-4 w-24 animate-pulse rounded bg-scam-750" />
       <div className="mt-3 h-5 w-2/3 animate-pulse rounded bg-scam-750" />
       <div className="mt-3 space-y-2">
@@ -207,7 +207,6 @@ export function HelpPage() {
   return (
     <div
       className="min-h-screen bg-scam-950 text-scam-text"
-      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
     >
       <div className="mx-auto w-full max-w-[900px] px-5 py-10 lg:px-8">
         <HelpContent />

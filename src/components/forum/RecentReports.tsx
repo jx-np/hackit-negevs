@@ -32,7 +32,7 @@ function RecentRow({ post }: { post: Post }) {
   return (
     <Link
       to={`/forum/${post.id}`}
-      className="block rounded-md px-2 py-2.5 transition hover:bg-scam-800"
+      className="sr-focus block rounded-xl px-2 py-2.5 transition hover:bg-scam-750"
     >
       <div className="flex items-center gap-2">
         <span className="sr-tile h-5 w-5">
@@ -70,7 +70,7 @@ export function RecentReports() {
       <div className="sr-surface p-4">
         <div className="flex items-center justify-between">
           <span className="sr-label">Recently Reported Scams</span>
-          <Link to="/forum" className="text-xs font-medium text-trust-400 hover:underline">
+          <Link to="/forum" className="sr-focus rounded text-xs font-semibold text-trust-700 hover:underline dark:text-trust-400">
             See all
           </Link>
         </div>
@@ -93,7 +93,7 @@ export function RecentReports() {
       </div>
 
       {/* Active threat alerts — urgent, time-sensitive scams. */}
-      <div className="mt-4 overflow-hidden rounded-lg border border-risk-high/40 bg-risk-high/5 shadow-card">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-risk-high/30 bg-risk-high/[0.05] shadow-card">
         {/* Thin red top border strip for urgency */}
         <div className="h-1 w-full bg-gradient-to-r from-risk-high to-risk-med" />
         <div className="p-4">

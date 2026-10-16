@@ -1,5 +1,6 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { LogOut, Menu, ShieldCheck, X } from 'lucide-react';
+import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { SettingsPanel } from './SettingsPanel';
@@ -12,53 +13,63 @@ const BASE_LINKS = [
   { to: '/help', label: 'Get help', end: false },
 ];
 
+/** Brand mark: shield glyph on a trust-blue tile. Shared with the footer. */
+export function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const box = size === 'sm' ? 'h-8 w-8 rounded-lg' : 'h-9 w-9 rounded-xl';
+  return (
+    <span
+      className={`relative grid ${box} place-items-center bg-gradient-to-b from-trust-500 to-trust-700 text-white shadow-button`}
+    >
+      <ShieldCheck size={size === 'sm' ? 17 : 19} strokeWidth={2.25} />
+    </span>
+  );
+}
+
 export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isLoggedIn, user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = isLoggedIn
     ? [...BASE_LINKS, { to: '/me/posts', label: 'My posts', end: false }]
     : BASE_LINKS;
 
+  // Close the mobile menu whenever the route changes (derived, no effect).
+  const [menuPath, setMenuPath] = useState(location.pathname);
+  if (menuPath !== location.pathname) {
+    setMenuPath(location.pathname);
+    if (mobileOpen) setMobileOpen(false);
+  }
+
+  const linkClass = ({ isActive }: { isActive: boolean }) =>
+    `sr-focus relative rounded-lg px-3 py-2 text-[0.95rem] font-medium transition ${
+      isActive
+        ? 'text-scam-text'
+        : 'text-scam-muted hover:bg-scam-750 hover:text-scam-text'
+    }`;
+
   return (
-    <motion.header
-      className="sticky top-0 z-30 border-b border-ink-200 bg-paper/85 py-3 backdrop-blur-md dark:border-ink-800 dark:bg-ink-950/85"
-    >
-      <div className="mx-auto flex w-full max-w-[1400px] items-center justify-between px-6">
-        <NavLink to="/" className="group flex items-center gap-2.5 font-semibold">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-ink-900 text-white transition group-hover:bg-safe-600 dark:bg-white dark:text-ink-900 dark:group-hover:bg-safe-500">
-            <ShieldCheck size={22} />
-          </span>
-          <span className="font-display text-xl font-bold tracking-tight text-ink-900 transition group-hover:text-safe-600 dark:text-white dark:group-hover:text-safe-500">
+    <header className="sticky top-0 z-30 border-b border-scam-line bg-scam-950/80 backdrop-blur-xl supports-[backdrop-filter]:bg-scam-950/70">
+      <div className="mx-auto flex h-16 w-full max-w-[1400px] items-center justify-between gap-4 px-5 lg:px-8">
+        <NavLink to="/" className="sr-focus group flex items-center gap-2.5 rounded-lg">
+          <BrandMark />
+          <span className="font-display text-lg font-bold tracking-tight text-scam-text">
             ScamWatch
           </span>
         </NavLink>
 
-        <nav className="flex items-center gap-4 sm:gap-6">
-          <div className="flex items-center gap-1">
+        <nav className="flex items-center gap-2 sm:gap-3" aria-label="Primary">
+          <div className="hidden items-center gap-0.5 md:flex">
             {links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.end}
-                className="relative px-3 py-2 font-display text-sm font-medium uppercase tracking-wider transition"
-              >
+              <NavLink key={link.to} to={link.to} end={link.end} className={linkClass}>
                 {({ isActive }) => (
                   <>
-                    <span
-                      className={
-                        isActive
-                          ? 'text-ink-900 dark:text-white'
-                          : 'text-ink-500 hover:text-ink-900 dark:text-ink-400 dark:hover:text-white'
-                      }
-                    >
-                      {link.label}
-                    </span>
+                    {link.label}
                     {isActive && (
                       <motion.span
                         layoutId="nav-underline"
-                        className="absolute inset-x-2 -bottom-0.5 h-0.5 bg-safe-500"
+                        className="absolute inset-x-3 -bottom-[13px] h-0.5 rounded-full bg-trust-500"
                         transition={{ type: 'spring', duration: 0.4 }}
                       />
                     )}
@@ -68,9 +79,11 @@ export function Navbar() {
             ))}
           </div>
 
+          <span className="mx-1 hidden h-6 w-px bg-scam-line md:block" aria-hidden />
+
           {isLoggedIn ? (
-            <div className="flex items-center gap-3">
-              <span className="hidden text-xs text-ink-400 sm:inline">
+            <div className="flex items-center gap-2">
+              <span className="hidden max-w-[10rem] truncate text-sm text-scam-muted lg:inline">
                 {user?.name}
               </span>
               <button
@@ -79,36 +92,55 @@ export function Navbar() {
                   logout();
                   navigate('/');
                 }}
-                className="flex items-center gap-1.5 rounded-md border border-ink-300 px-3 py-2 text-sm font-medium text-ink-700 transition hover:border-safe-500 hover:text-safe-600 dark:border-ink-700 dark:text-ink-300 dark:hover:border-safe-500 dark:hover:text-safe-400"
+                className="sr-btn-ghost"
                 aria-label="Log out"
               >
                 <LogOut size={16} /> <span className="hidden sm:inline">Log out</span>
               </button>
             </div>
           ) : (
-            <NavLink
-              to="/auth"
-              className="rounded-md border border-safe-600 bg-safe-500 px-5 py-2 text-sm font-semibold text-white shadow-soft transition hover:bg-safe-600"
-            >
+            <NavLink to="/auth" className="sr-btn-primary px-4">
               Sign in
             </NavLink>
           )}
 
           <SettingsPanel />
+
+          <button
+            type="button"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-nav"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            className="sr-focus grid h-10 w-10 place-items-center rounded-lg border border-scam-line text-scam-text transition hover:bg-scam-750 md:hidden"
+          >
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </nav>
       </div>
 
-      {/* Route accent under the bar */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={location.pathname}
-          className="absolute bottom-0 left-0 h-px bg-safe-500"
-          initial={{ width: '0%' }}
-          animate={{ width: '100%' }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-        />
-      </AnimatePresence>
-    </motion.header>
+      {mobileOpen && (
+        <div id="mobile-nav" className="border-t border-scam-line bg-scam-950 md:hidden">
+          <div className="mx-auto flex max-w-[1400px] flex-col gap-1 px-5 py-3">
+            {links.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                className={({ isActive }) =>
+                  `sr-focus rounded-lg px-3 py-2.5 text-base font-medium transition ${
+                    isActive
+                      ? 'bg-trust-500/10 text-trust-600 dark:text-trust-400'
+                      : 'text-scam-muted hover:bg-scam-750 hover:text-scam-text'
+                  }`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )}
+    </header>
   );
 }

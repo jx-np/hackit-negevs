@@ -21,7 +21,7 @@ interface PostListProps {
 
 function PostSkeleton() {
   return (
-    <div className="mb-4 rounded-lg border border-scam-line bg-scam-800 p-5">
+    <div className="mb-5 rounded-2xl border border-scam-line bg-scam-800 p-6 shadow-card">
       <div className="flex items-center gap-3">
         <div className="h-9 w-9 shrink-0 animate-pulse rounded-md bg-scam-750" />
         <div className="flex-1 space-y-2">
@@ -91,7 +91,7 @@ export function PostList({
 
   if (isError) {
     return (
-      <div className="rounded-lg border border-risk-high/40 bg-risk-high/10 p-6 text-center text-risk-high">
+      <div className="rounded-2xl border border-risk-high/40 bg-risk-high/10 p-6 text-center text-risk-high">
         <p className="sr-label text-risk-high">Error</p>
         <p className="mt-2 text-lg font-medium text-scam-text">
           Something went wrong loading records.
@@ -113,7 +113,7 @@ export function PostList({
     // continue paging instead of stopping at a premature empty state.
     const stillPaging = Boolean(filter) && hasNextPage;
     return (
-      <div className="rounded-lg border border-dashed border-scam-line p-12 text-center text-scam-muted">
+      <div className="rounded-2xl border border-dashed border-scam-line bg-scam-800/50 p-12 text-center text-scam-muted">
         <p className="text-xl font-medium text-scam-text">
           {stillPaging ? 'Loading…' : emptyTitle ?? 'No records found'}
         </p>

@@ -24,16 +24,16 @@
 }
 
 .dark {
-  /* ===== ScamWatch forum palette — DARK mode ===== */
-  --scam-950: 10 14 20; /* #0a0e14 page background */
-  --scam-900: 15 20 28; /* #0f141c */
-  --scam-850: 17 24 34; /* #111822 */
-  --scam-800: 20 26 34; /* #141a22 cards */
-  --scam-750: 24 32 41; /* #182029 inputs */
-  --scam-line: 35 43 54; /* #232b36 borders */
-  --scam-text: 237 241 245; /* #edf1f5 */
-  --scam-muted: 122 134 148; /* #7a8694 */
-  --scam-dim: 95 107 120; /* #5f6b78 */
+  /* ===== ScamWatch forum palette — DARK mode (deep navy ink) ===== */
+  --scam-950: 8 12 20; /* page background */
+  --scam-900: 12 17 27;
+  --scam-850: 16 22 34; /* menus / modals */
+  --scam-800: 17 24 36; /* cards */
+  --scam-750: 23 31 45; /* inputs / inner surfaces */
+  --scam-line: 36 46 62; /* hairline borders */
+  --scam-text: 237 241 246;
+  --scam-muted: 148 160 176; /* raised for AA on cards */
+  --scam-dim: 110 122 138;
 }
 
 html {
@@ -110,10 +110,54 @@ body {
 
   /* Flat, bordered surface — thin hairline border over a lifted fill. */
   .sr-surface {
-    @apply rounded-lg;
+    @apply rounded-2xl;
     border: 1px solid rgb(var(--scam-line));
     background-color: rgb(var(--scam-800));
     box-shadow: theme('boxShadow.card');
+  }
+
+  /* Interactive card: surface + lift on hover. */
+  .sr-card {
+    @apply rounded-2xl transition duration-200;
+    border: 1px solid rgb(var(--scam-line));
+    background-color: rgb(var(--scam-800));
+    box-shadow: theme('boxShadow.card');
+  }
+  .sr-card:hover {
+    border-color: theme('colors.trust.500 / 35%');
+    box-shadow: theme('boxShadow.card-hover');
+  }
+
+  /* Consistent keyboard focus ring for custom controls. */
+  .sr-focus {
+    @apply outline-none;
+  }
+  .sr-focus:focus-visible {
+    box-shadow:
+      0 0 0 2px rgb(var(--scam-950)),
+      0 0 0 4px theme('colors.trust.500');
+  }
+
+  /* Soft trust-blue glow used behind hero graphics. */
+  .sw-halo {
+    background:
+      radial-gradient(closest-side, theme('colors.trust.500 / 22%'), transparent 70%);
+  }
+
+  /* Dotted "signal" texture for hero and banner backgrounds. */
+  .sw-dots {
+    background-image: radial-gradient(rgb(var(--scam-line)) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  /* Large CTA buttons for marketing surfaces. */
+  .sw-btn-lg {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-semibold transition duration-200 outline-none;
+  }
+  .sw-btn-lg:focus-visible {
+    box-shadow:
+      0 0 0 2px rgb(var(--scam-950)),
+      0 0 0 4px theme('colors.trust.500');
   }
 
   /* Tiny all-caps trust-blue eyebrow label (e.g. "CONTRIBUTE"). */
@@ -137,8 +181,17 @@ body {
   }
 
   /* Minimal outline/ghost button (secondary action). */
+  .sr-btn-ghost:focus-visible,
+  .sr-btn-primary:focus-visible,
+  .sr-chip:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgb(var(--scam-950)),
+      0 0 0 4px theme('colors.trust.500');
+  }
+
   .sr-btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition;
     border: 1px solid rgb(var(--scam-line));
     background-color: transparent;
     color: rgb(var(--scam-text));
@@ -150,17 +203,18 @@ body {
 
   /* Primary trust-blue button (primary CTA). */
   .sr-btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition;
-    background-color: theme('colors.trust.500');
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition;
+    background-color: theme('colors.trust.600');
     color: #ffffff;
+    box-shadow: theme('boxShadow.button');
   }
   .sr-btn-primary:hover {
-    background-color: theme('colors.trust.600');
+    background-color: theme('colors.trust.700');
   }
 
   /* Form input with trust-blue focus ring. */
   .sr-input {
-    @apply w-full rounded-md px-3.5 py-2.5 text-sm outline-none transition;
+    @apply w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition;
     border: 1px solid rgb(var(--scam-line));
     background-color: rgb(var(--scam-750));
     color: rgb(var(--scam-text));

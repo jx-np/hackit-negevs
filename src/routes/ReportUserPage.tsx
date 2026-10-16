@@ -57,7 +57,6 @@ export function ReportUserPage() {
   return (
     <div
       className="min-h-screen bg-scam-950 text-scam-text"
-      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
     >
       <div className="mx-auto w-full max-w-[900px] px-5 py-10 lg:px-8">
         <ReportUserContent />
@@ -112,7 +111,7 @@ export function ReportUserContent() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
-          className="mb-6 rounded-lg border border-scam-line bg-scam-800 p-6"
+          className="mb-6 rounded-2xl border border-scam-line bg-scam-800 shadow-card p-6"
         >
           <h2 className="flex items-center gap-2 text-base font-semibold text-scam-text">
             <Flag size={18} className="text-trust-400" /> How to report someone
@@ -133,7 +132,7 @@ export function ReportUserContent() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.1 }}
-          className="mb-8 rounded-lg border border-scam-line bg-scam-800 p-6"
+          className="mb-8 rounded-2xl border border-scam-line bg-scam-800 shadow-card p-6"
         >
           <h2 className="text-base font-semibold text-scam-text">
             What you can report

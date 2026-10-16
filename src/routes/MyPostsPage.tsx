@@ -41,7 +41,6 @@ export function MyPostsPage() {
   return (
     <div
       className="min-h-screen bg-scam-950 text-scam-text"
-      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
     >
       <div className="mx-auto w-full max-w-3xl px-5 py-8 lg:px-8">
         <motion.div

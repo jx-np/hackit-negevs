@@ -20,15 +20,18 @@ var mediaTypeExt = map[string]string{
 	"image/webp": ".webp",
 }
 
-// sidecar suffix storing the media type next to the object, so Get can report
-// the content type without a central index.
-const mediaSidecarSuffix = ".type"
+// legacyMediaSidecarSuffix is the suffix older builds used to persist the
+// media type next to each object (e.g. "<key>.type"). It is kept only so
+// Delete can clean up sidecars written before they were removed; the store
+// neither writes nor reads it anymore.
+const legacyMediaSidecarSuffix = ".type"
 
 // LocalStore is a Store backed by a directory on the local filesystem.
 //
-// Layout: <root>/<prefix>/<random>.<ext> for the bytes, plus a
-// "<...>.type" sidecar holding the media type. Keys are the path relative to
-// root, using forward slashes, so they are portable across OSes.
+// Layout: <root>/<prefix>/<random>.<ext> for the bytes. The extension is
+// cosmetic (chosen from the media type at Put time); the content type is not
+// stored here — the database is the source of truth. Keys are the path
+// relative to root, using forward slashes, so they are portable across OSes.
 type LocalStore struct {
 	root string
 }
@@ -85,12 +88,6 @@ func (s *LocalStore) Put(ctx context.Context, prefix, mediaType string, body io.
 		return "", fmt.Errorf("storage: close object: %w", err)
 	}
 
-	if mediaType != "" {
-		if err := os.WriteFile(absPath+mediaSidecarSuffix, []byte(mediaType), 0o640); err != nil {
-			os.Remove(absPath)
-			return "", fmt.Errorf("storage: write media sidecar: %w", err)
-		}
-	}
 	return key, nil
 }
 
@@ -109,15 +106,11 @@ func (s *LocalStore) Get(ctx context.Context, key string) (Object, error) {
 		}
 		return Object{}, fmt.Errorf("storage: stat object: %w", err)
 	}
-	mediaType := ""
-	if b, err := os.ReadFile(absPath + mediaSidecarSuffix); err == nil {
-		mediaType = strings.TrimSpace(string(b))
-	}
 	f, err := os.Open(absPath)
 	if err != nil {
 		return Object{}, fmt.Errorf("storage: open object: %w", err)
 	}
-	return Object{Body: f, MediaType: mediaType, Size: info.Size()}, nil
+	return Object{Body: f, Size: info.Size()}, nil
 }
 
 func (s *LocalStore) Delete(ctx context.Context, key string) error {
@@ -131,8 +124,11 @@ func (s *LocalStore) Delete(ctx context.Context, key string) error {
 	if err := os.Remove(absPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("storage: delete object: %w", err)
 	}
-	if err := os.Remove(absPath + mediaSidecarSuffix); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("storage: delete media sidecar: %w", err)
+	// Legacy cleanup: older builds wrote a "<key>.type" media-type sidecar
+	// next to each object. We no longer create or read it, but still remove
+	// any that remain so deleting an object never leaves orphaned files.
+	if err := os.Remove(absPath + legacyMediaSidecarSuffix); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("storage: delete legacy media sidecar: %w", err)
 	}
 	return nil
 }

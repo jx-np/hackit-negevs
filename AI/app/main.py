@@ -99,6 +99,9 @@ async def _run_redaction(image_bytes: bytes, media_type: str) -> _RedactOutcome:
     boxes = engine.extractImageWithBoundingBox(image_bytes)
 
     # No text found -> return the original image unchanged, nothing to redact.
+    # Short-circuit *before* the PII decision: with no boxes there is nothing to
+    # classify, so the decision model (clef) is never called. This keeps an
+    # unreadable/blank image from incurring any model cost.
     if not boxes:
         _logger.info(
             "redact done boxes=0 pii=0 media_type=%s latency_ms=%d",

@@ -28,11 +28,20 @@ type Config struct {
 	// uploaded screenshots and their redacted derivatives. Driven by
 	// STORAGE_DIR.
 	StorageDir string
-	// PIIServiceURL is the base URL of the Python PII-removal service used to
-	// redact screenshot uploads. When empty the service falls back to a stub
-	// redactor that fails screenshot checks cleanly (text detection is
-	// unaffected). Driven by PII_SERVICE_URL.
+	// PIIServiceURL is the base URL of the Python AI service, which hosts both
+	// PII redaction (POST /v1/redact) for screenshot uploads and scam
+	// classification (POST /v1/classify) for text detection. When empty the
+	// service falls back to a stub redactor (screenshot checks fail cleanly)
+	// and has no classifier (text detection fails), since the local rules
+	// analyzer was removed. Driven by PII_SERVICE_URL.
 	PIIServiceURL string
+	// ReaperEnabled turns on the background retention reaper that deletes
+	// expired private checks/uploads (and their blobs). Driven by
+	// REAPER_ENABLED; defaults to true.
+	ReaperEnabled bool
+	// ReaperInterval is how often the retention reaper runs. Driven by
+	// REAPER_INTERVAL; defaults to one hour.
+	ReaperInterval time.Duration
 }
 
 // IsDevelopment reports whether the service is running in the development
@@ -55,7 +64,14 @@ func Load() (Config, error) {
 
 		StorageDir:    getEnv("STORAGE_DIR", "./data/uploads"),
 		PIIServiceURL: getEnv("PII_SERVICE_URL", ""),
+		ReaperEnabled: getEnvBool("REAPER_ENABLED", true),
 	}
+
+	reaperInterval, err := getEnvDuration("REAPER_INTERVAL", time.Hour)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.ReaperInterval = reaperInterval
 
 	accessTTL, err := getEnvDuration("ACCESS_TOKEN_TTL", 15*time.Minute)
 	if err != nil {

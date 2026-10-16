@@ -31,7 +31,7 @@ func noopMiddleware(next http.Handler) http.Handler { return next }
 //
 //   - requireAuth wraps endpoints that need an authenticated principal.
 //   - optionalAuth attaches a principal when a valid token is present but allows
-//     anonymous requests (used for creating and opening resources on checks).
+//     anonymous requests (used for public reads and the resource-open metric).
 //   - global is applied outermost to every route (e.g. logging, rate limiting);
 //     nil is treated as a no-op.
 //
@@ -54,12 +54,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, requireAuth, optionalAuth, 
 	mux.Handle("POST /api/v1/detection/phone-number/report", global(requireAuth(http.HandlerFunc(h.reportPhoneNumber))))
 
 	// Screenshot uploads: multipart image stored for later OCR + redaction.
-	// Anonymous uploads are permitted (owner attached opportunistically) so the
-	// same flow serves logged-out users running a quick private check.
-	mux.Handle("POST /api/v1/uploads", global(optionalAuth(http.HandlerFunc(h.createUpload))))
+	// Uploads are owner-scoped, so the submitter must be authenticated.
+	mux.Handle("POST /api/v1/uploads", global(requireAuth(http.HandlerFunc(h.createUpload))))
 
-	// Anonymous checks are allowed; attach a principal opportunistically.
-	mux.Handle("POST /api/v1/detection", global(optionalAuth(http.HandlerFunc(h.createCheck))))
+	// Private detection is owner-scoped and requires an authenticated principal.
+	mux.Handle("POST /api/v1/detection", global(requireAuth(http.HandlerFunc(h.createCheck))))
 	// Retrieval and history are owner-scoped and require authentication.
 	mux.Handle("GET /api/v1/detection/{id}", global(requireAuth(http.HandlerFunc(h.getCheck))))
 	// Redacted screenshot derivative for a check; owner-scoped, raw upload is
@@ -68,6 +67,11 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, requireAuth, optionalAuth, 
 	mux.Handle("GET /api/v1/me/detection", global(requireAuth(http.HandlerFunc(h.listMyChecks))))
 	// Resource-open metric permits anonymous callers when a check links the row.
 	mux.Handle("POST /api/v1/detection/{id}/resource-opens", global(optionalAuth(http.HandlerFunc(h.recordResourceOpen))))
+
+	// Deletion cancels a check or an upload and purges its stored blobs. Both
+	// are owner-scoped, so authentication is required.
+	mux.Handle("DELETE /api/v1/detection/{id}", global(requireAuth(http.HandlerFunc(h.deleteCheck))))
+	mux.Handle("DELETE /api/v1/uploads/{id}", global(requireAuth(http.HandlerFunc(h.deleteUpload))))
 }
 
 // --- DTOs ---
@@ -80,8 +84,12 @@ type createCheckRequest struct {
 
 type uploadResponse struct {
 	UploadID  string `json:"upload_id"`
-	Status    string `json:"status"`
 	MediaType string `json:"media_type"`
+	// CheckID and Status describe the detection check that was automatically
+	// scheduled for this upload. The check starts in "processing"; poll
+	// GET /detection/{check_id} for the ready assessment.
+	CheckID string `json:"check_id"`
+	Status  string `json:"status"`
 }
 
 type signalDTO struct {
@@ -160,13 +168,26 @@ type reportPhoneRequest struct {
 // --- handlers ---
 
 // createUpload accepts a multipart/form-data screenshot upload, stores the raw
-// bytes behind the blob store, and returns an opaque upload_id the caller then
-// passes to POST /detection to start the OCR + PII-redaction pipeline.
+// bytes behind the blob store, and automatically schedules a detection check
+// for it. The response carries both the upload_id and the check_id of the
+// processing check; clients poll GET /detection/{check_id} for the ready
+// assessment without a separate POST /detection round-trip.
+//
+// Authentication is required: the upload and its check are owned by the caller.
+//
+// An optional "locale" form field tunes analysis; it defaults to the service
+// default when omitted.
 //
 // The raw image is never logged, never returned, and never exposed publicly;
 // only the redacted derivative produced by the worker is retrievable, and only
 // by the owner of the resulting check.
 func (h *Handler) createUpload(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		httpx.Unauthorized(w, r, "authentication required")
+		return
+	}
+
 	// Cap the whole request body so an oversized or malicious upload cannot
 	// exhaust memory. A small slack above MaxUploadBytes covers multipart
 	// framing overhead; the service re-checks the decoded image size exactly.
@@ -198,27 +219,31 @@ func (h *Handler) createUpload(w http.ResponseWriter, r *http.Request) {
 		mediaType = strings.TrimSpace(mediaType[:i])
 	}
 
-	upload, err := h.svc.CreateUpload(r.Context(), CreateUploadBlobInput{
-		OwnerUserID: principalUserID(r),
+	// An optional locale form field tunes analysis; the service normalizes it.
+	locale := strings.TrimSpace(r.FormValue("locale"))
+
+	res, err := h.svc.CreateUploadAndCheck(r.Context(), CreateUploadBlobInput{
+		OwnerUserID: p.UserID,
 		MediaType:   mediaType,
 		Body:        file,
-	})
+	}, locale)
 	if err != nil {
 		h.writeServiceError(w, r, err)
 		return
 	}
 
 	httpx.WriteJSON(w, http.StatusCreated, uploadResponse{
-		UploadID:  encodeID(upload.ID),
-		Status:    upload.Status,
-		MediaType: upload.MediaType,
+		UploadID:  encodeID(res.Upload.ID),
+		MediaType: res.Upload.MediaType,
+		CheckID:   encodeID(res.Check.ID),
+		Status:    res.Check.Status,
 	})
 }
 
 // getRedactedImage streams the PII-redacted screenshot derivative for a check.
-// Ownership is enforced strictly in the service: anonymous callers, non-owners,
-// and checks without a ready redacted image all resolve to not_found so the
-// endpoint never reveals whether a given check exists.
+// Ownership is enforced strictly in the service: non-owners and checks without a
+// ready redacted image all resolve to not_found so the endpoint never reveals
+// whether a given check exists.
 func (h *Handler) getRedactedImage(w http.ResponseWriter, r *http.Request) {
 	id, ok := decodeID(r.PathValue("id"))
 	if !ok {
@@ -244,12 +269,18 @@ func (h *Handler) getRedactedImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) createCheck(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		httpx.Unauthorized(w, r, "authentication required")
+		return
+	}
+
 	var req createCheckRequest
 	if !httpx.DecodeJSON(w, r, &req) {
 		return
 	}
 
-	ownerID := principalUserID(r)
+	ownerID := p.UserID
 	locale := req.Locale
 	text := strings.TrimSpace(req.Text)
 
@@ -365,6 +396,48 @@ func (h *Handler) getCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.WriteJSON(w, http.StatusOK, toCheckResponse(res))
+}
+
+// deleteCheck permanently removes a check (and its uploads and blobs). Ownership
+// is enforced in the service: a check that is not yours resolves to not_found so
+// the endpoint never reveals whether it exists. Response 204 on success.
+func (h *Handler) deleteCheck(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		httpx.Unauthorized(w, r, "authentication required")
+		return
+	}
+	id, ok := decodeID(r.PathValue("id"))
+	if !ok {
+		httpx.NotFound(w, r, "check not found")
+		return
+	}
+	if err := h.svc.DeleteCheck(r.Context(), id, &p.UserID); err != nil {
+		h.writeServiceError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// deleteUpload cancels an upload and purges its blobs. When the upload is linked
+// to a check the whole task is removed (see the service). Ownership is enforced
+// in the service; a non-owner resolves to not_found. Response 204 on success.
+func (h *Handler) deleteUpload(w http.ResponseWriter, r *http.Request) {
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		httpx.Unauthorized(w, r, "authentication required")
+		return
+	}
+	id, ok := decodeID(r.PathValue("id"))
+	if !ok {
+		httpx.NotFound(w, r, "upload not found")
+		return
+	}
+	if err := h.svc.DeleteUpload(r.Context(), id, &p.UserID); err != nil {
+		h.writeServiceError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *Handler) listMyChecks(w http.ResponseWriter, r *http.Request) {
@@ -519,6 +592,12 @@ func (h *Handler) writeServiceError(w http.ResponseWriter, r *http.Request, err 
 		})
 	case errors.Is(err, ErrImageTooLarge):
 		httpx.PayloadTooLarge(w, r, "image is too large")
+	case errors.Is(err, ErrClassifierUnavailable):
+		slog.Warn("checks: classification unavailable",
+			"path", r.URL.Path,
+			"request_id", httpx.RequestIDFromContext(r.Context()),
+		)
+		httpx.WriteError(w, r, http.StatusServiceUnavailable, "classification_unavailable", "scam classification is temporarily unavailable; please try again")
 	case errors.Is(err, ErrResourceNotFound):
 		httpx.NotFound(w, r, "resource not found")
 	case errors.Is(err, ErrOwnershipRequired):

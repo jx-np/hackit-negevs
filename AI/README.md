@@ -78,6 +78,10 @@ python -m venv .venv-pii
 # macOS/Linux:
 # source .venv-pii/bin/activate
 
+# PaddleOCR 3.x needs the PaddlePaddle 3.x CPU framework, published on
+# PaddlePaddle's own index (not PyPI). Install it first:
+pip install paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+
 pip install -r pii/requirements.txt
 pip install -r classify/requirements.txt   # dependency-light; shares the venv
 ```
@@ -108,7 +112,7 @@ Copy `.env.example` to `.env` and adjust. Real env vars win over the file.
 | `CLEF_BASE_URL` | `http://localhost:30000` | SGLang clef-flash server (direct, not a gateway) |
 | `CLEF_MODEL` | `Cloudflare/clef-flash` | model name sent in the request body |
 | `CLEF_TIMEOUT_SECONDS` | `30` | clef HTTP timeout |
-| `OCR_MODEL` | `PP-OCRv6_small` | PaddleOCR 3.x model; PaddleOCR 2.x uses its default model |
+| `OCR_MODEL` | `PP-OCRv6_small_rec` | PaddleOCR 3.x text-recognition model name (note the `_rec` suffix); PaddleOCR 2.x uses its default model |
 | `OCR_MIN_SCORE` | `0.5` | drop OCR boxes below this recognition confidence |
 | `PII_THRESHOLD` | `0.5` | min true-probability to treat an OCR box as PII |
 | `SIGNAL_THRESHOLD` | `0.5` | min true-probability for a classification signal to fire |
@@ -186,8 +190,10 @@ Useful flags:
 The first run may download the OCR model. This runs locally and does not need
 pytest, the API server, or SGLang. The recognized text is printed in your
 terminal and drawn in the window, so use a document you are comfortable
-displaying there. The pinned PaddleOCR 2.9.1 package uses its built-in default
-recognition model; `OCR_MODEL` is used when running with PaddleOCR 3.x.
+displaying there. The pinned PaddleOCR 3.x stack honors `OCR_MODEL` (default
+`PP-OCRv6_small_rec` — note the `_rec` suffix on the recognition-model name; the
+bare tier name like `PP-OCRv6_small` has no engine binding); older PaddleOCR 2.x
+installs ignore it and use their built-in default recognition model.
 
 ## Manual smoke (no GPU)
 

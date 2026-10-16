@@ -35,18 +35,25 @@ type CreateReportParams struct {
 	RedactedText string
 	SourceLocale string
 	TagIDs       []int64
-	// RedactedImageKey is the storage key of the post's own redacted image
-	// copy, or nil when the post has no image.
-	RedactedImageKey *string
+	// Images are the post's redacted image copies in display order. Each entry
+	// is inserted as a report_images row within the create transaction. Empty
+	// for text-only posts.
+	Images []ReportImageParam
+}
+
+// ReportImageParam carries one redacted image to attach to a post, in display
+// order (position is assigned from slice index).
+type ReportImageParam struct {
+	StorageKey string
+	MediaType  string
 }
 
 // UpdateReportParams carries the mutable fields of a report edit. Nil pointers
-// leave the corresponding column unchanged. When Tags is non-nil the tag set is
-// fully replaced (an empty non-nil slice clears all tags).
+// leave the corresponding column unchanged. Tags are classifier-owned and are
+// not editable, so they are not part of an edit.
 type UpdateReportParams struct {
 	Title        *string
 	RedactedText *string
-	Tags         *[]int64
 	// ResetReview forces review_status back to 'unverified' (used when sensitive
 	// content changed).
 	ResetReview bool
@@ -94,17 +101,17 @@ type Repository interface {
 	// CheckOwnedBy reports whether the given check exists and is owned by the
 	// user. Used to validate source_check_id linkage.
 	CheckOwnedBy(ctx context.Context, checkID, userID int64) (bool, error)
-	// RedactedImageKeyForCheck returns the redacted image storage key of the
-	// most recent upload linked to a check that the user owns, if any. ok is
-	// false when the user does not own the check, the check has no linked
-	// upload, or the upload has no redacted image yet. Used at publish time to
-	// locate the source blob to copy into the post's own image.
-	RedactedImageKeyForCheck(ctx context.Context, checkID, ownerUserID int64) (key string, ok bool, err error)
-	// GetReportImageKey returns the post's redacted image storage key when the
-	// post exists and is publicly visible (not deleted/hidden/removed and
-	// classified). ok is false when the post is not publicly visible or has no
-	// image. Used by the public post-image serve route.
-	GetReportImageKey(ctx context.Context, id int64) (key string, ok bool, err error)
+	// RedactedImageForUpload returns the redacted image storage key and media
+	// type of an upload the user owns, when the upload's PII redaction has
+	// completed. ok is false when the upload is not owned by the user, does not
+	// exist, or has no ready redacted copy yet. Used at publish time to locate
+	// each source blob to copy into the post's own images.
+	RedactedImageForUpload(ctx context.Context, uploadID, ownerUserID int64) (key, mediaType string, ok bool, err error)
+	// ListReportImages returns a post's attached images in display order. The
+	// visibility guard mirrors ReportVisible: images are only returned when the
+	// post is publicly visible. Returns an empty slice when the post has no
+	// images or is not publicly visible.
+	ListReportImages(ctx context.Context, reportID int64) ([]ReportImage, error)
 
 	// SetReaction upserts a vote and returns the resulting up/down counts.
 	SetReaction(ctx context.Context, reportID, userID int64, vote int16) (up, down int64, err error)
@@ -385,7 +392,6 @@ func (r *PostgresRepository) GetReportDetail(ctx context.Context, id int64, requ
 			r.id, r.author_user_id, r.source_check_id, r.category_id,
 			r.title, r.redacted_text, r.source_locale, r.review_status,
 			r.publication_confirmed_at, r.created_at, r.updated_at, r.deleted_at,
-			r.redacted_image_key,
 			c.id, c.slug, c.name_key, c.description_key,
 			(SELECT count(*) FROM comments cm WHERE cm.report_id = r.id AND cm.status = 'visible'),
 			(SELECT count(*) FROM report_reactions rx WHERE rx.report_id = r.id AND rx.vote = 1),
@@ -411,7 +417,6 @@ func (r *PostgresRepository) GetReportDetail(ctx context.Context, id int64, requ
 		&rep.ID, &rep.AuthorUserID, &rep.SourceCheckID, &rep.CategoryID,
 		&rep.Title, &rep.RedactedText, &rep.SourceLocale, &rep.ReviewStatus,
 		&rep.PublicationConfirmedAt, &rep.CreatedAt, &rep.UpdatedAt, &rep.DeletedAt,
-		&rep.RedactedImageKey,
 		&catID, &catSlug, &catName, &catDesc,
 		&rep.CommentCount, &rep.UpCount, &rep.DownCount, &rep.MyVote,
 	)
@@ -428,7 +433,40 @@ func (r *PostgresRepository) GetReportDetail(ctx context.Context, id int64, requ
 		return Report{}, err
 	}
 	rep.Tags = tagsByReport[rep.ID]
+
+	images, err := r.imagesForReport(ctx, rep.ID)
+	if err != nil {
+		return Report{}, err
+	}
+	rep.Images = images
 	return rep, nil
+}
+
+// imagesForReport returns a report's redacted images in display order.
+func (r *PostgresRepository) imagesForReport(ctx context.Context, reportID int64) ([]ReportImage, error) {
+	const q = `
+		SELECT id, storage_key, media_type, position
+		FROM report_images
+		WHERE report_id = $1
+		ORDER BY position, id`
+	rows, err := r.pool.Query(ctx, q, reportID)
+	if err != nil {
+		return nil, fmt.Errorf("reports: list report images: %w", err)
+	}
+	defer rows.Close()
+
+	var out []ReportImage
+	for rows.Next() {
+		var img ReportImage
+		if err := rows.Scan(&img.ID, &img.StorageKey, &img.MediaType, &img.Position); err != nil {
+			return nil, fmt.Errorf("reports: scan report image: %w", err)
+		}
+		out = append(out, img)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("reports: iterate report images: %w", err)
+	}
+	return out, nil
 }
 
 // GetCategoryBySlug implements Repository.
@@ -554,12 +592,12 @@ func (r *PostgresRepository) CreateReport(ctx context.Context, p CreateReportPar
 	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
 
 	const ins = `
-		INSERT INTO reports (author_user_id, source_check_id, category_id, title, redacted_text, source_locale, redacted_image_key, review_status, publication_confirmed_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, 'unverified', now())
+		INSERT INTO reports (author_user_id, source_check_id, category_id, title, redacted_text, source_locale, review_status, publication_confirmed_at)
+		VALUES ($1, $2, $3, $4, $5, $6, 'unverified', now())
 		RETURNING id`
 	var id int64
 	if err := tx.QueryRow(ctx, ins,
-		p.AuthorUserID, p.SourceCheckID, p.CategoryID, p.Title, p.RedactedText, p.SourceLocale, p.RedactedImageKey,
+		p.AuthorUserID, p.SourceCheckID, p.CategoryID, p.Title, p.RedactedText, p.SourceLocale,
 	).Scan(&id); err != nil {
 		return 0, fmt.Errorf("reports: insert report: %w", err)
 	}
@@ -568,10 +606,26 @@ func (r *PostgresRepository) CreateReport(ctx context.Context, p CreateReportPar
 		return 0, err
 	}
 
+	if err := insertReportImages(ctx, tx, id, p.Images); err != nil {
+		return 0, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return 0, fmt.Errorf("reports: commit create tx: %w", err)
 	}
 	return id, nil
+}
+
+// insertReportImages inserts a report's redacted image rows inside tx, assigning
+// position from slice index to preserve display order.
+func insertReportImages(ctx context.Context, tx pgx.Tx, reportID int64, images []ReportImageParam) error {
+	for i, img := range images {
+		const q = `INSERT INTO report_images (report_id, storage_key, media_type, position) VALUES ($1, $2, $3, $4)`
+		if _, err := tx.Exec(ctx, q, reportID, img.StorageKey, img.MediaType, i); err != nil {
+			return fmt.Errorf("reports: insert report image: %w", err)
+		}
+	}
+	return nil
 }
 
 // insertReportTags links a report to a set of tag ids inside tx.
@@ -624,16 +678,6 @@ func (r *PostgresRepository) UpdateReport(ctx context.Context, id int64, p Updat
 		return ErrReportNotFound
 	}
 
-	if p.Tags != nil {
-		const del = `DELETE FROM report_tags WHERE report_id = $1`
-		if _, err := tx.Exec(ctx, del, id); err != nil {
-			return fmt.Errorf("reports: clear tags: %w", err)
-		}
-		if err := insertReportTags(ctx, tx, id, *p.Tags); err != nil {
-			return err
-		}
-	}
-
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("reports: commit update tx: %w", err)
 	}
@@ -677,56 +721,66 @@ func (r *PostgresRepository) CheckOwnedBy(ctx context.Context, checkID, userID i
 	return ok, nil
 }
 
-// RedactedImageKeyForCheck implements Repository. It returns the redacted image
-// storage key of a check owned by the given user, if one exists. The owner scope
-// guards against attaching another user's upload to a post.
-func (r *PostgresRepository) RedactedImageKeyForCheck(ctx context.Context, checkID, ownerUserID int64) (string, bool, error) {
+// RedactedImageForUpload implements Repository. It returns the redacted image
+// storage key and media type of an upload the user owns, only once the upload's
+// PII redaction has completed (status 'ready' with a redacted copy). The owner
+// scope guards against attaching another user's upload to a post.
+func (r *PostgresRepository) RedactedImageForUpload(ctx context.Context, uploadID, ownerUserID int64) (string, string, bool, error) {
 	const q = `
-		SELECT u.redacted_storage_key
-		FROM private_uploads u
-		JOIN private_checks c ON c.id = u.check_id
-		WHERE u.check_id = $1
-		  AND c.owner_user_id = $2
-		  AND u.redacted_storage_key IS NOT NULL
-		ORDER BY u.created_at DESC
-		LIMIT 1`
-	var key *string
-	err := r.pool.QueryRow(ctx, q, checkID, ownerUserID).Scan(&key)
+		SELECT redacted_storage_key, media_type
+		FROM private_uploads
+		WHERE id = $1
+		  AND owner_user_id = $2
+		  AND status = 'ready'
+		  AND redacted_storage_key IS NOT NULL`
+	var (
+		key       *string
+		mediaType string
+	)
+	err := r.pool.QueryRow(ctx, q, uploadID, ownerUserID).Scan(&key, &mediaType)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", false, nil
+			return "", "", false, nil
 		}
-		return "", false, fmt.Errorf("reports: redacted image key for check: %w", err)
+		return "", "", false, fmt.Errorf("reports: redacted image for upload: %w", err)
 	}
 	if key == nil || *key == "" {
-		return "", false, nil
+		return "", "", false, nil
 	}
-	return *key, true, nil
+	return *key, mediaType, true, nil
 }
 
-// GetReportImageKey implements Repository. It returns the post's redacted image
-// storage key only when the post is publicly visible, mirroring ReportVisible.
-func (r *PostgresRepository) GetReportImageKey(ctx context.Context, id int64) (string, bool, error) {
+// ListReportImages implements Repository. Images are returned in display order
+// only when the post is publicly visible (not deleted/hidden/removed and
+// classified), so the public serve route never leaks hidden posts.
+func (r *PostgresRepository) ListReportImages(ctx context.Context, reportID int64) ([]ReportImage, error) {
 	const q = `
-		SELECT redacted_image_key
-		FROM reports
-		WHERE id = $1
-		  AND deleted_at IS NULL
-		  AND review_status NOT IN ('hidden', 'removed')
-		  AND category_id IS NOT NULL
-		  AND redacted_image_key IS NOT NULL`
-	var key *string
-	err := r.pool.QueryRow(ctx, q, id).Scan(&key)
+		SELECT ri.id, ri.storage_key, ri.media_type, ri.position
+		FROM report_images ri
+		JOIN reports r ON r.id = ri.report_id
+		WHERE ri.report_id = $1
+		  AND r.deleted_at IS NULL
+		  AND r.review_status NOT IN ('hidden', 'removed')
+		  AND r.category_id IS NOT NULL
+		ORDER BY ri.position, ri.id`
+	rows, err := r.pool.Query(ctx, q, reportID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", false, nil
+		return nil, fmt.Errorf("reports: list report images: %w", err)
+	}
+	defer rows.Close()
+
+	var out []ReportImage
+	for rows.Next() {
+		var img ReportImage
+		if err := rows.Scan(&img.ID, &img.StorageKey, &img.MediaType, &img.Position); err != nil {
+			return nil, fmt.Errorf("reports: scan report image: %w", err)
 		}
-		return "", false, fmt.Errorf("reports: get report image key: %w", err)
+		out = append(out, img)
 	}
-	if key == nil || *key == "" {
-		return "", false, nil
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("reports: iterate report images: %w", err)
 	}
-	return *key, true, nil
+	return out, nil
 }
 
 // SetReaction implements Repository.

@@ -3,9 +3,10 @@
 clef-flash decides only two things: the overall verdict (a `score` question)
 and which signals fired (one `noul` question per signal code). Everything else
 in the `Assessment` — explanations, evidence excerpts, uncertainty, limitations,
-recommended actions, suggested tags — is deterministic Python that mirrors the
-Go rules analyzer (`backend/internal/checks/analyzer.go`) verbatim so the two
-code paths stay consistent.
+recommended actions, suggested tags — is deterministic Python. This module is now
+the canonical implementation: the former Go rules analyzer
+(`backend/internal/checks/analyzer.go`) has been removed, and the backend calls
+this service's `/v1/classify` for every text and screenshot detection.
 
 Privacy: never log `text`, `state`, question instructions (they embed content),
 or raw clef answers. Log only verdict label, signal count, status.

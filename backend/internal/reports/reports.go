@@ -49,25 +49,15 @@ var (
 	// ErrUnknownCategory is returned when a scam_type slug does not resolve to a
 	// category.
 	ErrUnknownCategory = errors.New("reports: unknown category")
-	// ErrUnknownTags is returned when one or more supplied tag slugs do not
-	// resolve to existing tags. The offending slugs are carried by the
-	// UnknownTagsError type.
-	ErrUnknownTags = errors.New("reports: unknown tags")
 	// ErrInvalidVote is returned when a reaction vote is not -1 or 1.
 	ErrInvalidVote = errors.New("reports: vote must be 1 or -1")
 	// ErrInvalidCursor is returned when a pagination cursor cannot be decoded.
 	ErrInvalidCursor = errors.New("reports: invalid cursor")
+	// ErrUploadNotUsable is returned when a supplied upload_id does not resolve
+	// to an image the caller may attach: it is not owned by the author, or its
+	// PII redaction has not completed (no ready redacted copy yet).
+	ErrUploadNotUsable = errors.New("reports: upload not usable")
 )
-
-// UnknownTagsError carries the specific unknown tag slugs for a field-level 422.
-type UnknownTagsError struct {
-	Slugs []string
-}
-
-func (e *UnknownTagsError) Error() string { return "reports: unknown tags" }
-
-// Unwrap allows errors.Is(err, ErrUnknownTags) to match.
-func (e *UnknownTagsError) Unwrap() error { return ErrUnknownTags }
 
 // Category is the internal representation of a categories row.
 type Category struct {
@@ -107,12 +97,11 @@ type Report struct {
 	Category *Category
 	Tags     []Tag
 
-	// RedactedImageKey references the post's own redacted image copy in blob
-	// storage, or nil when the post has no image. It is a storage key, never
-	// exposed directly; the handler derives a public image URL from it. The
-	// blob is an independent copy made at publish time from the author's own
-	// completed check, so it survives the private check's expiry/deletion.
-	RedactedImageKey *string
+	// Images holds the post's redacted screenshots in display order. Each is an
+	// independent copy made at publish time from an upload the author owned, so
+	// they survive the private upload's expiry/deletion. Empty for text-only
+	// posts. The handler derives a public image URL per entry.
+	Images []ReportImage
 
 	// Derived counts.
 	CommentCount int64
@@ -150,6 +139,17 @@ type ReportCard struct {
 	// Requester-scoped field: MyVote is the requesting user's reaction vote
 	// (-1, 0, 1), zero-valued for anonymous requesters.
 	MyVote int16
+}
+
+// ReportImage is one redacted screenshot attached to a post, in display order.
+// StorageKey references the redacted (PII-removed) copy in blob storage; the raw
+// upload is never referenced. It is never exposed directly: the handler derives
+// a public per-image URL from the post ID and the image's position.
+type ReportImage struct {
+	ID         int64
+	StorageKey string
+	MediaType  string
+	Position   int
 }
 
 // TopComment is a small preview of a post's comment shown on the feed card. It

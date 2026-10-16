@@ -1,10 +1,18 @@
 # PII removal concern — CPU-only OCR + image censoring.
 # Pinned for reproducibility. Model weights are fetched at runtime into the
 # Hugging Face / PaddleOCR cache and must stay out of git.
-paddleocr==2.9.1
-paddlepaddle==2.6.2
+#
+# PaddleOCR 3.x honors OCR_MODEL (e.g. PP-OCRv6_small); it requires the
+# PaddlePaddle 3.x framework. The CPU wheel for paddlepaddle is published on
+# PaddlePaddle's own index, not PyPI, so install it with that index first:
+#   python -m pip install paddlepaddle==3.3.0 \
+#     -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+#   python -m pip install -r requirements.txt
+# (PaddleOCR 3.x pulls PaddleX and its deps — shapely, pyclipper, opencv,
+# scikit-image, etc. — transitively; we don't pin those.)
+paddleocr==3.7.0
 pillow==10.4.0
-numpy==1.26.4
+# numpy is left to PaddleOCR 3.x to resolve (numpy 2.x is supported); no pin.
 # PaddlePaddle imports setuptools at runtime (paddle.utils.cpp_extension);
 # Python 3.12 venvs no longer bundle it, so pin it explicitly.
 setuptools==75.6.0

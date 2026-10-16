@@ -61,7 +61,9 @@ CREATE TABLE tags (
 
 CREATE TABLE private_checks (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    owner_user_id bigint REFERENCES users(id) ON DELETE CASCADE,
+    -- Private detection requires an authenticated owner; there are no anonymous
+    -- checks. Deleting the owner cascades the check away.
+    owner_user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     status text NOT NULL DEFAULT 'processing'
         CHECK (status IN ('processing', 'ready', 'failed')),
     input_text text,
@@ -80,7 +82,9 @@ CREATE INDEX private_checks_expiry_idx ON private_checks (expires_at);
 CREATE TABLE private_uploads (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     check_id bigint REFERENCES private_checks(id) ON DELETE CASCADE,
-    owner_user_id bigint REFERENCES users(id) ON DELETE CASCADE,
+    -- Uploads are private and owner-scoped: an upload always belongs to the
+    -- authenticated user who submitted it.
+    owner_user_id bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     storage_key text NOT NULL UNIQUE,
     -- Key of the PII-redacted copy produced by the OCR worker. NULL until the
     -- worker finishes; the original (storage_key) and the redacted copy are
@@ -105,10 +109,6 @@ CREATE TABLE reports (
     category_id bigint REFERENCES categories(id) ON DELETE RESTRICT,
     title text NOT NULL,
     redacted_text text NOT NULL,
-    -- Optional PII-redacted screenshot attached to the post. References the
-    -- redacted copy of an upload that belonged to the author's own completed
-    -- check; the raw upload is never exposed here.
-    redacted_image_key text,
     source_locale text NOT NULL DEFAULT 'en-SG',
     publication_confirmed_at timestamptz NOT NULL DEFAULT now(),
     review_status text NOT NULL DEFAULT 'unverified'
@@ -137,6 +137,19 @@ CREATE TABLE report_tags (
     PRIMARY KEY (report_id, tag_id)
 );
 CREATE INDEX report_tags_tag_report_idx ON report_tags (tag_id, report_id);
+
+CREATE TABLE report_images (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    report_id bigint NOT NULL REFERENCES reports(id) ON DELETE CASCADE,
+    -- Key of the PII-redacted copy made from an upload the author owned. The raw
+    -- upload is never referenced here; only the redacted derivative is served.
+    storage_key text NOT NULL UNIQUE,
+    media_type text NOT NULL CHECK (media_type IN ('image/jpeg', 'image/png', 'image/webp')),
+    -- Stable display order within the post (0-based).
+    position int NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX report_images_report_pos_idx ON report_images (report_id, position, id);
 
 CREATE TABLE comments (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

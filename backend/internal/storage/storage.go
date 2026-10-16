@@ -24,11 +24,14 @@ import (
 var ErrNotFound = errors.New("storage: object not found")
 
 // Object is the result of reading a stored blob.
+//
+// The content type is intentionally NOT part of the store: the authoritative
+// media type lives in the database (e.g. private_uploads.media_type,
+// report_images.media_type), and callers pass it in when streaming. The store
+// persists bytes only.
 type Object struct {
 	// Body streams the object's bytes. Callers must Close it.
 	Body io.ReadCloser
-	// MediaType is the stored content type (e.g. "image/png").
-	MediaType string
 	// Size is the object size in bytes.
 	Size int64
 }
@@ -40,8 +43,10 @@ type Object struct {
 // private_uploads.storage_key) and pass them back to read or delete.
 type Store interface {
 	// Put stores body under a namespace prefix and returns the generated
-	// opaque key. mediaType is persisted alongside the bytes. The provided
-	// size is advisory; implementations should not trust it for enforcement.
+	// opaque key. mediaType only informs a cosmetic file extension; it is
+	// not persisted (the database is the source of truth for content type).
+	// The provided size is advisory; implementations should not trust it for
+	// enforcement.
 	Put(ctx context.Context, prefix, mediaType string, body io.Reader) (key string, err error)
 
 	// Get opens the object identified by key. The caller owns the returned

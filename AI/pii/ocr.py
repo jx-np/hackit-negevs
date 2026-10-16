@@ -134,13 +134,31 @@ class OcrEngine:
             from paddleocr import PaddleOCR
 
             if callable(getattr(PaddleOCR, "predict", None)):
-                self._ocr = PaddleOCR(
-                    text_recognition_model_name=self._model_name,
-                    use_doc_orientation_classify=False,
-                    use_doc_unwarping=False,
-                    use_textline_orientation=False,
-                )
-                loaded_model = self._model_name
+                # Common 3.x kwargs. enable_mkldnn=False avoids a PaddlePaddle
+                # 3.3.x CPU regression where the oneDNN PIR path raises
+                # NotImplementedError (ConvertPirAttribute2RuntimeAttribute) in
+                # the PP-OCRv6 detection model. See PaddleOCR issue #18163.
+                common = {
+                    "use_doc_orientation_classify": False,
+                    "use_doc_unwarping": False,
+                    "use_textline_orientation": False,
+                    "enable_mkldnn": False,
+                }
+                try:
+                    self._ocr = PaddleOCR(
+                        text_recognition_model_name=self._model_name,
+                        **common,
+                    )
+                    loaded_model = self._model_name
+                except (ValueError, KeyError):
+                    # Unknown/invalid OCR_MODEL (e.g. a bare tier name like
+                    # "PP-OCRv6_small" with no engine binding). Degrade to the
+                    # PaddleOCR default rather than failing every request.
+                    _logger.warning(
+                        "ocr model invalid, using default model=%s", self._model_name
+                    )
+                    self._ocr = PaddleOCR(**common)
+                    loaded_model = "default (invalid OCR_MODEL)"
             else:
                 self._ocr = PaddleOCR(use_angle_cls=False, show_log=False)
                 loaded_model = "default (legacy PaddleOCR)"

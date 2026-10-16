@@ -13,9 +13,10 @@ import (
 )
 
 // CreateCheckParams carries the fields needed to insert a private_checks row.
-// A nil Assessment stores SQL NULL (used for deferred/processing checks).
+// OwnerUserID is always set: private detection is owner-scoped. A nil Assessment
+// stores SQL NULL (used for deferred/processing checks).
 type CreateCheckParams struct {
-	OwnerUserID *int64
+	OwnerUserID int64
 	Status      string
 	InputText   *string
 	Locale      string
@@ -25,13 +26,21 @@ type CreateCheckParams struct {
 }
 
 // CreateUploadParams carries the fields needed to insert a private_uploads row
-// for a freshly stored image. The upload starts unlinked and in status
-// 'uploaded'; ProcessUpload later links it to a check and redacts it.
+// for a freshly stored image. OwnerUserID is always set: uploads are
+// owner-scoped. The upload starts unlinked and in status 'uploaded';
+// ProcessUpload later links it to a check and redacts it.
 type CreateUploadParams struct {
-	OwnerUserID *int64
+	OwnerUserID int64
 	StorageKey  string
 	MediaType   string
 	ByteSize    int64
+}
+
+// PurgeKey identifies the stored blobs of an upload removed by PurgeExpired, so
+// the caller can delete the corresponding objects from the blob store.
+type PurgeKey struct {
+	StorageKey         string
+	RedactedStorageKey *string
 }
 
 // CheckListItem is the reduced projection returned by list queries. It never
@@ -77,13 +86,29 @@ type Repository interface {
 	// processing, in a single statement.
 	LinkUploadToCheck(ctx context.Context, uploadID, checkID int64) error
 
-	// CompleteCheckFromUpload stores an assessment produced by the OCR worker:
-	// it sets extracted_text, verdict, assessment, status='ready', and
+	// CompleteCheckFromUpload stores the result produced by the OCR worker: it
+	// sets extracted_text, verdict, assessment, status='ready', and
 	// completed_at on the check, and sets the upload's redacted_storage_key and
 	// marks it ready. Used by ProcessUpload.
-	CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText, redactedStorageKey string, a Assessment) error
+	//
+	// extractedText and a are both nil when the worker recovered no readable
+	// text: the check still completes as 'ready' but carries no extracted text,
+	// no verdict, and no assessment (classification is skipped entirely).
+	CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText *string, redactedStorageKey string, a *Assessment) error
 	// FailCheck marks a check (and optionally its upload) failed.
 	FailCheck(ctx context.Context, checkID int64, uploadID *int64) error
+
+	// DeleteCheck permanently removes a check and, via ON DELETE CASCADE, its
+	// linked uploads. It returns the deleted uploads so the caller can purge
+	// their stored blobs. Returns ErrCheckNotFound if the check is absent.
+	DeleteCheck(ctx context.Context, checkID int64) ([]Upload, error)
+	// DeleteUpload permanently removes a single upload row and returns it so the
+	// caller can purge its stored blobs. Returns ErrUploadNotFound if absent.
+	DeleteUpload(ctx context.Context, uploadID int64) (Upload, error)
+	// PurgeExpired removes every expired private check and upload and returns
+	// the storage keys of the uploads removed (directly or by cascade) so the
+	// caller can purge their stored blobs. It never touches unexpired rows.
+	PurgeExpired(ctx context.Context) ([]PurgeKey, error)
 
 	// RecordResourceOpen idempotently records a resource_opens row for the
 	// success metric. At most one row per (check_id, resource_id) pair is kept.
@@ -301,10 +326,21 @@ func (r *PostgresRepository) LinkUploadToCheck(ctx context.Context, uploadID, ch
 }
 
 // CompleteCheckFromUpload implements Repository.
-func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText, redactedStorageKey string, a Assessment) error {
-	assessmentJSON, err := json.Marshal(a)
-	if err != nil {
-		return fmt.Errorf("checks: marshal assessment: %w", err)
+func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText *string, redactedStorageKey string, a *Assessment) error {
+	// A nil assessment is the "no readable text was recovered" terminal state:
+	// both verdict and assessment are stored as SQL NULL so the check surfaces
+	// no verdict. JSON-marshal only when an assessment is present.
+	var (
+		verdict        *string
+		assessmentJSON []byte
+	)
+	if a != nil {
+		b, err := json.Marshal(a)
+		if err != nil {
+			return fmt.Errorf("checks: marshal assessment: %w", err)
+		}
+		assessmentJSON = b
+		verdict = &a.Verdict
 	}
 
 	tx, err := r.pool.Begin(ctx)
@@ -317,8 +353,15 @@ func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkI
 		UPDATE private_checks
 		SET extracted_text = $2, verdict = $3, assessment = $4, status = 'ready', completed_at = now()
 		WHERE id = $1`
-	if _, err := tx.Exec(ctx, updCheck, checkID, extractedText, a.Verdict, assessmentJSON); err != nil {
+	tag, err := tx.Exec(ctx, updCheck, checkID, extractedText, verdict, assessmentJSON)
+	if err != nil {
 		return fmt.Errorf("checks: complete check: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		// The check was deleted (e.g. the owner cancelled the task) while the
+		// OCR worker was running. Report not-found so the worker discards the
+		// redacted blob it just wrote instead of leaving it orphaned.
+		return ErrCheckNotFound
 	}
 
 	const updUpload = `UPDATE private_uploads SET status = 'ready', redacted_storage_key = $2 WHERE id = $1`
@@ -354,6 +397,129 @@ func (r *PostgresRepository) FailCheck(ctx context.Context, checkID int64, uploa
 		return fmt.Errorf("checks: commit fail tx: %w", err)
 	}
 	return nil
+}
+
+// DeleteCheck implements Repository. It captures the check's linked uploads
+// (so their blobs can be purged) and then deletes the check row; the uploads go
+// with it via ON DELETE CASCADE. Returns ErrCheckNotFound when the check does
+// not exist, so a delete is idempotent from the caller's perspective.
+func (r *PostgresRepository) DeleteCheck(ctx context.Context, checkID int64) ([]Upload, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("checks: begin delete check tx: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
+
+	const selUploads = `
+		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at
+		FROM private_uploads
+		WHERE check_id = $1`
+	rows, err := tx.Query(ctx, selUploads, checkID)
+	if err != nil {
+		return nil, fmt.Errorf("checks: select uploads for delete: %w", err)
+	}
+	var uploads []Upload
+	for rows.Next() {
+		var u Upload
+		if err := rows.Scan(
+			&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+		); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("checks: scan upload for delete: %w", err)
+		}
+		uploads = append(uploads, u)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("checks: iterate uploads for delete: %w", err)
+	}
+
+	const del = `DELETE FROM private_checks WHERE id = $1`
+	tag, err := tx.Exec(ctx, del, checkID)
+	if err != nil {
+		return nil, fmt.Errorf("checks: delete check: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, ErrCheckNotFound
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("checks: commit delete check tx: %w", err)
+	}
+	return uploads, nil
+}
+
+// DeleteUpload implements Repository.
+func (r *PostgresRepository) DeleteUpload(ctx context.Context, uploadID int64) (Upload, error) {
+	const q = `
+		DELETE FROM private_uploads
+		WHERE id = $1
+		RETURNING id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at`
+	var u Upload
+	err := r.pool.QueryRow(ctx, q, uploadID).Scan(
+		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return Upload{}, ErrUploadNotFound
+		}
+		return Upload{}, fmt.Errorf("checks: delete upload: %w", err)
+	}
+	return u, nil
+}
+
+// PurgeExpired implements Repository. It runs in a single transaction: it first
+// captures the storage keys of every upload that will be removed (those past
+// their own expiry, plus any belonging to an expired check), deletes those
+// uploads, then deletes the expired checks. The uploads are deleted before the
+// checks so no upload is removed by cascade without its keys being captured.
+func (r *PostgresRepository) PurgeExpired(ctx context.Context) ([]PurgeKey, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("checks: begin purge tx: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
+
+	const selKeys = `
+		SELECT storage_key, redacted_storage_key
+		FROM private_uploads
+		WHERE expires_at <= now()
+		   OR check_id IN (SELECT id FROM private_checks WHERE expires_at <= now())`
+	rows, err := tx.Query(ctx, selKeys)
+	if err != nil {
+		return nil, fmt.Errorf("checks: select expired upload keys: %w", err)
+	}
+	var keys []PurgeKey
+	for rows.Next() {
+		var k PurgeKey
+		if err := rows.Scan(&k.StorageKey, &k.RedactedStorageKey); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("checks: scan expired upload key: %w", err)
+		}
+		keys = append(keys, k)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("checks: iterate expired upload keys: %w", err)
+	}
+
+	const delUploads = `
+		DELETE FROM private_uploads
+		WHERE expires_at <= now()
+		   OR check_id IN (SELECT id FROM private_checks WHERE expires_at <= now())`
+	if _, err := tx.Exec(ctx, delUploads); err != nil {
+		return nil, fmt.Errorf("checks: purge expired uploads: %w", err)
+	}
+
+	const delChecks = `DELETE FROM private_checks WHERE expires_at <= now()`
+	if _, err := tx.Exec(ctx, delChecks); err != nil {
+		return nil, fmt.Errorf("checks: purge expired checks: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("checks: commit purge tx: %w", err)
+	}
+	return keys, nil
 }
 
 // RecordResourceOpen implements Repository. The schema has no unique index on

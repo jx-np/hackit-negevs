@@ -23,6 +23,10 @@ type Result struct {
 	Confidence float64
 	// Reason is a short non-content explanation, safe to log.
 	Reason string
+	// Tags are predicted tag slugs (tags.slug values). They are advisory: the
+	// caller resolves them and silently drops any that are not known, so a bad
+	// prediction never fails a publish. Empty means no tags were predicted.
+	Tags []string
 }
 
 // Classifier predicts the scam category of a message. It is safe for concurrent
@@ -35,20 +39,28 @@ type Classifier interface {
 }
 
 // Stub is the placeholder implementation used until the decision-model service
-// is available. It always reports the same category.
+// is available. It always reports the same category and tag set.
 type Stub struct {
 	// Slug is the category returned for every input. Defaults to DefaultSlug.
 	Slug string
 	// Confidence is the fixed confidence reported alongside Slug.
 	Confidence float64
+	// Tags is the tag set returned for every input. Defaults to DefaultTags when
+	// nil.
+	Tags []string
 }
 
 // DefaultSlug is the category the stub reports for every message.
 const DefaultSlug = "phishing"
 
-// NewStub returns a Stub with the default slug and full confidence.
+// DefaultTags is the tag set the stub reports for every message. It is returned
+// as a copy so callers cannot mutate the shared default.
+var DefaultTags = []string{"phishing"}
+
+// NewStub returns a Stub with the default slug, full confidence, and default
+// tags.
 func NewStub() *Stub {
-	return &Stub{Slug: DefaultSlug, Confidence: 1}
+	return &Stub{Slug: DefaultSlug, Confidence: 1, Tags: DefaultTags}
 }
 
 // Classify implements Classifier. The text argument is ignored and never
@@ -58,10 +70,15 @@ func (s *Stub) Classify(_ context.Context, _ string, _ string) (Result, error) {
 	if slug == "" {
 		slug = DefaultSlug
 	}
+	tags := s.Tags
+	if tags == nil {
+		tags = DefaultTags
+	}
 	return Result{
 		Slug:       slug,
 		Confidence: s.Confidence,
 		Reason:     "stub classifier",
+		Tags:       append([]string(nil), tags...),
 	}, nil
 }
 

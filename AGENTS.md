@@ -22,7 +22,8 @@ This is the single most important constraint in the codebase. Treat it as non-ne
 - Private checks and uploads are **never** exposed through the public report/post tables. A post contains only the explicitly approved, redacted text the user confirmed for publication.
 - Publishing a post requires explicit `confirm_publication: true`; the server **re-scrubs** `redacted_text` for PII before storing. Comments are scrubbed too.
 - **Never log** `input_text`, `extracted_text`, or any raw message content. Excerpts echoed back to users are length-bounded and have URLs reduced to host-only, non-clickable form (e.g. `[link: example.com]`).
-- Anonymous checks have no owner and are not retrievable by anyone. Ownership failures resolve to `not_found` to avoid leaking existence.
+- Private detection requires authentication: checks and uploads are always owned, and anonymous checks are not supported. Ownership failures resolve to `not_found` to avoid leaking existence.
+- Private detection data is retained for a bounded period — uploads default to 24h, checks to 30 days — and is deleted (rows **and** stored blobs) either by its owner on request or by the retention reaper. Deletion is real removal, never a hide-only flag.
 - Be cautious with `.env` and any credential files. Reference secrets by key name, never echo their values.
 
 ## Repository layout
@@ -71,7 +72,7 @@ This is the single most important constraint in the codebase. Treat it as non-ne
 `POST /community/posts` does **not** accept `scam_type`. The category is assigned server-side by `internal/classifier` (`Classifier.Classify(ctx, scrubbedText, locale)`), currently wired to `classifier.NewStub()` in `cmd/api/main.go`, which always returns `"phishing"`. `reports.category_id` is therefore **nullable**: a post with `category_id IS NULL` is *unclassified* and visible only to its author (`GET /me/posts`, post detail) and to moderators — it is excluded from the public feed, search, reactions and flags. Classification failure must never fail the publish; it just leaves the post unclassified. Swap the stub for a real decision-model client (Python service below) behind the same interface — it receives only scrubbed text and must never log it.
 
 ### Current detection classifier
-`internal/checks/analyzer.go` holds a **rules-first, explainable, pure** text classifier (`Analyze(text, locale)`): deterministic, no I/O, directly unit-testable. It scores weighted phrase/link signals into a `suspicious | unclear | likely_safe` verdict and returns signals, uncertainty, recommended actions, and suggested tags. Keep it deterministic and side-effect-free. This is the current baseline that the Python decision models (below) are intended to augment or replace — coordinate before changing the response contract.
+Text detection is classified by the Python AI service's decision model. `internal/checks/classifier.go` defines the `Classifier` port, an `HTTPClassifier` that POSTs to the AI service's `/v1/classify` (the same base URL as redaction, `PII_SERVICE_URL`), and a bounded `ClassifierPool` that fronts it: at most `DefaultClassifierWorkers` (= 2) classifications run at once, and a failed call is retried up to `DefaultClassifierRetries` (= 2) times. There is **no local rules analyzer** any more. A classifier outage fails the check — HTTP `503` (`classification_unavailable`) for text checks, `status: "failed"` for screenshot checks — rather than synthesizing a verdict. Only scrubbed/redacted text is ever sent to the service, and it is never logged. The `checks.Assessment` response contract is stable — coordinate before changing it.
 
 ## Running the backend locally
 
@@ -84,7 +85,7 @@ Work from the `backend/` directory (where `go.mod` lives).
 
 ### Build, test, verify
 - **Build:** `go build ./...`. Linux release binary: `./build_linux.sh` (or `build_linux.bat`) → `builds/hackit-16-backend-linux-amd64` (static, CGO disabled).
-- **Test:** `go test ./...`. Add table-driven tests for new logic; the pure analyzer (`analyzer_test.go`, `phone_test.go`) is the model to follow.
+- **Test:** `go test ./...`. Add table-driven tests for new logic; `phone_test.go` is a good model to follow.
 - **E2E:** `e2e_test.ps1` and `e2e_moderation.ps1` (PowerShell) exercise the live API.
 - Always build and run relevant tests after a change before presenting it. Clean up temporary files.
 
@@ -98,13 +99,14 @@ A **single Python server** will host two concerns, each in its **own virtualenv*
    - **Pillow (PIL)** censors the sensitive bounding boxes directly on the image.
    - Output is cleaned extracted text plus a redacted image. Raw/original content must never be logged or exposed publicly.
 
-2. **Scam classification** using decision model(s) (details to be provided later). This complements the existing Go rules-first analyzer.
+2. **Scam classification** using decision model(s) (details to be provided later). This replaces the removed Go rules-first analyzer; text detection now calls it via `internal/checks/classifier.go` (`POST /v1/classify`).
 
 ### How this connects to the Go backend
 The Go side already has the seam for this, currently stubbed:
-- `internal/checks/service.go` → `ProcessUpload(ctx, checkID, uploadID)` is the entry point an async OCR+redaction worker will call after a screenshot check is parked in `processing`. Its documented TODO flow: fetch image via `upload.StorageKey` → run OCR → redact PII from extracted text → `Analyze(redactedText, locale)` → persist via `repo.CompleteCheckFromUpload`. It currently marks the check `failed` rather than fabricating a result.
-- `POST /detection` accepts an `upload_id`, but the upload-creation endpoint (`POST /uploads`) and the OCR worker are **not implemented yet**. Text detection is fully working. Coordinate before building screenshot UI/flow.
+- `internal/checks/service.go` → `ProcessUpload(ctx, checkID, uploadID)` is the entry point an async OCR+redaction worker calls after a screenshot check is parked in `processing`. Its flow: fetch image via `upload.StorageKey` → run OCR → redact PII from extracted text → classify via `POST /v1/classify` → persist via `repo.CompleteCheckFromUpload`. It marks the check `failed` rather than fabricating a result (and when OCR recovers no text, completes `ready` with no assessment).
+- `POST /uploads` and `POST /detection` require authentication (uploads and checks are always owner-scoped). `POST /detection` also accepts an `upload_id` to schedule a screenshot check as a separate step. The OCR + PII-redaction worker runs through the `pii.Redactor` bridge and is only live when `PII_SERVICE_URL` is configured; otherwise screenshot checks fail cleanly rather than persisting un-redacted content. Coordinate before building screenshot UI/flow.
 - The phone-number trust-score endpoint works end-to-end but its data source is stubbed (every number returns `known: false`, default score 60). The response contract is final.
+- Retention and cancellation are implemented: private uploads expire after 24h and checks after 30d (schema `expires_at` defaults), enforced by the background reaper in `internal/checks/reaper.go` (started from `cmd/api/main.go`, configured by `REAPER_ENABLED`/`REAPER_INTERVAL`). Owners can also delete immediately via `DELETE /detection/{id}` and `DELETE /uploads/{id}`; deletion removes the rows and purges the raw + redacted blobs. Deleting a check actively cancels its in-flight OCR + PII-removal worker (workers are registered per check in `internal/checks/service.go` and hold a 1s grace period before starting redaction, so a quick delete costs no compute), and is safe mid-OCR — any completion update that still races through finds no row, so the worker discards the redacted blob it just wrote.
 
 When wiring Python in, keep the Go/Python boundary behind a clear interface (e.g. HTTP call from a Go worker to the Python server), preserve the privacy rules above (no raw-content logging; redaction before anything is persisted or published), and keep the Go `Assessment`/detection response contract stable unless a change is explicitly agreed.
 

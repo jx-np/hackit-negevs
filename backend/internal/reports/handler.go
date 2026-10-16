@@ -55,7 +55,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, requireAuth, optionalAuth, 
 	mux.Handle("GET /api/v1/community/feed", global(optionalAuth(http.HandlerFunc(h.listFeed))))
 	mux.Handle("GET /api/v1/community/feed/search", global(optionalAuth(http.HandlerFunc(h.searchFeed))))
 	mux.Handle("GET /api/v1/community/posts/{id}", global(optionalAuth(http.HandlerFunc(h.getPost))))
-	mux.Handle("GET /api/v1/community/posts/{id}/image", global(http.HandlerFunc(h.getPostImage)))
+	mux.Handle("GET /api/v1/community/posts/{id}/images/{n}", global(http.HandlerFunc(h.getPostImageAt)))
 	mux.Handle("GET /api/v1/community/scam-types", global(http.HandlerFunc(h.listCategories)))
 	mux.Handle("GET /api/v1/community/tags", global(http.HandlerFunc(h.listTags)))
 
@@ -126,9 +126,10 @@ type postDetailDTO struct {
 	CommentCount int64             `json:"comment_count"`
 	Reactions    reactionCountsDTO `json:"reactions"`
 	MyVote       int16             `json:"my_vote"`
-	// RedactedImageURL points at the post's own redacted image copy when one was
-	// attached at publish time. Absent when the post has no image.
-	RedactedImageURL string `json:"redacted_image_url,omitempty"`
+	// RedactedImageURLs lists every attached redacted image in display order.
+	// Each entry is a public API path, not a storage location. Absent when the
+	// post has no images.
+	RedactedImageURLs []string `json:"redacted_image_urls,omitempty"`
 }
 
 type feedResponse struct {
@@ -145,10 +146,15 @@ type tagsResponse struct {
 }
 
 type createPostRequest struct {
-	CheckID            string   `json:"check_id"`
+	CheckID string `json:"check_id"`
+	// UploadIDs lists the caller's own uploads (from POST /uploads) whose PII
+	// redaction has completed. Each is resolved owner-scoped and its redacted
+	// image is copied into a fresh post-owned object, in list order. An upload
+	// the caller does not own, or whose redaction has not finished, rejects the
+	// whole publish with 422.
+	UploadIDs          []string `json:"upload_ids"`
 	Title              string   `json:"title"`
 	RedactedText       string   `json:"redacted_text"`
-	Tags               []string `json:"tags"`
 	ConfirmPublication bool     `json:"confirm_publication"`
 	Locale             string   `json:"locale"`
 }
@@ -156,9 +162,8 @@ type createPostRequest struct {
 // updatePostRequest uses pointers so absent fields are distinguishable from
 // explicit empty values ("leave unchanged" vs "set empty").
 type updatePostRequest struct {
-	Title        *string   `json:"title"`
-	RedactedText *string   `json:"redacted_text"`
-	Tags         *[]string `json:"tags"`
+	Title        *string `json:"title"`
+	RedactedText *string `json:"redacted_text"`
 }
 
 type reactionRequest struct {
@@ -228,18 +233,23 @@ func (h *Handler) getPost(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusOK, toDetailResponse(rep))
 }
 
-// getPostImage streams a published post's redacted image. The image is a copy
-// made at publish time from the author's own completed check, so it is safe to
-// serve publicly: it contains only the redacted (PII-removed) derivative, never
-// the raw upload. Posts without an image, or that are hidden/removed/deleted,
-// resolve to 404 so existence is never leaked.
-func (h *Handler) getPostImage(w http.ResponseWriter, r *http.Request) {
+// getPostImageAt streams one image of a published post, selected by its 0-based
+// position in the post's ordered image list. Each image is a redacted
+// (PII-removed) copy made at publish time, so it is safe to serve publicly.
+// Posts that are hidden/removed/deleted, or an out-of-range position, resolve
+// to 404 so existence is never leaked.
+func (h *Handler) getPostImageAt(w http.ResponseWriter, r *http.Request) {
 	id, ok := decodeID(r.PathValue("id"))
 	if !ok {
 		httpx.NotFound(w, r, "post not found")
 		return
 	}
-	img, err := h.svc.OpenPostImage(r.Context(), id)
+	position, err := strconv.Atoi(r.PathValue("n"))
+	if err != nil || position < 0 {
+		httpx.NotFound(w, r, "post not found")
+		return
+	}
+	img, err := h.svc.OpenPostImageAt(r.Context(), id, position)
 	if err != nil {
 		h.writeServiceError(w, r, err)
 		return
@@ -316,7 +326,6 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 		AuthorUserID:       p.UserID,
 		Title:              req.Title,
 		RedactedText:       req.RedactedText,
-		TagSlugs:           req.Tags,
 		ConfirmPublication: req.ConfirmPublication,
 		SourceLocale:       req.Locale,
 	}
@@ -327,6 +336,18 @@ func (h *Handler) createPost(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		in.CheckID = &checkID
+	}
+	if len(req.UploadIDs) > 0 {
+		uploadIDs := make([]int64, 0, len(req.UploadIDs))
+		for _, raw := range req.UploadIDs {
+			uploadID, ok := decodeID(strings.TrimSpace(raw))
+			if !ok {
+				httpx.Unprocessable(w, r, "invalid upload_ids", map[string]string{"upload_ids": "must be valid ids"})
+				return
+			}
+			uploadIDs = append(uploadIDs, uploadID)
+		}
+		in.UploadIDs = uploadIDs
 	}
 
 	rep, err := h.svc.Create(r.Context(), in)
@@ -359,7 +380,6 @@ func (h *Handler) updatePost(w http.ResponseWriter, r *http.Request) {
 		Requester:    p,
 		Title:        req.Title,
 		RedactedText: req.RedactedText,
-		TagSlugs:     req.Tags,
 	})
 	if err != nil {
 		h.writeServiceError(w, r, err)
@@ -527,8 +547,12 @@ func toDetailResponse(rep Report) postDetailDTO {
 		Reactions:    reactionCountsDTO{Up: rep.UpCount, Down: rep.DownCount},
 		MyVote:       rep.MyVote,
 	}
-	if rep.RedactedImageKey != nil {
-		dto.RedactedImageURL = "/api/v1/community/posts/" + dto.PostID + "/image"
+	if len(rep.Images) > 0 {
+		urls := make([]string, 0, len(rep.Images))
+		for _, img := range rep.Images {
+			urls = append(urls, "/api/v1/community/posts/"+dto.PostID+"/images/"+strconv.Itoa(img.Position))
+		}
+		dto.RedactedImageURLs = urls
 	}
 	return dto
 }
@@ -553,8 +577,6 @@ func parseLimit(w http.ResponseWriter, r *http.Request) (int, bool) {
 
 // writeServiceError maps domain errors to stable HTTP responses.
 func (h *Handler) writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
-	var unknownTags *UnknownTagsError
-
 	switch {
 	case errors.Is(err, ErrReportNotFound):
 		httpx.NotFound(w, r, "post not found")
@@ -572,8 +594,10 @@ func (h *Handler) writeServiceError(w http.ResponseWriter, r *http.Request, err 
 		// No longer client-supplied (the classifier assigns it), so this is a
 		// server-side resolution failure.
 		httpx.InternalError(w, r, "post category could not be resolved")
-	case errors.As(err, &unknownTags):
-		httpx.Unprocessable(w, r, "unknown tags", map[string]string{"tags": strings.Join(unknownTags.Slugs, ", ")})
+	case errors.Is(err, ErrUploadNotUsable):
+		httpx.Unprocessable(w, r, "one or more uploads cannot be attached", map[string]string{
+			"upload_ids": "each must be your own upload whose detection has finished redacting",
+		})
 	case errors.Is(err, ErrInvalidVote):
 		httpx.Unprocessable(w, r, "invalid vote", map[string]string{"vote": "must be 1 or -1"})
 	case errors.Is(err, ErrInvalidCursor):

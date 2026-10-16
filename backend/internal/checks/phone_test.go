@@ -31,7 +31,7 @@ func (s *stubPhoneRepo) InsertPhoneReport(_ context.Context, report PhoneReport,
 }
 
 func TestLookupPhoneTrust_UnknownReturnsDefault(t *testing.T) {
-	svc := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: false}}, nil, nil)
+	svc := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: false}}, nil, nil, nil)
 	got, err := svc.LookupPhoneTrust(context.Background(), "+65 1234 5678")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -55,7 +55,7 @@ func TestLookupPhoneTrust_UnknownReturnsDefault(t *testing.T) {
 
 func TestLookupPhoneTrust_ReportCountDerivesScore(t *testing.T) {
 	// Many reports drive the score to the risky floor.
-	risky := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: true, ReportCount: 42}}, nil, nil)
+	risky := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: true, ReportCount: 42}}, nil, nil, nil)
 	got, err := risky.LookupPhoneTrust(context.Background(), "12345678")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -65,7 +65,7 @@ func TestLookupPhoneTrust_ReportCountDerivesScore(t *testing.T) {
 	}
 
 	// A single report dents the default score but stays mid-range.
-	one := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: true, ReportCount: 1}}, nil, nil)
+	one := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: true, ReportCount: 1}}, nil, nil, nil)
 	got, _ = one.LookupPhoneTrust(context.Background(), "12345678")
 	if got.TrustScore != DefaultTrustScore-15 {
 		t.Errorf("single-report score = %d, want %d", got.TrustScore, DefaultTrustScore-15)
@@ -73,7 +73,7 @@ func TestLookupPhoneTrust_ReportCountDerivesScore(t *testing.T) {
 }
 
 func TestLookupPhoneTrust_ClassificationSurfaced(t *testing.T) {
-	svc := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: true, ReportCount: 3, Classification: "scam"}}, nil, nil)
+	svc := NewService(nil, &stubPhoneRepo{rep: PhoneReputation{Found: true, ReportCount: 3, Classification: "scam"}}, nil, nil, nil)
 	got, err := svc.LookupPhoneTrust(context.Background(), "12345678")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -85,7 +85,7 @@ func TestLookupPhoneTrust_ClassificationSurfaced(t *testing.T) {
 
 func TestReportPhoneNumber_Valid(t *testing.T) {
 	repo := &stubPhoneRepo{}
-	svc := NewService(nil, repo, nil, nil)
+	svc := NewService(nil, repo, nil, nil, nil)
 	err := svc.ReportPhoneNumber(context.Background(), PhoneReport{
 		PhoneNumber:    "+65 1234-5678",
 		Reason:         "scam",
@@ -121,7 +121,7 @@ func TestReportPhoneNumber_Validation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &stubPhoneRepo{}
-			svc := NewService(nil, repo, nil, nil)
+			svc := NewService(nil, repo, nil, nil, nil)
 			err := svc.ReportPhoneNumber(context.Background(), tc.in)
 			if !errors.Is(err, tc.wantErr) {
 				t.Errorf("err = %v, want %v", err, tc.wantErr)
@@ -138,7 +138,7 @@ func TestReportPhoneNumber_DuplicatePropagates(t *testing.T) {
 	// previous one is inside the reputation window; the service must surface
 	// that as ErrPhoneReportDuplicate so the handler can answer 409.
 	repo := &stubPhoneRepo{insertErr: ErrPhoneReportDuplicate}
-	svc := NewService(nil, repo, nil, nil)
+	svc := NewService(nil, repo, nil, nil, nil)
 	err := svc.ReportPhoneNumber(context.Background(), PhoneReport{
 		PhoneNumber:    "+65 1234-5678",
 		Reason:         "scam",

@@ -58,11 +58,12 @@ $myChecks = Invoke-RestMethod "$base/me/detection" -Headers $h
 Check "GET /me/detection history" ($myChecks.items.Count -ge 2) "count=$($myChecks.items.Count)"
 
 Write-Host "`n== Publish posts ==" -ForegroundColor Cyan
-$body = @{ title="Fake DBS SMS"; redacted_text="Your DBS account is locked. Call 91234567 or verify at http://dbs-verify.xyz"; tags=@($tags.items[0].slug); confirm_publication=$true } | ConvertTo-Json
+$body = @{ title="Fake DBS SMS"; redacted_text="Your DBS account is locked. Call 91234567 or verify at http://dbs-verify.xyz"; confirm_publication=$true } | ConvertTo-Json
 $post = Invoke-RestMethod "$base/community/posts" -Method POST -Headers $h -ContentType application/json -Body $body
 Check "create post" ($post.post_id -ne $null) 
 Check "server re-scrubbed PII" ($post.redacted_text -notmatch "91234567") "text=$($post.redacted_text)"
 Check "category assigned by classifier" ($post.category -ne $null -and $post.category.slug -eq "phishing") "category=$($post.category.slug)"
+Check "tags assigned by classifier" ($post.tags.Count -ge 1) "tags=$($post.tags.Count)"
 $postId = $post.post_id
 
 # a second post for the feed

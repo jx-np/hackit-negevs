@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"scamshield/internal/pii"
@@ -34,15 +36,37 @@ const (
 	// processUploadTimeout bounds the OCR + redaction + analysis work so a
 	// stuck Python backend cannot leave a check in "processing" forever.
 	processUploadTimeout = 60 * time.Second
+
+	// processUploadDelay is the grace period a screenshot worker waits before
+	// starting the expensive OCR + PII-removal call. It gives a delete that
+	// arrives right after the check is scheduled a chance to cancel the worker
+	// before any compute is spent.
+	processUploadDelay = 1 * time.Second
+
+	// textClassifyTimeout bounds a synchronous text check's classifier
+	// round-trips (including retries) so a stuck AI service cannot hold the
+	// request open.
+	textClassifyTimeout = 50 * time.Second
 )
 
 // Service holds checks business logic. It is transport-agnostic.
 type Service struct {
-	repo     Repository
-	phones   PhoneRepository
-	store    storage.Store
-	redactor pii.Redactor
-	now      func() time.Time
+	repo       Repository
+	phones     PhoneRepository
+	store      storage.Store
+	redactor   pii.Redactor
+	classifier Classifier
+	now        func() time.Time
+
+	// processMu guards processes, the registry of in-flight screenshot
+	// pipelines keyed by check ID. It lets a delete cancel a running (or
+	// still-waiting) OCR + redaction worker instead of letting it burn compute
+	// on a task that no longer exists.
+	processMu sync.Mutex
+	processes map[int64]*processJob
+	// processDelay is the grace period a worker waits before starting the
+	// expensive PII-removal call (see processUploadDelay).
+	processDelay time.Duration
 }
 
 // NewService constructs a checks Service.
@@ -52,22 +76,33 @@ type Service struct {
 // raw screenshot uploads and their redacted derivatives. redactor is the
 // go-python PII-removal bridge; when it is a no-op stub (no Python service
 // configured), screenshot checks fail cleanly rather than persisting
-// un-redacted content.
-func NewService(repo Repository, phones PhoneRepository, store storage.Store, redactor pii.Redactor) *Service {
-	return &Service{repo: repo, phones: phones, store: store, redactor: redactor, now: time.Now}
+// un-redacted content. classifier is the scam-assessment seam (the AI service's
+// decision model); when nil, detection fails rather than synthesizing a verdict.
+func NewService(repo Repository, phones PhoneRepository, store storage.Store, redactor pii.Redactor, classifier Classifier) *Service {
+	return &Service{
+		repo:         repo,
+		phones:       phones,
+		store:        store,
+		redactor:     redactor,
+		classifier:   classifier,
+		now:          time.Now,
+		processes:    make(map[int64]*processJob),
+		processDelay: processUploadDelay,
+	}
 }
 
-// CreateTextInput carries a synchronous text-check request.
+// CreateTextInput carries a synchronous text-check request. OwnerUserID is
+// always set: private detection is owner-scoped and never anonymous.
 type CreateTextInput struct {
-	// OwnerUserID is nil for anonymous checks (owner_user_id stored as NULL).
-	OwnerUserID *int64
+	OwnerUserID int64
 	Text        string
 	Locale      string
 }
 
-// CreateUploadInput carries a deferred screenshot-check request.
+// CreateUploadInput carries a deferred screenshot-check request. OwnerUserID is
+// always set: private detection is owner-scoped and never anonymous.
 type CreateUploadInput struct {
-	OwnerUserID *int64
+	OwnerUserID int64
 	UploadID    int64
 	Locale      string
 }
@@ -76,8 +111,8 @@ type CreateUploadInput struct {
 // upload. The upload is not yet attached to a check; a later POST /detection
 // referencing the returned upload ID starts the OCR + redaction pipeline.
 type CreateUploadBlobInput struct {
-	// OwnerUserID is nil for anonymous uploads (owner_user_id stored as NULL).
-	OwnerUserID *int64
+	// OwnerUserID is always set: uploads are owner-scoped and never anonymous.
+	OwnerUserID int64
 	// MediaType is the declared image content type; it must be one of the
 	// supported screenshot types.
 	MediaType string
@@ -93,9 +128,10 @@ type CheckResult struct {
 	SimilarReports []SimilarReport
 }
 
-// CreateTextCheck analyzes text synchronously, persists a ready check, and
-// returns the result. The analyzer is pure; similarity lookup is best-effort and
-// never blocks a successful assessment.
+// CreateTextCheck classifies text synchronously via the AI service's decision
+// model, persists a ready check, and returns the result. Classifier failure
+// fails the check (never a synthesized verdict); similarity lookup is
+// best-effort and never blocks a successful assessment.
 func (s *Service) CreateTextCheck(ctx context.Context, in CreateTextInput) (CheckResult, error) {
 	text := strings.TrimSpace(in.Text)
 	if text == "" {
@@ -103,7 +139,12 @@ func (s *Service) CreateTextCheck(ctx context.Context, in CreateTextInput) (Chec
 	}
 	locale := normalizeLocale(in.Locale)
 
-	assessment := Analyze(text, locale)
+	classifyCtx, cancel := context.WithTimeout(ctx, textClassifyTimeout)
+	defer cancel()
+	assessment, err := s.classify(classifyCtx, text, locale)
+	if err != nil {
+		return CheckResult{}, err
+	}
 	completedAt := s.now().UTC()
 
 	check, err := s.repo.CreateCheck(ctx, CreateCheckParams{
@@ -138,9 +179,8 @@ func (s *Service) CreateUploadCheck(ctx context.Context, in CreateUploadInput) (
 		return CheckResult{}, err
 	}
 
-	// Ownership: an authenticated caller may only attach their own upload; an
-	// anonymous caller may only attach an upload with no owner.
-	if !ownerMatches(upload.OwnerUserID, in.OwnerUserID) {
+	// Ownership: a caller may only attach their own upload.
+	if upload.OwnerUserID != in.OwnerUserID {
 		return CheckResult{}, ErrUploadNotFound
 	}
 
@@ -218,17 +258,57 @@ func (s *Service) CreateUpload(ctx context.Context, in CreateUploadBlobInput) (U
 	return upload, nil
 }
 
+// CreateUploadAndCheckResult carries the standalone upload plus the processing
+// check that was auto-scheduled for it.
+type CreateUploadAndCheckResult struct {
+	Upload Upload
+	Check  Check
+}
+
+// CreateUploadAndCheck persists a raw screenshot, immediately parks a
+// "processing" check for it, links the two, and launches the OCR + redaction
+// pipeline — all in one call. This lets POST /uploads schedule detection
+// automatically so clients do not need a separate POST /detection round-trip.
+//
+// The returned check is in "processing" status; callers poll GET /detection/{id}
+// for the ready assessment. The pipeline runs on a detached background context
+// via StartProcessUpload and marks the check failed on any error.
+//
+// PRIVACY: identical posture to CreateUpload and ProcessUpload — raw bytes are
+// never logged or served; only the redacted derivative is ever exposed, and
+// only to the check's owner.
+func (s *Service) CreateUploadAndCheck(ctx context.Context, in CreateUploadBlobInput, locale string) (CreateUploadAndCheckResult, error) {
+	upload, err := s.CreateUpload(ctx, in)
+	if err != nil {
+		return CreateUploadAndCheckResult{}, err
+	}
+
+	res, err := s.CreateUploadCheck(ctx, CreateUploadInput{
+		OwnerUserID: in.OwnerUserID,
+		UploadID:    upload.ID,
+		Locale:      locale,
+	})
+	if err != nil {
+		return CreateUploadAndCheckResult{}, err
+	}
+
+	// Schedule the OCR + PII-redaction pipeline immediately. It runs detached
+	// with its own timeout and persists its own terminal state.
+	s.StartProcessUpload(res.Check.ID, upload.ID)
+
+	return CreateUploadAndCheckResult{Upload: upload, Check: res.Check}, nil
+}
+
 // GetCheck returns a check for the requesting principal. Ownership is strict:
-// the requester must be the owner. Anonymous checks (no owner) are not
-// retrievable by anyone, so they resolve to ErrCheckNotFound. Ownership
-// failures are also reported as ErrCheckNotFound to avoid leaking existence.
+// the requester must be the owner. Ownership failures are reported as
+// ErrCheckNotFound to avoid leaking existence.
 func (s *Service) GetCheck(ctx context.Context, checkID int64, requesterUserID *int64) (CheckResult, error) {
 	check, err := s.repo.GetCheckByID(ctx, checkID)
 	if err != nil {
 		return CheckResult{}, err
 	}
 
-	if check.OwnerUserID == nil || requesterUserID == nil || *check.OwnerUserID != *requesterUserID {
+	if requesterUserID == nil || check.OwnerUserID != *requesterUserID {
 		return CheckResult{}, ErrCheckNotFound
 	}
 
@@ -291,10 +371,10 @@ type RedactedImage struct {
 
 // OpenRedactedImage returns the redacted screenshot derivative for a check, for
 // streaming to the requesting principal. Ownership is strict and mirrors
-// GetCheck: the requester must be the check's owner, and anonymous checks are
-// never retrievable, so any ownership failure resolves to ErrCheckNotFound to
-// avoid leaking existence. A check that is not ready, has no linked upload, or
-// whose upload has no redacted derivative yet also resolves to ErrCheckNotFound.
+// GetCheck: the requester must be the check's owner, so any ownership failure
+// resolves to ErrCheckNotFound to avoid leaking existence. A check that is not
+// ready, has no linked upload, or whose upload has no redacted derivative yet
+// also resolves to ErrCheckNotFound.
 //
 // Only the redacted derivative is ever served; the raw upload is never exposed.
 func (s *Service) OpenRedactedImage(ctx context.Context, checkID int64, requesterUserID *int64) (RedactedImage, error) {
@@ -306,7 +386,7 @@ func (s *Service) OpenRedactedImage(ctx context.Context, checkID int64, requeste
 	if err != nil {
 		return RedactedImage{}, err
 	}
-	if check.OwnerUserID == nil || requesterUserID == nil || *check.OwnerUserID != *requesterUserID {
+	if requesterUserID == nil || check.OwnerUserID != *requesterUserID {
 		return RedactedImage{}, ErrCheckNotFound
 	}
 
@@ -325,7 +405,10 @@ func (s *Service) OpenRedactedImage(ctx context.Context, checkID int64, requeste
 		}
 		return RedactedImage{}, err
 	}
-	return RedactedImage{Body: obj.Body, MediaType: obj.MediaType, Size: obj.Size}, nil
+	// The redactor re-encodes the derivative in the upload's format, so the
+	// upload's stored media type is the correct content type for the redacted
+	// image (the store holds bytes only, not content type).
+	return RedactedImage{Body: obj.Body, MediaType: upload.MediaType, Size: obj.Size}, nil
 }
 
 // RecordResourceOpen records the privacy-safe success metric. It requires either
@@ -338,28 +421,78 @@ func (s *Service) RecordResourceOpen(ctx context.Context, p ResourceOpenParams) 
 	return s.repo.RecordResourceOpen(ctx, p)
 }
 
-// StartProcessUpload launches ProcessUpload in its own goroutine on a detached
-// background context so the deferred POST /detection response can return
-// immediately while the OCR + PII-redaction pipeline runs. The worker has its
-// own timeout (processUploadTimeout) and marks the check failed on any error,
-// so a dropped request or caller never leaves a check stuck in "processing".
+// StartProcessUpload launches ProcessUpload in its own goroutine so the
+// deferred POST /detection response can return immediately while the OCR +
+// PII-redaction pipeline runs. The worker has its own timeout
+// (processUploadTimeout) and marks the check failed on any error, so a dropped
+// request or caller never leaves a check stuck in "processing".
+//
+// The worker runs on a cancellable context registered under the check ID, so
+// DELETE /detection/{id} (and DELETE /uploads/{id}) can stop it via
+// cancelProcess — including during the grace period before any expensive work
+// begins (see processUploadDelay).
 //
 // Errors are intentionally swallowed here: ProcessUpload persists failure state
 // itself and must not log raw content, so there is nothing for the caller to do
 // with the returned error.
 func (s *Service) StartProcessUpload(checkID, uploadID int64) {
+	// Register the worker so a delete can cancel it. If a worker is already
+	// registered for this check (e.g. a retried schedule), cancel it first so
+	// only the newest one runs.
+	ctx, cancel := context.WithCancel(context.Background())
+	job := &processJob{cancel: cancel}
+
+	s.processMu.Lock()
+	if prev := s.processes[checkID]; prev != nil {
+		prev.cancel()
+	}
+	s.processes[checkID] = job
+	s.processMu.Unlock()
+
 	go func() {
-		_ = s.ProcessUpload(context.Background(), checkID, uploadID)
+		defer func() {
+			// Deregister only if we are still the current worker, then release
+			// the context regardless.
+			s.processMu.Lock()
+			if s.processes[checkID] == job {
+				delete(s.processes, checkID)
+			}
+			s.processMu.Unlock()
+			cancel()
+		}()
+		_ = s.ProcessUpload(ctx, checkID, uploadID)
 	}()
+}
+
+// processJob tracks a running screenshot pipeline so it can be cancelled.
+type processJob struct {
+	cancel context.CancelFunc
+}
+
+// cancelProcess stops the in-flight (or still-waiting) screenshot pipeline for a
+// check, if any. It is called when a check is deleted so a worker that has not
+// yet reached the expensive PII-removal call never spends compute on a task that
+// no longer exists.
+func (s *Service) cancelProcess(checkID int64) {
+	s.processMu.Lock()
+	if job := s.processes[checkID]; job != nil {
+		job.cancel()
+		delete(s.processes, checkID)
+	}
+	s.processMu.Unlock()
 }
 
 // ProcessUpload runs the OCR + PII-redaction pipeline for a screenshot check
 // that CreateUploadCheck parked in "processing". It fetches the raw image from
 // the blob store, hands it to the go-python redaction bridge, persists the
-// redacted image derivative, runs the same rules-first analyzer over the
-// redacted text, and completes the check with a ready assessment. Any failure
+// redacted image derivative, classifies the redacted text via the AI service's
+// decision model, and completes the check with a ready assessment. Any failure
 // marks the check (and its upload) failed rather than persisting un-redacted
 // content.
+//
+// When the redactor recovers no readable text, the check completes as 'ready'
+// with no extracted text and no assessment: classification is skipped rather
+// than fabricating a "likely_safe" verdict from empty input.
 //
 // It is designed to run in its own goroutine with a background context; the
 // work is bounded by processUploadTimeout so a stuck Python backend cannot leave
@@ -373,12 +506,30 @@ func (s *Service) ProcessUpload(ctx context.Context, checkID, uploadID int64) er
 	defer cancel()
 
 	// On any error path we mark the check failed so it never sits in
-	// "processing" and no un-redacted content is ever persisted.
+	// "processing" and no un-redacted content is ever persisted. The update runs
+	// on a detached context (ignoring cancellation) so a timed-out or cancelled
+	// worker can still record the failure instead of leaving the check parked.
 	fail := func(cause error) error {
-		if ferr := s.repo.FailCheck(ctx, checkID, &uploadID); ferr != nil {
+		failCtx, failCancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer failCancel()
+		if ferr := s.repo.FailCheck(failCtx, checkID, &uploadID); ferr != nil {
 			return errors.Join(cause, ferr)
 		}
 		return cause
+	}
+
+	// Grace delay: hold off the expensive OCR + PII-removal call briefly so a
+	// delete arriving right after the check is scheduled can cancel the worker
+	// before any compute is spent. On cancellation the check is being removed,
+	// so there is nothing to fail — return without touching the database.
+	if s.processDelay > 0 {
+		timer := time.NewTimer(s.processDelay)
+		select {
+		case <-timer.C:
+		case <-ctx.Done():
+			timer.Stop()
+			return ctx.Err()
+		}
 	}
 
 	if s.store == nil || s.redactor == nil {
@@ -434,10 +585,30 @@ func (s *Service) ProcessUpload(ctx context.Context, checkID, uploadID int64) er
 		return fail(err)
 	}
 
-	// Run the pure rules-first analyzer over the redacted (PII-free) text.
-	assessment := Analyze(result.RedactedText, locale)
+	// No readable text was recovered (OCR rejected everything, e.g. below its
+	// confidence floor). Skip classification entirely: do not call the AI-backed
+	// classifier, so an unreadable image
+	// costs nothing and is never surfaced as a synthetic "likely_safe". The
+	// check still completes as 'ready', carrying empty extracted text and no
+	// verdict.
+	var (
+		extractedText *string
+		assessment    *Assessment
+	)
+	if strings.TrimSpace(result.RedactedText) != "" {
+		a, err := s.classify(ctx, result.RedactedText, locale)
+		if err != nil {
+			// No assessment could be produced: drop the redacted blob we just
+			// wrote and fail the check rather than persisting an unclassified
+			// image.
+			_ = s.store.Delete(ctx, redactedKey)
+			return fail(err)
+		}
+		extractedText = &result.RedactedText
+		assessment = &a
+	}
 
-	if err := s.repo.CompleteCheckFromUpload(ctx, checkID, uploadID, result.RedactedText, redactedKey, assessment); err != nil {
+	if err := s.repo.CompleteCheckFromUpload(ctx, checkID, uploadID, extractedText, redactedKey, assessment); err != nil {
 		// The redacted blob is now orphaned; best-effort cleanup, then fail.
 		_ = s.store.Delete(ctx, redactedKey)
 		return fail(err)
@@ -446,7 +617,116 @@ func (s *Service) ProcessUpload(ctx context.Context, checkID, uploadID int64) er
 	return nil
 }
 
+// DeleteCheck cancels and permanently removes a check together with its linked
+// uploads and their stored blobs. Only the owner may delete; ownership failures
+// resolve to ErrCheckNotFound so the endpoint never reveals whether a check
+// exists. Deleting a check that is still "processing" actively cancels the
+// in-flight OCR + PII-removal worker (so it stops before spending more compute);
+// any completion update that still races through finds no row and the worker
+// discards the redacted blob it wrote (see CompleteCheckFromUpload).
+func (s *Service) DeleteCheck(ctx context.Context, checkID int64, requesterUserID *int64) error {
+	check, err := s.repo.GetCheckByID(ctx, checkID)
+	if err != nil {
+		return err
+	}
+	if requesterUserID == nil || check.OwnerUserID != *requesterUserID {
+		return ErrCheckNotFound
+	}
+	return s.deleteCheck(ctx, checkID)
+}
+
+// DeleteUpload cancels an upload. Because POST /uploads schedules detection
+// immediately, an upload is normally linked to a check; in that case the whole
+// task — the check and its uploads — is removed, exactly as DELETE /detection
+// would. A staged, unlinked upload is removed on its own. Only the owner may
+// delete; ownership failures resolve to ErrUploadNotFound. Blobs are purged
+// best-effort.
+func (s *Service) DeleteUpload(ctx context.Context, uploadID int64, requesterUserID *int64) error {
+	upload, err := s.repo.GetUploadByID(ctx, uploadID)
+	if err != nil {
+		return err
+	}
+	if requesterUserID == nil || upload.OwnerUserID != *requesterUserID {
+		return ErrUploadNotFound
+	}
+	if upload.CheckID != nil {
+		return s.deleteCheck(ctx, *upload.CheckID)
+	}
+
+	deleted, err := s.repo.DeleteUpload(ctx, uploadID)
+	if err != nil {
+		return err
+	}
+	s.purgeBlob(ctx, deleted.StorageKey, deleted.RedactedStorageKey)
+	return nil
+}
+
+// deleteCheck removes a check row (cascading its uploads) and best-effort
+// purges the uploads' raw and redacted blobs. It first cancels any in-flight
+// worker for the check so no further compute is spent on the deleted task.
+// Callers must have verified ownership.
+func (s *Service) deleteCheck(ctx context.Context, checkID int64) error {
+	s.cancelProcess(checkID)
+
+	uploads, err := s.repo.DeleteCheck(ctx, checkID)
+	if err != nil {
+		return err
+	}
+	for _, u := range uploads {
+		s.purgeBlob(ctx, u.StorageKey, u.RedactedStorageKey)
+	}
+	return nil
+}
+
+// PurgeExpired removes a batch of expired private checks and uploads and purges
+// their stored blobs. It powers the background retention reaper. The returned
+// count is the number of upload blobs scheduled for deletion; blob removal is
+// best-effort, so a missed object is an orphaned file, never a privacy leak.
+func (s *Service) PurgeExpired(ctx context.Context) (int, error) {
+	keys, err := s.repo.PurgeExpired(ctx)
+	if err != nil {
+		return 0, err
+	}
+	for _, k := range keys {
+		s.purgeBlob(ctx, k.StorageKey, k.RedactedStorageKey)
+	}
+	return len(keys), nil
+}
+
+// purgeBlob best-effort deletes an upload's raw and (optional) redacted blobs.
+// Failures are ignored: the row is already gone, so a missed object is only an
+// orphaned file. No keys or content are logged.
+func (s *Service) purgeBlob(ctx context.Context, storageKey string, redactedKey *string) {
+	if s.store == nil {
+		return
+	}
+	if storageKey != "" {
+		_ = s.store.Delete(ctx, storageKey)
+	}
+	if redactedKey != nil && *redactedKey != "" {
+		_ = s.store.Delete(ctx, *redactedKey)
+	}
+}
+
 // --- helpers ---
+
+// classify runs the configured classifier, normalizing any failure (transport,
+// status, decode, timeout, or a missing backend) into ErrClassifierUnavailable
+// so callers and the handler treat every classifier outage the same way. The
+// submitted text is never logged.
+func (s *Service) classify(ctx context.Context, text, locale string) (Assessment, error) {
+	if s.classifier == nil {
+		return Assessment{}, ErrClassifierUnavailable
+	}
+	a, err := s.classifier.Classify(ctx, text, locale)
+	if err != nil {
+		if errors.Is(err, ErrClassifierUnavailable) {
+			return Assessment{}, err
+		}
+		return Assessment{}, fmt.Errorf("%w: %v", ErrClassifierUnavailable, err)
+	}
+	return a, nil
+}
 
 func normalizeLocale(locale string) string {
 	l := strings.TrimSpace(locale)
@@ -464,19 +744,6 @@ func clampLimit(limit int) int {
 		return maxListLimit
 	}
 	return limit
-}
-
-// ownerMatches reports whether a resource's owner matches the requester. Both
-// nil (anonymous resource, anonymous requester) is a match; any mismatch,
-// including one nil and one set, is not.
-func ownerMatches(resourceOwner, requester *int64) bool {
-	if resourceOwner == nil && requester == nil {
-		return true
-	}
-	if resourceOwner == nil || requester == nil {
-		return false
-	}
-	return *resourceOwner == *requester
 }
 
 // Cursor encoding: base64url of "createdAtUnixNanos:id". Opaque to clients.

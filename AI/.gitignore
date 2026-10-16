@@ -15,8 +15,9 @@ classify/.venv/
 # Environment / secrets
 .env
 
-# Local-only dev script with hard-coded credentials — never commit
+# Local-only files with hard-coded credentials — never commit
 pii_document.py
+app/api_clef_client.py
 
 # Model weights — fetched into the HF cache, never committed (PLAN §4/§8)
 *.onnx

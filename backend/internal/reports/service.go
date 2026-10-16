@@ -162,22 +162,26 @@ func (s *Service) ListTags(ctx context.Context, q string, limit int) ([]Tag, err
 	return s.repo.ListTags(ctx, strings.TrimSpace(q), limit)
 }
 
-// CreateInput carries a publish request. The scam category is assigned by the
-// classifier, never by the client.
+// CreateInput carries a publish request. The scam category and tags are
+// assigned by the classifier, never by the client.
 type CreateInput struct {
-	AuthorUserID       int64
-	CheckID            *int64
-	Title              string
-	RedactedText       string
-	TagSlugs           []string
+	AuthorUserID int64
+	CheckID      *int64
+	Title        string
+	RedactedText string
+	// UploadIDs are the caller's own uploads whose PII redaction has completed.
+	// Each is resolved owner-scoped and its redacted image is copied into a
+	// fresh, post-owned object. An upload that is not owned by the caller or
+	// whose redaction has not finished is rejected with ErrUploadNotUsable.
+	UploadIDs          []int64
 	ConfirmPublication bool
 	SourceLocale       string
 }
 
 // Create publishes a new report. It enforces explicit confirmation, re-scrubs
-// the body server-side, asks the classifier for the scam category, and links a
-// source check only when the caller owns it. When classification fails or
-// yields no category the post is still created but stays unclassified, i.e.
+// the body server-side, asks the classifier for the scam category and tags, and
+// links a source check only when the caller owns it. When classification fails
+// or yields no category the post is still created but stays unclassified, i.e.
 // visible only to its author until it is classified.
 func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 	if !in.ConfirmPublication {
@@ -197,14 +201,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 
 	locale := normalizeLocale(in.SourceLocale)
 
-	// Classification runs on the scrubbed body only. Failure is not fatal: the
-	// post is stored unclassified and hidden from other users.
-	categoryID := s.classifyCategory(ctx, body, locale)
-
-	tagIDs, err := s.resolveTags(ctx, in.TagSlugs)
-	if err != nil {
-		return Report{}, err
-	}
+	// Classification runs on the scrubbed body only and yields both the scam
+	// category and the post's tags. Failure is not fatal: the post is stored
+	// unclassified/untagged and hidden from other users.
+	categoryID, tagIDs := s.classify(ctx, body, locale)
 
 	// Only link the source check when the caller actually owns it; otherwise
 	// store NULL rather than leaking a reference to another user's check.
@@ -219,29 +219,30 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 		}
 	}
 
-	// When the post is backed by the author's own check, copy that check's
-	// redacted image into a fresh, post-owned object so the published post keeps
-	// its image even after the private check expires or is deleted. Only the
-	// redacted derivative is ever copied; the raw upload is never touched.
-	// Copy failure is not fatal: the post still publishes without an image.
-	var redactedImageKey *string
-	if sourceCheckID != nil {
-		if key, ok := s.copyCheckImage(ctx, *sourceCheckID, in.AuthorUserID); ok {
-			redactedImageKey = &key
-		}
+	// Resolve and copy each referenced upload's redacted image into a fresh,
+	// post-owned object so the published post keeps its images even after the
+	// private uploads expire. Each upload must be owned by the author and have a
+	// completed redaction; otherwise the publish is rejected. Only the redacted
+	// derivative is ever copied; the raw upload is never read.
+	images, err := s.copyUploadImages(ctx, in.UploadIDs, in.AuthorUserID)
+	if err != nil {
+		return Report{}, err
 	}
 
 	id, err := s.repo.CreateReport(ctx, CreateReportParams{
-		AuthorUserID:     in.AuthorUserID,
-		SourceCheckID:    sourceCheckID,
-		CategoryID:       categoryID,
-		Title:            title,
-		RedactedText:     body,
-		SourceLocale:     locale,
-		TagIDs:           tagIDs,
-		RedactedImageKey: redactedImageKey,
+		AuthorUserID:  in.AuthorUserID,
+		SourceCheckID: sourceCheckID,
+		CategoryID:    categoryID,
+		Title:         title,
+		RedactedText:  body,
+		SourceLocale:  locale,
+		TagIDs:        tagIDs,
+		Images:        images,
 	})
 	if err != nil {
+		// Clean up the post-owned image copies we just created; the report row
+		// (and its would-be report_images rows) never persisted.
+		s.cleanupImages(ctx, images)
 		return Report{}, err
 	}
 
@@ -249,51 +250,122 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 	return s.repo.GetReportDetail(ctx, id, &requesterID, true)
 }
 
-// classifyCategory asks the classifier for a category and resolves it to a
-// categories id. It returns nil when there is no classifier, when the
+// classify asks the classifier for a category and tags and resolves both to
+// internal ids. The category is nil when there is no classifier, when the
 // classifier fails, or when the predicted slug does not exist — in all of those
-// cases the post remains unclassified rather than the publish failing. Only the
-// scrubred text is passed on, and no result is logged.
-func (s *Service) classifyCategory(ctx context.Context, scrubbedBody, locale string) *int64 {
+// cases the post remains unclassified rather than the publish failing. Predicted
+// tags that are unknown or blank are silently dropped. Only the scrubbed text is
+// passed on, and no result is logged.
+func (s *Service) classify(ctx context.Context, scrubbedBody, locale string) (*int64, []int64) {
 	if s.classifier == nil {
-		return nil
+		return nil, nil
 	}
 	res, err := s.classifier.Classify(ctx, scrubbedBody, locale)
-	if err != nil || !res.Classified() {
-		return nil
-	}
-	cat, err := s.repo.GetCategoryBySlug(ctx, res.Slug)
 	if err != nil {
-		// Unknown predicted slug: leave the post unclassified.
-		return nil
+		return nil, nil
 	}
-	return &cat.ID
+
+	var categoryID *int64
+	if res.Classified() {
+		if cat, err := s.repo.GetCategoryBySlug(ctx, res.Slug); err == nil {
+			categoryID = &cat.ID
+		}
+		// An unknown predicted slug leaves the post unclassified.
+	}
+
+	return categoryID, s.resolvePredictedTags(ctx, res.Tags)
 }
 
-// copyCheckImage copies the redacted image of the author's own check into a
-// fresh, post-owned storage object and returns the new key. It returns ok=false
-// (and no error) whenever there is nothing to copy or the copy cannot be made:
-// no store configured, the check has no redacted image, or any storage error.
-// Publishing never fails because of an image copy. The raw upload is never
-// read; only the already-redacted derivative is copied.
-func (s *Service) copyCheckImage(ctx context.Context, checkID, ownerUserID int64) (string, bool) {
+// resolvePredictedTags maps classifier-predicted tag slugs to tag ids. Unlike
+// client-supplied tags, an unknown, blank, or duplicate slug is silently dropped
+// rather than failing the publish: a bad prediction must never block a post.
+func (s *Service) resolvePredictedTags(ctx context.Context, slugs []string) []int64 {
+	cleaned := make([]string, 0, len(slugs))
+	seen := make(map[string]bool, len(slugs))
+	for _, sl := range slugs {
+		sl = strings.TrimSpace(sl)
+		if sl == "" || seen[sl] {
+			continue
+		}
+		seen[sl] = true
+		cleaned = append(cleaned, sl)
+	}
+	if len(cleaned) == 0 {
+		return nil
+	}
+
+	found, _, err := s.repo.ResolveTagSlugs(ctx, cleaned)
+	if err != nil {
+		return nil
+	}
+	ids := make([]int64, 0, len(found))
+	for _, t := range found {
+		ids = append(ids, t.ID)
+	}
+	return ids
+}
+
+// copyUploadImages resolves each referenced upload to its redacted image and
+// copies it into a fresh, post-owned storage object. Every upload must be owned
+// by the author and have a completed redaction (status 'ready' with a redacted
+// copy); any upload that is missing, not owned, or not yet redacted causes the
+// whole publish to be rejected with ErrUploadNotUsable. Only the redacted
+// derivative is ever copied; the raw upload is never read. On any failure the
+// copies already made in this call are cleaned up before returning the error,
+// so no orphan post-image objects are left behind.
+func (s *Service) copyUploadImages(ctx context.Context, uploadIDs []int64, ownerUserID int64) ([]ReportImageParam, error) {
+	if len(uploadIDs) == 0 {
+		return nil, nil
+	}
+	// An image attachment was requested but there is nowhere to copy it to.
 	if s.store == nil {
-		return "", false
+		return nil, ErrUploadNotUsable
 	}
-	srcKey, ok, err := s.repo.RedactedImageKeyForCheck(ctx, checkID, ownerUserID)
-	if err != nil || !ok {
-		return "", false
+
+	images := make([]ReportImageParam, 0, len(uploadIDs))
+	for _, uploadID := range uploadIDs {
+		srcKey, mediaType, ok, err := s.repo.RedactedImageForUpload(ctx, uploadID, ownerUserID)
+		if err != nil {
+			s.cleanupImages(ctx, images)
+			return nil, err
+		}
+		if !ok {
+			// Not owned, nonexistent, or redaction not finished: reject.
+			s.cleanupImages(ctx, images)
+			return nil, ErrUploadNotUsable
+		}
+		newKey, err := s.copyRedactedBlob(ctx, srcKey, mediaType)
+		if err != nil {
+			s.cleanupImages(ctx, images)
+			return nil, err
+		}
+		images = append(images, ReportImageParam{StorageKey: newKey, MediaType: mediaType})
 	}
+	return images, nil
+}
+
+// copyRedactedBlob copies an already-redacted blob into a fresh, post-owned
+// storage object and returns the new key. The media type is carried over from
+// the source upload. Only the redacted derivative is read; the raw upload is
+// never touched.
+func (s *Service) copyRedactedBlob(ctx context.Context, srcKey, mediaType string) (string, error) {
 	obj, err := s.store.Get(ctx, srcKey)
 	if err != nil {
-		return "", false
+		return "", err
 	}
 	defer obj.Body.Close()
-	newKey, err := s.store.Put(ctx, postImageStoragePrefix, obj.MediaType, obj.Body)
-	if err != nil {
-		return "", false
+	return s.store.Put(ctx, postImageStoragePrefix, mediaType, obj.Body)
+}
+
+// cleanupImages best-effort deletes post-owned image copies. Used to roll back
+// partially-copied images when a publish fails after some copies succeeded.
+func (s *Service) cleanupImages(ctx context.Context, images []ReportImageParam) {
+	if s.store == nil {
+		return
 	}
-	return newKey, true
+	for _, img := range images {
+		_ = s.store.Delete(ctx, img.StorageKey)
+	}
 }
 
 // PostImage is a published post's redacted image ready to stream to a client.
@@ -304,29 +376,44 @@ type PostImage struct {
 	Size      int64
 }
 
-// OpenPostImage opens the redacted image of a publicly visible post for
-// streaming. It resolves missing posts, posts without an image, and posts that
-// are not publicly visible all to ErrReportNotFound so the route never reveals
-// which posts exist or carry an image. Only the redacted copy is served.
-func (s *Service) OpenPostImage(ctx context.Context, id int64) (PostImage, error) {
+// OpenPostImageAt opens one of a publicly visible post's redacted images by its
+// 0-based display position for streaming. Missing posts, posts that are not
+// publicly visible, and out-of-range positions all resolve to ErrReportNotFound
+// so the route never reveals which posts exist or how many images they carry.
+// Only the redacted copy is served; the raw upload is never read.
+func (s *Service) OpenPostImageAt(ctx context.Context, reportID int64, position int) (PostImage, error) {
 	if s.store == nil {
 		return PostImage{}, ErrReportNotFound
 	}
-	key, ok, err := s.repo.GetReportImageKey(ctx, id)
+	if position < 0 {
+		return PostImage{}, ErrReportNotFound
+	}
+	images, err := s.repo.ListReportImages(ctx, reportID)
 	if err != nil {
 		return PostImage{}, err
 	}
-	if !ok {
+	// ListReportImages already enforces public visibility, so an empty result
+	// means the post is not visible or has no images: not found either way.
+	var match *ReportImage
+	for i := range images {
+		if images[i].Position == position {
+			match = &images[i]
+			break
+		}
+	}
+	if match == nil {
 		return PostImage{}, ErrReportNotFound
 	}
-	obj, err := s.store.Get(ctx, key)
+	obj, err := s.store.Get(ctx, match.StorageKey)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return PostImage{}, ErrReportNotFound
 		}
 		return PostImage{}, err
 	}
-	return PostImage{Body: obj.Body, MediaType: obj.MediaType, Size: obj.Size}, nil
+	// The content type comes from the database (report_images.media_type);
+	// the store persists bytes only.
+	return PostImage{Body: obj.Body, MediaType: match.MediaType, Size: obj.Size}, nil
 }
 
 // UpdateInput carries an edit request. Nil pointers leave a field unchanged.
@@ -335,7 +422,6 @@ type UpdateInput struct {
 	Requester    auth.Principal
 	Title        *string
 	RedactedText *string
-	TagSlugs     *[]string
 }
 
 // Update edits a report. Only the author or a moderator/admin may edit. When
@@ -371,14 +457,6 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) (Report, error) {
 		params.RedactedText = &body
 		// Sensitive content changed: re-enter moderation.
 		params.ResetReview = true
-	}
-
-	if in.TagSlugs != nil {
-		tagIDs, err := s.resolveTags(ctx, *in.TagSlugs)
-		if err != nil {
-			return Report{}, err
-		}
-		params.Tags = &tagIDs
 	}
 
 	if err := s.repo.UpdateReport(ctx, in.ReportID, params); err != nil {
@@ -448,34 +526,6 @@ func (s *Service) ensureVisible(ctx context.Context, reportID int64) error {
 		return ErrReportNotFound
 	}
 	return nil
-}
-
-// resolveTags maps tag slugs to ids, returning an UnknownTagsError when any slug
-// is unknown. Blank slugs are ignored.
-func (s *Service) resolveTags(ctx context.Context, slugs []string) ([]int64, error) {
-	cleaned := make([]string, 0, len(slugs))
-	for _, sl := range slugs {
-		sl = strings.TrimSpace(sl)
-		if sl != "" {
-			cleaned = append(cleaned, sl)
-		}
-	}
-	if len(cleaned) == 0 {
-		return nil, nil
-	}
-
-	found, unknown, err := s.repo.ResolveTagSlugs(ctx, cleaned)
-	if err != nil {
-		return nil, err
-	}
-	if len(unknown) > 0 {
-		return nil, &UnknownTagsError{Slugs: unknown}
-	}
-	ids := make([]int64, 0, len(found))
-	for _, t := range found {
-		ids = append(ids, t.ID)
-	}
-	return ids, nil
 }
 
 // --- helpers ---

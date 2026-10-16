@@ -3,6 +3,7 @@ package reports
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	"scamshield/internal/classifier"
@@ -13,6 +14,7 @@ import (
 type fakeRepo struct {
 	created CreateReportParams
 	cats    map[string]Category
+	tags    map[string]Tag
 	detail  Report
 }
 
@@ -21,6 +23,10 @@ func newFakeRepo() *fakeRepo {
 		cats: map[string]Category{
 			"phishing":      {ID: 1, Slug: "phishing", NameKey: "cat.phishing"},
 			"impersonation": {ID: 2, Slug: "impersonation", NameKey: "cat.impersonation"},
+		},
+		tags: map[string]Tag{
+			"phishing": {ID: 10, Slug: "phishing", NameKey: "tag.phishing"},
+			"otp-scam": {ID: 11, Slug: "otp-scam", NameKey: "tag.otp_scam"},
 		},
 	}
 }
@@ -59,8 +65,17 @@ func (f *fakeRepo) ListCategories(context.Context) ([]Category, error) { return 
 
 func (f *fakeRepo) ListTags(context.Context, string, int) ([]Tag, error) { return nil, nil }
 
-func (f *fakeRepo) ResolveTagSlugs(context.Context, []string) ([]Tag, []string, error) {
-	return nil, nil, nil
+func (f *fakeRepo) ResolveTagSlugs(_ context.Context, slugs []string) ([]Tag, []string, error) {
+	var found []Tag
+	var unknown []string
+	for _, s := range slugs {
+		if t, ok := f.tags[s]; ok {
+			found = append(found, t)
+		} else {
+			unknown = append(unknown, s)
+		}
+	}
+	return found, unknown, nil
 }
 
 func (f *fakeRepo) CreateReport(_ context.Context, p CreateReportParams) (int64, error) {
@@ -78,12 +93,12 @@ func (f *fakeRepo) GetReportOwnership(context.Context, int64) (*int64, bool, err
 
 func (f *fakeRepo) CheckOwnedBy(context.Context, int64, int64) (bool, error) { return false, nil }
 
-func (f *fakeRepo) RedactedImageKeyForCheck(context.Context, int64, int64) (string, bool, error) {
-	return "", false, nil
+func (f *fakeRepo) RedactedImageForUpload(context.Context, int64, int64) (string, string, bool, error) {
+	return "", "", false, nil
 }
 
-func (f *fakeRepo) GetReportImageKey(context.Context, int64) (string, bool, error) {
-	return "", false, nil
+func (f *fakeRepo) ListReportImages(context.Context, int64) ([]ReportImage, error) {
+	return nil, nil
 }
 
 func (f *fakeRepo) SetReaction(context.Context, int64, int64, int16) (int64, int64, error) {
@@ -96,9 +111,10 @@ func (f *fakeRepo) RemoveReaction(context.Context, int64, int64) (int64, int64, 
 
 func (f *fakeRepo) ReportVisible(context.Context, int64) (bool, error) { return true, nil }
 
-// stubClassifier returns a fixed slug, or an error when slug is empty.
+// stubClassifier returns fixed predictions, or an error when err is set.
 type stubClassifier struct {
 	slug string
+	tags []string
 	err  error
 }
 
@@ -106,7 +122,7 @@ func (s stubClassifier) Classify(context.Context, string, string) (classifier.Re
 	if s.err != nil {
 		return classifier.Result{}, s.err
 	}
-	return classifier.Result{Slug: s.slug, Confidence: 1}, nil
+	return classifier.Result{Slug: s.slug, Confidence: 1, Tags: s.tags}, nil
 }
 
 func TestCreateAssignsCategoryFromClassifier(t *testing.T) {
@@ -170,6 +186,48 @@ func TestCreateWithoutClassifierStaysUnclassified(t *testing.T) {
 	}
 	if repo.created.CategoryID != nil {
 		t.Errorf("CategoryID = %v, want nil", *repo.created.CategoryID)
+	}
+	if repo.created.TagIDs != nil {
+		t.Errorf("TagIDs = %v, want nil", repo.created.TagIDs)
+	}
+}
+
+func TestCreateAssignsTagsFromClassifier(t *testing.T) {
+	repo := newFakeRepo()
+	svc := NewService(repo, stubClassifier{
+		slug: "phishing",
+		// The unknown slug and the duplicate are silently dropped, not fatal.
+		tags: []string{"phishing", "otp-scam", "does-not-exist", "phishing"},
+	}, nil)
+
+	if _, err := svc.Create(context.Background(), CreateInput{
+		AuthorUserID:       7,
+		Title:              "Fake DBS SMS",
+		RedactedText:       "Call 91234567 to verify your account.",
+		ConfirmPublication: true,
+	}); err != nil {
+		t.Fatalf("Create: unexpected error: %v", err)
+	}
+	want := []int64{10, 11}
+	if !reflect.DeepEqual(repo.created.TagIDs, want) {
+		t.Errorf("TagIDs = %v, want %v", repo.created.TagIDs, want)
+	}
+}
+
+func TestCreateClassifierFailureLeavesNoTags(t *testing.T) {
+	repo := newFakeRepo()
+	svc := NewService(repo, stubClassifier{err: errors.New("boom")}, nil)
+
+	if _, err := svc.Create(context.Background(), CreateInput{
+		AuthorUserID:       7,
+		Title:              "Fake DBS SMS",
+		RedactedText:       "body",
+		ConfirmPublication: true,
+	}); err != nil {
+		t.Fatalf("Create: unexpected error: %v", err)
+	}
+	if repo.created.TagIDs != nil {
+		t.Errorf("TagIDs = %v, want nil", repo.created.TagIDs)
 	}
 }
 

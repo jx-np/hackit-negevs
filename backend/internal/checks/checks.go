@@ -1,6 +1,6 @@
-// Package checks implements the private scam-check domain: text analysis via a
-// rules-first explainable classifier, deferred screenshot (OCR) processing,
-// per-user private history, and the privacy-safe resource-open success metric.
+// Package checks implements the private scam-check domain: text analysis via the
+// AI service's decision model, deferred screenshot (OCR) processing, per-user
+// private history, and the privacy-safe resource-open success metric.
 //
 // The domain never exposes submitted message content in list responses, URLs,
 // or logs. Submitted text is stored only in the private_checks row and is
@@ -48,7 +48,7 @@ const (
 var (
 	// ErrCheckNotFound is returned when a check lookup yields no row, or when the
 	// requester is not the owner (ownership failures are reported as not-found to
-	// avoid leaking existence of another user's or an anonymous check).
+	// avoid leaking existence of another user's check).
 	ErrCheckNotFound = errors.New("checks: check not found")
 	// ErrUploadNotFound is returned when a referenced upload does not exist or is
 	// not owned by the requester.
@@ -85,6 +85,11 @@ var (
 	// ErrImageTooLarge is returned when an uploaded image exceeds the maximum
 	// accepted byte size.
 	ErrImageTooLarge = errors.New("checks: image is too large")
+	// ErrClassifierUnavailable is returned when the scam-assessment classifier
+	// cannot be reached or returns an unusable response. Detection then fails
+	// (HTTP 503 for text checks) rather than returning a synthesized verdict, so
+	// an AI outage is never mistaken for a clean result.
+	ErrClassifierUnavailable = errors.New("checks: classifier unavailable")
 )
 
 // Accepted upload media types. Mirrors the private_uploads.media_type CHECK
@@ -113,7 +118,7 @@ func SupportedUploadMediaType(mediaType string) bool {
 // Check is the internal representation of a private_checks row.
 type Check struct {
 	ID            int64
-	OwnerUserID   *int64
+	OwnerUserID   int64
 	Status        string
 	InputText     *string
 	ExtractedText *string
@@ -128,7 +133,7 @@ type Check struct {
 type Upload struct {
 	ID                 int64
 	CheckID            *int64
-	OwnerUserID        *int64
+	OwnerUserID        int64
 	StorageKey         string
 	RedactedStorageKey *string
 	MediaType          string
@@ -147,7 +152,7 @@ type Signal struct {
 }
 
 // RecommendedAction is a structured, situation-specific next step keyed to what
-// the analyzer detected.
+// the classifier detected.
 type RecommendedAction struct {
 	Scenario string `json:"scenario"`
 	Title    string `json:"title"`

@@ -105,7 +105,8 @@ func run(cfg config.Config, logger *slog.Logger) error {
 
 	// PII-removal redactor for screenshot uploads. When PII_SERVICE_URL is set
 	// the Python service is called over HTTP; otherwise a stub is used that
-	// fails screenshot checks cleanly (text detection is unaffected).
+	// fails screenshot checks cleanly. The same AI service also powers scam
+	// classification (see detectionClassifier below).
 	var redactor pii.Redactor = pii.NewStub()
 	if cfg.PIIServiceURL != "" {
 		redactor = pii.NewClient(cfg.PIIServiceURL)
@@ -114,9 +115,30 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		logger.Warn("pii redaction service not configured; screenshot checks will fail until PII_SERVICE_URL is set")
 	}
 
+	// Scam-assessment classifier for private text detection. It is the same AI
+	// service that performs PII redaction, so it reuses PII_SERVICE_URL. A
+	// bounded queue (DefaultClassifierWorkers) caps how many classifications are
+	// in flight at once and retries transient failures (DefaultClassifierRetries).
+	var detectionClassifier checks.Classifier
+	if cfg.PIIServiceURL != "" {
+		detectionClassifier = checks.NewClassifierPool(
+			checks.NewHTTPClassifier(cfg.PIIServiceURL),
+			checks.DefaultClassifierWorkers,
+			checks.DefaultClassifierRetries,
+		)
+		logger.Info("scam classification service configured",
+			"url", cfg.PIIServiceURL,
+			"workers", checks.DefaultClassifierWorkers,
+			"retries", checks.DefaultClassifierRetries,
+		)
+	} else {
+		logger.Warn("scam classification service not configured; text detection will fail until PII_SERVICE_URL is set")
+	}
+
 	// Domain services and handlers.
 	checksRepo := checks.NewPostgresRepository(pool)
-	checksHandler := checks.NewHandler(checks.NewService(checksRepo, checksRepo, store, redactor))
+	checksSvc := checks.NewService(checksRepo, checksRepo, store, redactor, detectionClassifier)
+	checksHandler := checks.NewHandler(checksSvc)
 	// The scam classifier assigns each post's category on publish. Swap the
 	// stub for the decision-model client once that service exists.
 	postClassifier := classifier.NewStub()
@@ -147,6 +169,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	moderationHandler.RegisterRoutes(mux, requireAuth, optionalAuth, requireModerator, globalMW)
 	resourcesHandler.RegisterRoutes(mux, optionalAuth, requireAdmin, globalMW)
 	registerHealthRoutes(mux, globalMW, pool)
+
+	// Background retention reaper: enforces the private_uploads (24h) and
+	// private_checks (30d) expiry windows by deleting expired rows and purging
+	// their stored blobs. It runs on the signal context, so it stops on
+	// shutdown. Set REAPER_ENABLED=false to disable.
+	if cfg.ReaperEnabled {
+		go checks.NewReaper(checksSvc, cfg.ReaperInterval, logger).Run(ctx)
+		logger.Info("retention reaper started", "interval", cfg.ReaperInterval)
+	} else {
+		logger.Warn("retention reaper disabled; expired detection data will accumulate")
+	}
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

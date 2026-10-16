@@ -24,11 +24,35 @@
   "commonPhotos": "Photos (optional)",
   "commonAddPhoto": "Add photo",
   "commonRemovePhoto": "Remove photo",
-  "commonImageTooLarge": "Each image must be 20 MB or smaller.",
+  "commonImageTooLarge": "Each image must be 10 MB or smaller.",
+  "reportTabPhotoProcessing": "Analyzing...",
+  "reportTabPhotoReady": "Ready",
+  "reportTabPhotoFailed": "Couldn't analyze",
+  "reportTabPhotoDropped": "Some photos couldn't be analyzed and were removed.",
+  "reportTabProcessingTitle": "Do not close the application. Processing",
+  "reportTabSignInToAddPhotos": "Sign in to attach photos.",
+  "reportTabFailedDialogTitle": "Some photos couldn't be analyzed",
+  "reportTabFailedDialogBody": "{count, plural, one{1 photo failed to upload or analyze. Retry it, or post without it?} other{{count} photos failed to upload or analyze. Retry them, or post without them?}}",
+  "@reportTabFailedDialogBody": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "reportTabFailedRetry": "Retry",
+  "reportTabFailedPostWithout": "Post without photos",
+  "reportTabWaitForImages": "Wait for images to be processed",
+  "reportTabCheckImages": "Check images",
+  "reportTabReviewCheckbox": "I've reviewed the images and the personal details are hidden correctly",
+  "reportTabEditImage": "Edit image",
+  "reportTabReuploading": "Re-uploading edited image...",
+  "reportTabPosting": "Posting...",
+  "reportTabEditorSaveFailed": "Couldn't re-upload the edited image. Try again.",
+  "reportTabViewPost": "View your post",
 
   "homeTitle": "Home",
   "homeWelcomePrefix": "Welcome, ",
   "homeWelcomeGuestLabel": "not signed in",
+  "homeWelcomeGuest": "Welcome",
   "myProfileTitle": "My Profile",
   "myProfileAccountSection": "Account details",
   "myProfileName": "Name",
@@ -225,6 +249,50 @@
   "callUnblock": "Unblock",
   "callBlockAndReport": "Block & Report",
   "callBlockNeedsScreening": "To stop blocked numbers from ringing, choose this app for call screening.",
+  "callHighRiskTitle": "High-risk caller",
+  "callHighRiskBody": "This number has been reported as a scam. Do not share personal details or money.",
+  "callHighRiskScore": "Trust score: {score}/100",
+  "@callHighRiskScore": {
+    "placeholders": { "score": { "type": "int" } }
+  },
+  "callHighRiskReports": "Reported {count} times",
+  "@callHighRiskReports": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "callHighRiskDismiss": "Dismiss",
+  "callCheckNumber": "Check this number",
+  "callChecking": "Checking number...",
+  "callCheckSafe": "{number} looks safe",
+  "@callCheckSafe": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callCheckUnknown": "No reports for {number}",
+  "@callCheckUnknown": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callCheckHighRisk": "{number} is high risk",
+  "@callCheckHighRisk": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "callCheckFailed": "Could not check this number",
+  "callCheckTitle": "Number check",
+  "callCheckNumberLabel": "Number checked",
+  "callCheckResultHighRisk": "High risk",
+  "callCheckResultUnknown": "No reports",
+  "callCheckResultSafe": "Looks safe",
+  "callCheckResultFailed": "Check failed",
+  "callCheckDetailHighRisk": "This number has been reported as a scam. Do not share personal details or money.",
+  "callCheckDetailUnknown": "We have no scam reports for this number yet. Stay cautious with unknown callers.",
+  "callCheckDetailSafe": "This number has a good reputation. Stay alert if anything feels off.",
+  "callCheckDetailFailed": "We couldn't check this number right now. Check your connection and try again.",
+  "callCheckScore": "Trust score: {score}/100",
+  "@callCheckScore": {
+    "placeholders": { "score": { "type": "int" } }
+  },
+  "callCheckReports": "Reported {count} times",
+  "@callCheckReports": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "reportPhone": "Phone",
   "reportUnknownApp": "Unknown app",
@@ -289,6 +357,10 @@
   "permOverlaySub": "Shows the scam alert while a call is ringing",
   "permAlerts": "Alerts allowed",
   "permAlertsSub": "Posts scam alerts as notifications",
+  "permBackground": "Run in the background",
+  "permBackgroundSub": "Ignore battery optimizations so protection keeps running",
+  "permBatterySettings": "Battery optimization settings",
+  "permBatterySettingsSub": "Some phones throttle apps anyway. Open the list and set this app to \"Don't optimize\".",
   "permGranted": "Granted",
   "permGrant": "Grant",
   "permScreeningRole": "Call screening role",
@@ -339,6 +411,9 @@
   "safetyTurnOnToCheck": "Turn this on to check messages for scams.",
   "safetyTurnOff": "Turn protection off",
   "safetyTurnOn": "Turn protection on",
+  "safetyPressToStart": "Press to start",
+  "safetyDownloadingModel": "Downloading model…",
+  "safetySettingUpModel": "Setting up the model…",
   "safetyNoScams": "No scams found",
   "safetyNoScamsBody": "Suspicious messages will show up here.",
 
@@ -379,6 +454,11 @@
   "blockedNoNumbers": "No blocked numbers",
 
   "notificationsTitle": "Notifications",
+  "notificationsTestTitle": "Test the on-device AI",
+  "notificationsTestHint": "Paste or type a message to check",
+  "notificationsTestRun": "Check message",
+  "notificationsTestServiceOff": "Turn protection on first so the model can run the check.",
+  "notificationsTestSent": "Checking… the result will appear below once the model finishes.",
 
   "settingsScreenModelInstalled": "{name} installed",
   "@settingsScreenModelInstalled": {
@@ -420,6 +500,10 @@
   "onboardingMessagesBody": "This lets the app read new messages as they arrive, so it can warn you about suspicious links or requests for money.",
   "onboardingOverlayTitle": "Show warnings during calls",
   "onboardingOverlayBody": "This lets the app show a small notice on your screen while a suspicious call is ringing.",
+  "onboardingBackgroundTitle": "Keep running in the background",
+  "onboardingBackgroundBody": "Let the app ignore battery optimizations so it can keep watching for scams even when your screen is off.",
+  "onboardingBatterySettingsTitle": "Stop battery optimization",
+  "onboardingBatterySettingsBody": "Some phones keep throttling apps even after the first prompt. Open the battery settings, find this app, and set it to \"Don't optimize\" so protection never stops.",
   "onboardingSettingsHint": "Your phone's settings will open. Find this app in the list, turn it on, then come back here.",
   "onboardingStatusOn": "This is turned on.",
   "onboardingStatusSkipped": "This is not turned on yet. You can try again, or turn it on later in Settings.",

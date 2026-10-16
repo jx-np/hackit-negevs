@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_edge_ai_builtin_ai/flutter_edge_ai_builtin_ai.dart';
 
 import '../core/model_catalog.dart';
 import 'model_manager.dart';
@@ -13,7 +15,7 @@ class ModelController extends ChangeNotifier {
   final ProtectionSettings _settings;
   final GemmaModelManager _manager = GemmaModelManager();
 
-  ScamModelSpec _spec = modelCatalog.first;
+  ScamModelSpec _spec = defaultModel;
   bool _installed = false;
   bool _persistent = false;
   bool _busy = false;
@@ -22,6 +24,19 @@ class ModelController extends ChangeNotifier {
   int _totalBytes = 0;
   String _error = '';
   DownloadHandle? _downloadHandle;
+
+  /// Whether the OS built-in model (Gemini Nano via AICore) can run on this
+  /// device. Null until [probeBuiltInAvailability] has resolved; the settings
+  /// UI treats null and false alike (the AICore option stays greyed out) and
+  /// lights the option up only once this flips to true.
+  bool? _builtInAvailable;
+
+  /// Progress updates arrive once per network chunk — thousands per second on
+  /// a fast link. Rebuilding the widget tree that often steals CPU from the
+  /// download itself and janks the UI, so progress notifications are coalesced
+  /// to at most one every [_progressThrottle]; the terminal frame is flushed.
+  static const Duration _progressThrottle = Duration(milliseconds: 120);
+  DateTime _lastProgressAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   ScamModelSpec get spec => _spec;
   bool get installed => _installed;
@@ -40,6 +55,31 @@ class ModelController extends ChangeNotifier {
   /// True while a cancellable file download is running.
   bool get canCancel => _downloadHandle != null;
 
+  /// True when the OS built-in model (Gemini Nano via AICore) is usable on this
+  /// device. False both before the probe has run and when the device cannot run
+  /// it, so callers can gate the AICore option on this single flag.
+  bool get builtInAvailable => _builtInAvailable ?? false;
+
+  /// True once [probeBuiltInAvailability] has resolved at least once, so the UI
+  /// can tell "still checking" apart from "checked, not available".
+  bool get builtInProbed => _builtInAvailable != null;
+
+  /// Probes the OS for built-in model (AICore) support. Availability is a
+  /// runtime property — a device may gain it after an OS update or lose it when
+  /// the user disables the feature — so this is safe to call again to refresh.
+  /// [BuiltInAi.availability] never throws and never hangs; anything other than
+  /// [BuiltInAiAvailability.available] (unsupported device, not-yet-downloaded,
+  /// disabled) leaves the option greyed out.
+  Future<void> probeBuiltInAvailability() async {
+    final availability = await BuiltInAi.availability();
+    final available = availability == BuiltInAiAvailability.available;
+    // Notify on the first probe (null -> bool) so the UI can stop showing a
+    // "checking" state, and on any later change (device gained/lost support).
+    if (_builtInAvailable == available) return;
+    _builtInAvailable = available;
+    notifyListeners();
+  }
+
   /// Aborts the running download. The partial file is kept so a later retry
   /// resumes from where it stopped.
   void cancelDownload() => _downloadHandle?.cancel();
@@ -48,6 +88,9 @@ class ModelController extends ChangeNotifier {
     await _settings.hydrateCustomModel();
     _spec = modelById(await _settings.selectedModelId());
     _manager.spec = _spec;
+    // Probe AICore support in the background; the model load below must not
+    // wait on it, and the probe notifies listeners itself when it resolves.
+    unawaited(probeBuiltInAvailability());
     await refreshInstalled();
     if (_busy) return;
     if (isBundled) {
@@ -121,7 +164,7 @@ class ModelController extends ChangeNotifier {
       final wasActive = _spec.id == kCustomModelId;
       await _settings.clearCustomModel();
       if (wasActive) {
-        _spec = modelCatalog.first;
+        _spec = defaultModel;
         _manager.spec = _spec;
         await _settings.setSelectedModelId(_spec.id);
         await refreshInstalled();
@@ -204,7 +247,7 @@ class ModelController extends ChangeNotifier {
     if (isBundled) {
       if (!_installed) await installBundled();
     } else if (_spec.isBuiltIn) {
-      // Built-in models are prepared by [GemmaModelManager.install].
+      if (!_installed) await download();
     } else if (await ModelStore.exists(_spec)) {
       await _registerPersistent();
     }
@@ -257,15 +300,74 @@ class ModelController extends ChangeNotifier {
     }
   }
 
+  /// Selects [spec] and downloads it through the flutter_edge_ai plugin's
+  /// foreground path (`fromNetwork(..., foreground: true)` inside
+  /// [GemmaModelManager.install]). Unlike [download], which uses a pure-Dart
+  /// HTTP fetch for catalog models, this routes every model type through the
+  /// plugin so the native progress notification shows, the transfer survives
+  /// navigation, and the file lands in app-internal storage managed by the
+  /// plugin.
+  ///
+  /// The spec is selected (and its id persisted) first so the background
+  /// isolate loads this exact model on the next syncSettings. Returns true on
+  /// success. ensureInstalled is a no-op when the file is already present.
+  Future<bool> downloadViaPlugin(ScamModelSpec spec) async {
+    // Persist the selection up front; select() also refreshes `installed` and
+    // may early-return a bundled install, which is fine for the no-op case.
+    if (spec.id != _spec.id) {
+      _spec = spec;
+      _manager.spec = spec;
+      await _settings.setSelectedModelId(spec.id);
+    }
+    _busy = true;
+    _progress = 0;
+    _receivedBytes = 0;
+    _totalBytes = 0;
+    _persistent = false;
+    _error = '';
+    notifyListeners();
+    try {
+      final token = await _settings.hfToken();
+      // ensureInstalled is a no-op when the file is already present; otherwise
+      // install() runs the foreground fromNetwork/fromAsset/builtIn path.
+      await _manager.ensureInstalled(onProgress: _report, token: token);
+      _installed = true;
+      _persistent = !isBundled && !_spec.isBuiltIn;
+      _progress = 100;
+      return true;
+    } catch (error) {
+      _persistent = false;
+      _error = friendlyError(error);
+      _progress = -1;
+      return false;
+    } finally {
+      _receivedBytes = 0;
+      _totalBytes = 0;
+      _busy = false;
+      notifyListeners();
+    }
+  }
+
   void _report(int value) {
     _progress = value;
-    notifyListeners();
+    _notifyThrottled(flush: value >= 100 || value < 0);
   }
 
   void _reportBytes(DownloadProgress p) {
     _receivedBytes = p.received;
     _totalBytes = p.total;
     _progress = p.percent;
+    final done = p.total > 0 && p.received >= p.total;
+    _notifyThrottled(flush: done || p.percent >= 100);
+  }
+
+  /// Fires [notifyListeners] at most once per [_progressThrottle], unless
+  /// [flush] forces it (used for the terminal 0%/100% frames so the bar never
+  /// freezes just short of done).
+  void _notifyThrottled({bool flush = false}) {
+    final now = DateTime.now();
+    if (!flush && now.difference(_lastProgressAt) < _progressThrottle) return;
+    _lastProgressAt = now;
     notifyListeners();
   }
 

@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 
-import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
-import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 import '../../core/model_catalog.dart';
 import '../../services/model_controller.dart';
 import '../../services/protection_settings.dart';
@@ -12,6 +10,7 @@ import '../../services/scamshield_channels.dart';
 import '../../state/auth_controller.dart';
 import '../../state/locale_controller.dart';
 import '../../state/theme_controller.dart';
+import '../../theme/app_tokens.dart';
 import '../../widgets/auth/require_login.dart';
 import '../../widgets/tour/tour_controller.dart';
 import '../permissions/permissions_page.dart';
@@ -109,31 +108,24 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
-    return AppScreen(
-      title: 'Settings',
-      scrollable: false,
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: EdgeInsets.fromLTRB(
-            tokens.space.lg,
-            tokens.space.lg,
-            tokens.space.lg,
-            tokens.space.xl2,
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             _protectionSummary(),
-            SizedBox(height: tokens.space.xl2),
+            SizedBox(height: context.tokens.space.xl2),
             _protectionSection(),
-            SizedBox(height: tokens.space.xl2),
+            const SizedBox(height: 24),
             _speedSection(),
-            SizedBox(height: tokens.space.xl2),
+            const SizedBox(height: 24),
             _appSection(),
-            SizedBox(height: tokens.space.xl2),
+            const SizedBox(height: 24),
             _accountSection(),
             if (kDebugMode) ...[
-              SizedBox(height: tokens.space.xl2),
+              const SizedBox(height: 24),
               _devSection(),
             ],
           ],
@@ -255,8 +247,19 @@ class _SettingsPageState extends State<SettingsPage> {
     // different tile to make it active first.
     final ready = selected && (model.installed || spec.isBuiltIn);
 
+    // The built-in system model (AICore) only runs on supported devices, and
+    // support is a runtime property, so the tile stays greyed out while the
+    // probe is still running and whenever the device can't run it. A plain
+    // downloadable model is always usable, so it is never gated this way.
+    final checkingBuiltIn = spec.isBuiltIn && !model.builtInProbed;
+    final unavailable = spec.isBuiltIn && model.builtInProbed && !model.builtInAvailable;
+
     final String subtitle;
-    if (downloading) {
+    if (checkingBuiltIn) {
+      subtitle = 'Checking if your device supports this…';
+    } else if (unavailable) {
+      subtitle = 'Not available on this device';
+    } else if (downloading) {
       subtitle = _downloadLabel(model, progress);
     } else if (ready) {
       subtitle = 'Ready to protect you';
@@ -266,18 +269,25 @@ class _SettingsPageState extends State<SettingsPage> {
       subtitle = 'About ${spec.approxSizeMb} MB';
     }
 
+    // Grey the tile out (ListTile.enabled) while a download is running on
+    // another tile, and whenever the built-in option can't be used here.
+    final enabled =
+        (!model.busy || selected) && !checkingBuiltIn && !unavailable;
+
     return SettingsRow(
-      enabled: !model.busy || selected,
+      enabled: enabled,
       leading: Icon(
-        selected ? LucideIcons.circleDot : LucideIcons.circle,
+        selected ? Icons.radio_button_checked : Icons.radio_button_off,
         color: selected
             ? Theme.of(context).colorScheme.primary
             : Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       title: spec.displayName,
       subtitle: subtitle,
-      trailing: _modelTileAction(spec, selected, downloading, ready, progress),
-      onTap: () => _selectModel(spec),
+      trailing: enabled
+          ? _modelTileAction(spec, selected, downloading, ready, progress)
+          : null,
+      onTap: enabled ? () => _selectModel(spec) : null,
     );
   }
 
@@ -330,64 +340,63 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _speedSection() {
     return SettingsSection(
       title: 'AI Compatibility mode',
-        caption: 'Automatic picks the fastest compatible hardware. Pin a '
+      caption: 'Automatic picks the fastest compatible hardware. Pin a '
           'specific one only if Automatic has trouble on your phone.',
       children: [
-        SettingsRow(
-          leading: const Icon(LucideIcons.sparkles),
+        _backendRow(
+          icon: Icons.auto_awesome_outlined,
           title: 'Automatic',
           subtitle: 'Recommended · best compatible hardware',
-          trailing: _backend == ModelBackend.npu
-              ? Icon(LucideIcons.check, color: Theme.of(context).colorScheme.primary)
-              : null,
-          onTap: () => _setBackend(ModelBackend.npu),
+          backend: ModelBackend.npu,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
-        SettingsRow(
-          leading: const Icon(LucideIcons.cpu),
+        _backendRow(
+          icon: Icons.memory_outlined,
           title: 'CPU',
           subtitle: 'Most compatible, slowest',
-          trailing: _backend == ModelBackend.cpu
-              ? Icon(LucideIcons.check, color: Theme.of(context).colorScheme.primary)
-              : null,
-          onTap: () => _setBackend(ModelBackend.cpu),
+          backend: ModelBackend.cpu,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
-        SettingsRow(
-          leading: const Icon(LucideIcons.zap),
+        _backendRow(
+          icon: Icons.bolt_outlined,
           title: 'GPU',
           subtitle: 'Faster on phones with a supported graphics chip',
-          trailing: _backend == ModelBackend.gpu
-              ? Icon(LucideIcons.check, color: Theme.of(context).colorScheme.primary)
-              : null,
-          onTap: () => _setBackend(ModelBackend.gpu),
+          backend: ModelBackend.gpu,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
-        SettingsRow(
-          leading: const Icon(LucideIcons.microchip),
+        _backendRow(
+          icon: Icons.memory,
           title: 'NPU',
           subtitle: 'Fastest on phones with a dedicated AI chip',
-          trailing: _backend == ModelBackend.forceNpu
-              ? Icon(LucideIcons.check, color: Theme.of(context).colorScheme.primary)
-              : null,
-          onTap: () => _setBackend(ModelBackend.forceNpu),
+          backend: ModelBackend.forceNpu,
         ),
         if (kDebugMode) ...[
           const Divider(height: 1, indent: 16, endIndent: 16),
-          SettingsRow(
-            leading: const Icon(LucideIcons.codeXml),
+          _backendRow(
+            icon: Icons.developer_mode_outlined,
             title: 'NPU test (force)',
             subtitle: 'Debug only: send the current model directly to NPU',
-            trailing: _backend == ModelBackend.npuTest
-                ? Icon(
-                    LucideIcons.check,
-                    color: Theme.of(context).colorScheme.primary,
-                  )
-                : null,
-            onTap: () => _setBackend(ModelBackend.npuTest),
+            backend: ModelBackend.npuTest,
           ),
         ],
       ],
+    );
+  }
+
+  Widget _backendRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required ModelBackend backend,
+  }) {
+    return SettingsRow(
+      leading: Icon(icon),
+      title: title,
+      subtitle: subtitle,
+      trailing: _backend == backend
+          ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+          : null,
+      onTap: () => _setBackend(backend),
     );
   }
 
@@ -409,30 +418,29 @@ class _SettingsPageState extends State<SettingsPage> {
           leading: const Icon(LucideIcons.languages),
           title: 'Language',
           subtitle: _languageLabel(localeController.locale?.languageCode),
-          trailing: const Icon(LucideIcons.chevronRight),
+          trailing: const Icon(Icons.chevron_right),
           onTap: _showLanguagePicker,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         SettingsRow(
-          leading: const Icon(LucideIcons.graduationCap),
+          leading: const Icon(Icons.school_outlined),
           title: 'Show the tour again',
           subtitle: 'Replay the quick walkthrough',
-          trailing: const Icon(LucideIcons.chevronRight),
+          trailing: const Icon(Icons.chevron_right),
           onTap: () => context.read<TourController>().start(),
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         SettingsRow(
-          leading: const Icon(LucideIcons.shieldCheck),
+          leading: const Icon(Icons.shield_outlined),
           title: 'Permissions',
           subtitle: 'Check what the app is allowed to do',
-          trailing: const Icon(LucideIcons.chevronRight),
+          trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-                builder: (_) => AppScreen(
-                  title: 'Permissions',
-                  scrollable: false,
-                  body: const PermissionsTab(),
-                ),
+              builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Permissions')),
+                body: const PermissionsTab(),
+              ),
             ),
           ),
         ),
@@ -451,8 +459,8 @@ class _SettingsPageState extends State<SettingsPage> {
           enabled: _serviceRunning,
           leading: Icon(
             _serviceRunning
-                ? LucideIcons.circleStop
-                : LucideIcons.circlePause,
+                ? Icons.stop_circle_outlined
+                : Icons.pause_circle_outlined,
           ),
           title: 'Pause protection',
           subtitle:
@@ -479,42 +487,14 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // Debug-only: everything technical lives here so the normal UI stays simple.
-  Widget _devSection() {
-    return SettingsSection(
-      title: 'Dev menu',
-      caption: 'Debug build only. Not shown in release builds.',
-      children: [
-        SettingsRow(
-          leading: const Icon(LucideIcons.terminal),
-          title: 'Open Dev menu',
-          subtitle: 'Custom models, cloud review, backend details',
-          trailing: const Icon(LucideIcons.chevronRight),
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => DevMenuPage(
-                model: _model,
-                settings: _settings,
-                onChanged: () async {
-                  await ScamShieldController.syncSettings();
-                  await _refresh();
-                },
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   IconData _themeIcon(ThemeMode mode) {
     switch (mode) {
       case ThemeMode.light:
-        return LucideIcons.sun;
+        return Icons.light_mode_outlined;
       case ThemeMode.dark:
-        return LucideIcons.moon;
+        return Icons.dark_mode_outlined;
       case ThemeMode.system:
-        return LucideIcons.smartphone;
+        return Icons.brightness_auto_outlined;
     }
   }
 
@@ -543,22 +523,45 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final entry in const [
-                MapEntry(ThemeMode.system, 'System default'),
-                MapEntry(ThemeMode.light, 'Light'),
-                MapEntry(ThemeMode.dark, 'Dark'),
-              ])
+              for (final mode in ThemeMode.values)
                 RadioListTile<ThemeMode>(
-                  value: entry.key,
-                  title: Text(entry.value),
+                  value: mode,
+                  title: Text(_themeLabel(mode)),
                 ),
             ],
           ),
         ),
       ),
     );
-    if (selected == null) return;
-    await controller.setMode(selected);
+    if (selected != null) await controller.setMode(selected);
+  }
+
+  // Debug-only: everything technical lives here so the normal UI stays simple.
+  Widget _devSection() {
+    return SettingsSection(
+      title: 'Dev menu',
+      caption: 'Debug build only. Not shown in release builds.',
+      children: [
+        SettingsRow(
+          leading: const Icon(Icons.terminal_outlined),
+          title: 'Open Dev menu',
+          subtitle: 'Custom models, cloud review, backend details',
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => DevMenuPage(
+                model: _model,
+                settings: _settings,
+                onChanged: () async {
+                  await ScamShieldController.syncSettings();
+                  await _refresh();
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   String _languageLabel(String? code) {

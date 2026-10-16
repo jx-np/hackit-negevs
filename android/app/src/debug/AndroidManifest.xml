@@ -4,4 +4,24 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Debug-only: lets the developer menu scan shared storage (Download, etc.)
+         for on-device model files to side-load. This is a Play-restricted,
+         broad permission, so it is declared only in the debug manifest and
+         never merged into release/profile builds. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+
+    <!-- Debug-only: a broadcast trigger for running a batch of test
+         notifications through the on-device model from a connected computer
+         via `adb shell am broadcast`. Declared only in the debug manifest so
+         the receiver and its Kotlin class never merge into release/profile. -->
+    <application>
+        <receiver
+            android:name=".BatchRunReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.scamwatch.negavsinparis.RUN_BATCH"/>
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

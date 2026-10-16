@@ -52,3 +52,22 @@ model_dl.err
 
 # Vendored upstream source checkouts
 flutter_gemma/
+
+# Datasets, batch tuning runs, and their outputs (not app build inputs)
+final_dataset.csv
+Final_dataset.csv
+Testing&tuning/
+tools/
+__pycache__/
+*.pyc
+
+# Evaluation/test result dumps and device logs
+test_results_*.json
+tests_results.json
+logcat_dump.txt
+*.log
+
+# Unused non-Android platform scaffolding (this is an Android-only app)
+/linux/
+/macos/
+/windows/

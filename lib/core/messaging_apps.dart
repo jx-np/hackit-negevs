@@ -14,6 +14,7 @@ const Map<String, String> kMessagingApps = {
   'com.facebook.orca': 'Messenger',
   'com.facebook.mlite': 'Messenger Lite',
   'com.instagram.android': 'Instagram',
+  'com.instafel.android': 'Instafel',
   'com.tencent.mm': 'WeChat',
   'com.viber.voip': 'Viber',
   'jp.naver.line.android': 'LINE',

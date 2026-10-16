@@ -1,12 +1,13 @@
-import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'dart:io';
 
-import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
-import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
+import 'package:flutter/material.dart';
+
 import '../../core/model_catalog.dart';
 import '../../services/model_controller.dart';
 import '../../services/model_store.dart';
 import '../../services/protection_settings.dart';
+import '../../services/scamshield_channels.dart';
+import '../calls/high_risk_call_alert.dart';
 
 /// Debug-only developer menu.
 ///
@@ -33,7 +34,8 @@ class DevMenuPage extends StatefulWidget {
   State<DevMenuPage> createState() => _DevMenuPageState();
 }
 
-class _DevMenuPageState extends State<DevMenuPage> {
+class _DevMenuPageState extends State<DevMenuPage>
+    with WidgetsBindingObserver {
   final TextEditingController _pathController = TextEditingController();
   final TextEditingController _contextController = TextEditingController(
     text: kDefaultCustomModelContext.toString(),
@@ -42,23 +44,51 @@ class _DevMenuPageState extends State<DevMenuPage> {
   bool _thinking = false;
   bool _scanning = false;
 
+  /// Whether the app currently holds All files access. Only meaningful on
+  /// Android; always true elsewhere so the gated controls stay enabled.
+  bool _hasAllFilesAccess = !Platform.isAndroid;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.model.addListener(_onModelChanged);
     _load();
+    _refreshAllFilesAccess();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.model.removeListener(_onModelChanged);
     _pathController.dispose();
     _contextController.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // The grant screen is a separate system Settings activity, so re-check
+    // when we come back to the foreground.
+    if (state == AppLifecycleState.resumed) {
+      _refreshAllFilesAccess();
+    }
+  }
+
   void _onModelChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _refreshAllFilesAccess() async {
+    if (!Platform.isAndroid) return;
+    final granted = await ScamShieldController.hasAllFilesAccess();
+    if (!mounted) return;
+    setState(() => _hasAllFilesAccess = granted);
+  }
+
+  Future<void> _requestAllFilesAccess() async {
+    await ScamShieldController.requestAllFilesAccess();
+    // The result comes back via didChangeAppLifecycleState on resume.
   }
 
   Future<void> _load() async {
@@ -77,20 +107,18 @@ class _DevMenuPageState extends State<DevMenuPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final tokens = context.tokens;
-    return AppScreen(
-      title: 'Dev menu',
-      scrollable: false,
+    return Scaffold(
+      appBar: AppBar(title: const Text('Dev menu')),
       body: ListView(
-        padding: EdgeInsets.fromLTRB(
-          tokens.space.lg,
-          tokens.space.lg,
-          tokens.space.lg,
-          tokens.space.xl2,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           _banner(theme),
           const SizedBox(height: 16),
+          if (Platform.isAndroid) ...[
+            _sectionTitle('Storage access', theme),
+            _allFilesAccessCard(theme),
+            const SizedBox(height: 16),
+          ],
           _sectionTitle('Load a model file from this device', theme),
           Card(
             child: Column(
@@ -98,7 +126,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                 _customModelTile(theme),
                 const Divider(height: 1),
                 ListTile(
-                   leading: const Icon(LucideIcons.search),
+                  leading: const Icon(Icons.travel_explore),
                   title: const Text('Scan for model files'),
                   subtitle: Text(
                     _scanning
@@ -111,7 +139,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                       : const Icon(LucideIcons.chevronRight),
+                      : const Icon(Icons.chevron_right),
                   onTap: _scanning ? null : _scanForModels,
                 ),
                 Padding(
@@ -153,7 +181,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: widget.model.busy ? null : _loadFromTypedPath,
-                       icon: const Icon(LucideIcons.fileUp),
+                      icon: const Icon(Icons.upload_file_outlined),
                       label: const Text('Load model from file'),
                     ),
                   ),
@@ -161,8 +189,34 @@ class _DevMenuPageState extends State<DevMenuPage> {
               ],
             ),
           ),
+          const SizedBox(height: 16),
+          _sectionTitle('High-risk call alert', theme),
+          Card(
+            child: ListTile(
+              leading: Icon(
+                Icons.warning_amber_rounded,
+                color: theme.colorScheme.error,
+              ),
+              title: const Text('Preview high-risk alert'),
+              subtitle: const Text(
+                'Show the full-screen warning shown when a reported scam '
+                'number calls.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _previewHighRiskAlert,
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Future<void> _previewHighRiskAlert() async {
+    await HighRiskCallAlert.show(
+      context,
+      phoneNumber: '+1 555 0100',
+      trustScore: 12,
+      reportCount: 47,
     );
   }
 
@@ -175,7 +229,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
       ),
       child: Row(
         children: [
-           const Icon(LucideIcons.flaskConical, size: 20),
+          const Icon(Icons.science_outlined, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -184,6 +238,31 @@ class _DevMenuPageState extends State<DevMenuPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _allFilesAccessCard(ThemeData theme) {
+    final granted = _hasAllFilesAccess;
+    return Card(
+      child: ListTile(
+        leading: Icon(
+          granted ? Icons.folder_open : Icons.folder_off_outlined,
+          color: granted ? theme.colorScheme.primary : null,
+        ),
+        title: const Text('All files access'),
+        subtitle: Text(
+          granted
+              ? 'Granted. Scanning can reach shared folders like Download.'
+              : 'Needed to scan shared storage (Download, Documents) for '
+                    'model files. Without it, only the app folder is searched.',
+        ),
+        trailing: granted
+            ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
+            : FilledButton.tonal(
+                onPressed: _requestAllFilesAccess,
+                child: const Text('Grant'),
+              ),
       ),
     );
   }
@@ -198,7 +277,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
   Widget _customModelTile(ThemeData theme) {
     final spec = customModelSpec;
     return ListTile(
-       leading: const Icon(LucideIcons.hardDrive),
+      leading: const Icon(Icons.sd_card_outlined),
       title: Text(spec == null ? 'No file picked' : spec.displayName),
       subtitle: Text(
         spec == null
@@ -252,7 +331,7 @@ class _DevMenuPageState extends State<DevMenuPage> {
                   itemBuilder: (_, index) {
                     final file = files[index];
                     return ListTile(
-                       leading: const Icon(LucideIcons.file),
+                      leading: const Icon(Icons.insert_drive_file_outlined),
                       title: Text(file.fileName, maxLines: 1),
                       subtitle: Text('~${file.sizeMb} MB'),
                       onTap: () => Navigator.of(sheetContext).pop(file.path),

@@ -81,148 +81,226 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get commonImageTooLarge =>
-      'ஒவ்வொரு படமும் 20 MB அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்.';
+      'ஒவ்வொரு படமும் 10 MB அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்.';
 
   @override
-  String get homeTitle => 'Home';
+  String get reportTabPhotoProcessing => 'பகுப்பாய்வு செய்கிறது...';
 
   @override
-  String get homeWelcomePrefix => 'Welcome, ';
+  String get reportTabPhotoReady => 'தயார்';
 
   @override
-  String get homeWelcomeGuestLabel => 'not signed in';
+  String get reportTabPhotoFailed => 'பகுப்பாய்வு செய்ய முடியவில்லை';
 
   @override
-  String get myProfileTitle => 'My Profile';
+  String get reportTabPhotoDropped =>
+      'சில படங்களைப் பகுப்பாய்வு செய்ய முடியவில்லை, அவை அகற்றப்பட்டன.';
 
   @override
-  String get myProfileAccountSection => 'Account details';
+  String get reportTabProcessingTitle =>
+      'செயலியை மூட வேண்டாம். செயலாக்கப்படுகிறது';
 
   @override
-  String get myProfileName => 'Name';
+  String get reportTabSignInToAddPhotos => 'படங்களை இணைக்க உள்நுழையவும்.';
 
   @override
-  String get myProfileEmail => 'Email';
+  String get reportTabFailedDialogTitle =>
+      'சில படங்களைப் பகுப்பாய்வு செய்ய முடியவில்லை';
 
   @override
-  String get myProfileMemberSince => 'Member since';
-
-  @override
-  String get myProfilePosts => 'Posts';
-
-  @override
-  String get myProfileRole => 'Role';
-
-  @override
-  String get myProfileRoleResident => 'Member';
-
-  @override
-  String get myProfileRoleModerator => 'Moderator';
-
-  @override
-  String get myProfileRoleAdmin => 'Administrator';
-
-  @override
-  String get myProfileSignOut => 'Sign out';
-
-  @override
-  String get myProfileSignOutHint => 'You can sign back in at any time';
-
-  @override
-  String get myProfileNotSignedInTitle => 'You\'re not signed in';
-
-  @override
-  String get myProfileNotSignedInBody =>
-      'Sign in to see your account details and manage your profile.';
-
-  @override
-  String get myProfileSignIn => 'Sign in';
-
-  @override
-  String get homeNewsTitle => 'Scam alerts & news';
-
-  @override
-  String get homeNewsError => 'Couldn\'t load the latest alerts.';
-
-  @override
-  String get homeNewsRetry => 'Try again';
-
-  @override
-  String get homeQuickActionsTitle => 'What would you like to do?';
-
-  @override
-  String get homeActionMyPosts => 'My posts';
-
-  @override
-  String get homeActionMyPostsBody => 'Track the scams you\'ve reported';
-
-  @override
-  String get homeActionProfile => 'My profile';
-
-  @override
-  String get homeActionProfileBody => 'See your details and your posts';
-
-  @override
-  String get homeActionCalls => 'Recent calls';
-
-  @override
-  String get homeActionCallsBody => 'Review calls from unknown numbers';
-
-  @override
-  String get homeActionReport => 'Report a scam';
-
-  @override
-  String get homeActionReportBody => 'Warn others in the community';
-
-  @override
-  String get homeActionSafety => 'Protection';
-
-  @override
-  String get homeActionSafetyBody => 'Turn on Scam Shield';
-
-  @override
-  String get homeStatusOnBody => 'We are checking your messages for scams.';
-
-  @override
-  String get homeStatusOffBody =>
-      'Turn it on so we can warn you about scam messages.';
-
-  @override
-  String get homeStatusProblemTitle => 'Protection needs attention';
-
-  @override
-  String get homeStatusProblemBody =>
-      'Something went wrong. Tap below to fix it.';
-
-  @override
-  String get homeStatusStartingTitle => 'Getting ready';
-
-  @override
-  String get homeStatusStartingBody =>
-      'Protection is starting up. This can take a minute.';
-
-  @override
-  String get homeStatusOpen => 'See details';
-
-  @override
-  String get homeStatusFix => 'Fix it now';
-
-  @override
-  String get homeNewsReadMore => 'Read more';
-
-  @override
-  String get homeNewsClose => 'Close';
-
-  @override
-  String homeNewsCount(Object current, Object total) {
-    return '$current of $total';
+  String reportTabFailedDialogBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count படங்களைப் பதிவேற்ற அல்லது பகுப்பாய்வு செய்ய முடியவில்லை. மீண்டும் முயற்சிக்கவா, அல்லது அவை இல்லாமல் இடுகையிடவா?',
+      one:
+          '1 படத்தைப் பதிவேற்ற அல்லது பகுப்பாய்வு செய்ய முடியவில்லை. மீண்டும் முயற்சிக்கவா, அல்லது அது இல்லாமல் இடுகையிடவா?',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get homeNewsPrevious => 'Previous alert';
+  String get reportTabFailedRetry => 'மீண்டும் முயற்சி';
 
   @override
-  String get homeNewsNext => 'Next alert';
+  String get reportTabFailedPostWithout => 'படங்கள் இல்லாமல் இடுகையிடு';
+
+  @override
+  String get reportTabWaitForImages => 'Wait for images to be processed';
+
+  @override
+  String get reportTabCheckImages => 'Check images';
+
+  @override
+  String get reportTabReviewCheckbox =>
+      'I\'ve reviewed the images and the personal details are hidden correctly';
+
+  @override
+  String get reportTabEditImage => 'Edit image';
+
+  @override
+  String get reportTabReuploading => 'Re-uploading edited image...';
+
+  @override
+  String get reportTabPosting => 'Posting...';
+
+  @override
+  String get reportTabEditorSaveFailed =>
+      'Couldn\'t re-upload the edited image. Try again.';
+
+  @override
+  String get reportTabViewPost => 'View your post';
+
+  @override
+  String get homeTitle => 'முகப்பு';
+
+  @override
+  String get homeWelcomePrefix => 'வரவேற்கிறோம், ';
+
+  @override
+  String get homeWelcomeGuestLabel => 'உள்நுழையவில்லை';
+
+  @override
+  String get homeWelcomeGuest => 'Welcome';
+
+  @override
+  String get myProfileTitle => 'எனது சுயவிவரம்';
+
+  @override
+  String get myProfileAccountSection => 'கணக்கு விவரங்கள்';
+
+  @override
+  String get myProfileName => 'பெயர்';
+
+  @override
+  String get myProfileEmail => 'மின்னஞ்சல்';
+
+  @override
+  String get myProfileMemberSince => 'இணைந்த நாள்';
+
+  @override
+  String get myProfilePosts => 'பதிவுகள்';
+
+  @override
+  String get myProfileRole => 'பங்கு';
+
+  @override
+  String get myProfileRoleResident => 'உறுப்பினர்';
+
+  @override
+  String get myProfileRoleModerator => 'இணை நிர்வாகி';
+
+  @override
+  String get myProfileRoleAdmin => 'நிர்வாகி';
+
+  @override
+  String get myProfileSignOut => 'வெளியேறு';
+
+  @override
+  String get myProfileSignOutHint =>
+      'நீங்கள் எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம்';
+
+  @override
+  String get myProfileNotSignedInTitle => 'நீங்கள் உள்நுழையவில்லை';
+
+  @override
+  String get myProfileNotSignedInBody =>
+      'உங்கள் கணக்கு விவரங்களைக் காணவும், சுயவிவரத்தை நிர்வகிக்கவும் உள்நுழையவும்.';
+
+  @override
+  String get myProfileSignIn => 'உள்நுழை';
+
+  @override
+  String get homeNewsTitle => 'மோசடி எச்சரிக்கைகள் & செய்திகள்';
+
+  @override
+  String get homeNewsError => 'சமீபத்திய எச்சரிக்கைகளை ஏற்ற முடியவில்லை.';
+
+  @override
+  String get homeNewsRetry => 'மீண்டும் முயற்சிக்கவும்';
+
+  @override
+  String get homeQuickActionsTitle => 'நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?';
+
+  @override
+  String get homeActionMyPosts => 'எனது பதிவுகள்';
+
+  @override
+  String get homeActionMyPostsBody =>
+      'நீங்கள் புகாரளித்த மோசடிகளைப் பின்தொடரவும்';
+
+  @override
+  String get homeActionProfile => 'எனது சுயவிவரம்';
+
+  @override
+  String get homeActionProfileBody =>
+      'உங்கள் விவரங்களையும் பதிவுகளையும் பார்க்கவும்';
+
+  @override
+  String get homeActionCalls => 'சமீபத்திய அழைப்புகள்';
+
+  @override
+  String get homeActionCallsBody =>
+      'அறியப்படாத எண்களிலிருந்து வரும் அழைப்புகளைச் சரிபார்க்கவும்';
+
+  @override
+  String get homeActionReport => 'மோசடியைப் புகாரளிக்கவும்';
+
+  @override
+  String get homeActionReportBody =>
+      'சமூகத்தில் உள்ள மற்றவர்களுக்கு எச்சரிக்கவும்';
+
+  @override
+  String get homeActionSafety => 'பாதுகாப்பு';
+
+  @override
+  String get homeActionSafetyBody => 'Scam Shield-ஐ இயக்கவும்';
+
+  @override
+  String get homeStatusOnBody =>
+      'உங்கள் செய்திகளில் மோசடி இருக்கிறதா என்று நாங்கள் சரிபார்க்கிறோம்.';
+
+  @override
+  String get homeStatusOffBody =>
+      'மோசடி செய்திகள் பற்றி உங்களுக்கு எச்சரிக்க அதை இயக்கவும்.';
+
+  @override
+  String get homeStatusProblemTitle => 'பாதுகாப்புக்கு உங்கள் கவனம் தேவை';
+
+  @override
+  String get homeStatusProblemBody =>
+      'ஏதோ தவறு நடந்தது. சரிசெய்ய கீழே தட்டவும்.';
+
+  @override
+  String get homeStatusStartingTitle => 'தயாராகிறது';
+
+  @override
+  String get homeStatusStartingBody =>
+      'பாதுகாப்பு தொடங்குகிறது. இதற்கு ஒரு நிமிடம் ஆகலாம்.';
+
+  @override
+  String get homeStatusOpen => 'விவரங்களைப் பார்க்கவும்';
+
+  @override
+  String get homeStatusFix => 'இப்போது சரிசெய்யவும்';
+
+  @override
+  String get homeNewsReadMore => 'மேலும் படிக்கவும்';
+
+  @override
+  String get homeNewsClose => 'மூடவும்';
+
+  @override
+  String homeNewsCount(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get homeNewsPrevious => 'முந்தைய எச்சரிக்கை';
+
+  @override
+  String get homeNewsNext => 'அடுத்த எச்சரிக்கை';
 
   @override
   String get settingsDetectionModel => 'கண்டறிதல் மாதிரி';
@@ -526,7 +604,94 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get callBlockNeedsScreening =>
-      'To stop blocked numbers from ringing, choose this app for call screening.';
+      'தடுக்கப்பட்ட எண்கள் ஒலிக்காமல் இருக்க, அழைப்பு வடிகட்டலுக்கு இந்த ஆப்ஸைத் தேர்ந்தெடுக்கவும்.';
+
+  @override
+  String get callHighRiskTitle => 'அதிக ஆபத்துள்ள அழைப்பாளர்';
+
+  @override
+  String get callHighRiskBody =>
+      'இந்த எண் மோசடி என்று புகாரளிக்கப்பட்டுள்ளது. தனிப்பட்ட விவரங்களையோ பணத்தையோ பகிர வேண்டாம்.';
+
+  @override
+  String callHighRiskScore(int score) {
+    return 'நம்பக மதிப்பெண்: $score/100';
+  }
+
+  @override
+  String callHighRiskReports(int count) {
+    return '$count முறை புகாரளிக்கப்பட்டது';
+  }
+
+  @override
+  String get callHighRiskDismiss => 'நிராகரி';
+
+  @override
+  String get callCheckNumber => 'இந்த எண்ணைச் சரிபார்';
+
+  @override
+  String get callChecking => 'எண் சரிபார்க்கப்படுகிறது...';
+
+  @override
+  String callCheckSafe(String number) {
+    return '$number பாதுகாப்பாகத் தெரிகிறது';
+  }
+
+  @override
+  String callCheckUnknown(String number) {
+    return '$number க்கு புகார்கள் இல்லை';
+  }
+
+  @override
+  String callCheckHighRisk(String number) {
+    return '$number அதிக ஆபத்து உடையது';
+  }
+
+  @override
+  String get callCheckFailed => 'இந்த எண்ணைச் சரிபார்க்க முடியவில்லை';
+
+  @override
+  String get callCheckTitle => 'எண் சரிபார்ப்பு';
+
+  @override
+  String get callCheckNumberLabel => 'சரிபார்க்கப்படும் எண்';
+
+  @override
+  String get callCheckResultHighRisk => 'அதிக ஆபத்துள்ள எண்';
+
+  @override
+  String get callCheckResultUnknown => 'இதுவரை பதிவு இல்லை';
+
+  @override
+  String get callCheckResultSafe => 'பாதுகாப்பாகத் தெரிகிறது';
+
+  @override
+  String get callCheckResultFailed => 'சரிபார்ப்பு தோல்வி';
+
+  @override
+  String get callCheckDetailHighRisk =>
+      'இந்த எண் மோசடி என்று புகாரளிக்கப்பட்டுள்ளது. தனிப்பட்ட தகவல் அல்லது பணத்தைப் பகிர வேண்டாம்.';
+
+  @override
+  String get callCheckDetailUnknown =>
+      'இந்த எண்ணுக்கு புகார்கள் இல்லை. எச்சரிக்கையாக இருங்கள்.';
+
+  @override
+  String get callCheckDetailSafe => 'இந்த எண்ணுக்கு மோசடி புகார்கள் இல்லை.';
+
+  @override
+  String get callCheckDetailFailed =>
+      'இப்போது இந்த எண்ணைச் சரிபார்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String callCheckScore(int score) {
+    return 'நம்பிக்கை மதிப்பெண்: $score/100';
+  }
+
+  @override
+  String callCheckReports(int count) {
+    return '$count முறை புகாரளிக்கப்பட்டது';
+  }
 
   @override
   String get reportPhone => 'தொலைபேசி';
@@ -681,6 +846,20 @@ class AppLocalizationsTa extends AppLocalizations {
   String get permAlertsSub => 'மோசடி எச்சரிக்கைகளை அறிவிப்புகளாக இடுகிறது';
 
   @override
+  String get permBackground => 'பின்னணியில் இயக்கு';
+
+  @override
+  String get permBackgroundSub =>
+      'பாதுகாப்பு தொடர்ந்து இயங்க பேட்டரி மேம்படுத்தலைப் புறக்கணி';
+
+  @override
+  String get permBatterySettings => 'பேட்டரி மேம்படுத்தல் அமைப்புகள்';
+
+  @override
+  String get permBatterySettingsSub =>
+      'சில தொலைபேசிகள் இன்னும் செயலிகளைக் கட்டுப்படுத்துகின்றன. பட்டியலைத் திறந்து இந்த செயலியை \"மேம்படுத்த வேண்டாம்\" என அமைக்கவும்.';
+
+  @override
   String get permGranted => 'வழங்கப்பட்டது';
 
   @override
@@ -819,6 +998,15 @@ class AppLocalizationsTa extends AppLocalizations {
   String get safetyTurnOn => 'பாதுகாப்பை இயக்கு';
 
   @override
+  String get safetyPressToStart => 'தொடங்க அழுத்தவும்';
+
+  @override
+  String get safetyDownloadingModel => 'மாதிரியைப் பதிவிறக்குகிறது…';
+
+  @override
+  String get safetySettingUpModel => 'மாதிரியை அமைக்கிறது…';
+
+  @override
   String get safetyNoScams => 'மோசடிகள் எதுவும் இல்லை';
 
   @override
@@ -900,6 +1088,23 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get notificationsTitle => 'அறிவிப்புகள்';
+
+  @override
+  String get notificationsTestTitle => 'Test the on-device AI';
+
+  @override
+  String get notificationsTestHint => 'Paste or type a message to check';
+
+  @override
+  String get notificationsTestRun => 'Check message';
+
+  @override
+  String get notificationsTestServiceOff =>
+      'Turn protection on first so the model can run the check.';
+
+  @override
+  String get notificationsTestSent =>
+      'Checking… the result will appear below once the model finishes.';
 
   @override
   String settingsScreenModelInstalled(String name) {
@@ -1011,6 +1216,20 @@ class AppLocalizationsTa extends AppLocalizations {
       'சந்தேகமான அழைப்பு ஒலிக்கும்போது திரையில் ஒரு சிறிய அறிவிப்பைக் காட்ட இது உதவுகிறது.';
 
   @override
+  String get onboardingBackgroundTitle => 'பின்னணியில் தொடர்ந்து இயங்கும்';
+
+  @override
+  String get onboardingBackgroundBody =>
+      'உங்கள் திரை அணைக்கப்பட்டாலும் மோசடிகளைக் கண்காணிக்க, பேட்டரி மேம்படுத்தலைப் புறக்கணிக்க செயலியை அனுமதிக்கவும்.';
+
+  @override
+  String get onboardingBatterySettingsTitle => 'பேட்டரி மேம்படுத்தலை நிறுத்து';
+
+  @override
+  String get onboardingBatterySettingsBody =>
+      'சில தொலைபேசிகள் முதல் கோரிக்கைக்குப் பிறகும் செயலிகளைக் கட்டுப்படுத்துகின்றன. பேட்டரி அமைப்புகளைத் திறந்து, இந்த செயலியைக் கண்டுபிடித்து, பாதுகாப்பு நிற்காமல் இருக்க \"மேம்படுத்த வேண்டாம்\" என அமைக்கவும்.';
+
+  @override
   String get onboardingSettingsHint =>
       'உங்கள் தொலைபேசி அமைப்புகள் திறக்கும். பட்டியலில் இந்த செயலியைக் கண்டுபிடித்து இயக்கி, பின் இங்கே திரும்புங்கள்.';
 
@@ -1102,17 +1321,17 @@ class AppLocalizationsTa extends AppLocalizations {
   String get authToggleToRegister => 'புதியவரா? கணக்கை உருவாக்கு';
 
   @override
-  String get authGateMessage => 'Sign in to use this feature.';
+  String get authGateMessage => 'தொடர உள்நுழையவும்';
 
   @override
-  String get authGateTitle => 'Sign in to continue';
+  String get authGateTitle => 'உள்நுழைவு தேவை';
 
   @override
   String get authGateBody =>
-      'This feature needs an account. Sign in to post to the community, sync your reports, and keep everything in one place.';
+      'இந்த அம்சத்தைப் பயன்படுத்த நீங்கள் உள்நுழைய வேண்டும்.';
 
   @override
-  String get authGateAction => 'Sign in';
+  String get authGateAction => 'உள்நுழை';
 
   @override
   String get communityTitle => 'சமூகம்';
@@ -1147,51 +1366,52 @@ class AppLocalizationsTa extends AppLocalizations {
       'சமூகத்துடன் பகிரப்பட்டது. கண்காணிக்க எனது இடுகைகளைப் பார்க்கவும்.';
 
   @override
-  String get reportTabHeroTitle => 'Warn others about a scam';
+  String get reportTabHeroTitle => 'மோசடியைப் புகாரளிக்கவும்';
 
   @override
-  String get reportTabNumberHeroTitle => 'Report a phone number';
+  String get reportTabNumberHeroTitle => 'எண்ணைப் புகாரளிக்கவும்';
 
   @override
   String get reportTabNumberHeroBody =>
-      'Tell us why this number is suspicious. Your report helps protect others.';
+      'உங்களை ஏமாற்றிய அல்லது ஸ்பேம் செய்த தொலைபேசி எண்ணைப் புகாரளிக்கவும்.';
 
   @override
-  String get reportTabPaste => 'Paste';
+  String get reportTabPaste => 'ஒட்டவும்';
 
   @override
-  String get reportTabPasteEmpty => 'Nothing to paste. Copy the message first.';
+  String get reportTabPasteEmpty => 'கிளிப்போர்டு காலியாக உள்ளது';
 
   @override
-  String get reportTabNumberLabel => 'Phone number';
+  String get reportTabNumberLabel => 'தொலைபேசி எண்';
 
   @override
-  String get reportTabNumberHint => 'e.g. +65 9123 4567';
+  String get reportTabNumberHint => 'எ.கா. +65 8123 4567';
 
   @override
-  String get reportTabNumberRequired => 'Please enter the phone number.';
+  String get reportTabNumberRequired => 'தொலைபேசி எண்ணை உள்ளிடவும்';
 
   @override
-  String get reportTabReasonLabel => 'What happened?';
+  String get reportTabReasonLabel => 'என்ன நடந்தது?';
 
   @override
-  String get reportTabReasonSpamBody => 'Unwanted calls or adverts';
+  String get reportTabReasonSpamBody =>
+      'வேண்டாத விளம்பரம் அல்லது மீண்டும் மீண்டும் வரும் அழைப்புகள்';
 
   @override
   String get reportTabReasonScamBody =>
-      'They tried to trick me or take my money';
+      'பணம் அல்லது தனிப்பட்ட விவரங்களைத் திருட முயன்றது';
 
   @override
-  String get reportTabReasonOtherBody => 'Something else felt wrong';
+  String get reportTabReasonOtherBody => 'வேறு ஏதோ';
 
   @override
-  String get reportTabSuccessTitle => 'Thank you for helping';
+  String get reportTabSuccessTitle => 'புகாரளித்ததற்கு நன்றி';
 
   @override
-  String get reportTabReportAnother => 'Report another';
+  String get reportTabReportAnother => 'மற்றொன்றைப் புகாரளிக்கவும்';
 
   @override
-  String get reportTabDone => 'Done';
+  String get reportTabDone => 'முடிந்தது';
 
   @override
   String get myPostsTitle => 'எனது இடுகைகள்';
@@ -1286,7 +1506,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String postDetailShowMoreReplies(int count) {
-    return 'Show $count more replies';
+    return 'மேலும் $count பதில்களைக் காட்டவும்';
   }
 
   @override
@@ -1330,11 +1550,11 @@ class AppLocalizationsTa extends AppLocalizations {
       'நீங்கள் எடுக்கக்கூடிய நடவடிக்கைகளைப் பார்க்க மேலே என்ன நடந்தது என்பதைத் தேர்ந்தெடுக்கவும்.';
 
   @override
-  String get tourHomeTitle => 'Home';
+  String get tourHomeTitle => 'ScamWatch-க்கு வரவேற்கிறோம்';
 
   @override
   String get tourHomeBody =>
-      'This is your home screen. See the latest scam alerts and quickly get to everything the app can do.';
+      'உங்கள் முகப்புத் திரை உங்கள் பாதுகாப்பு நிலையையும் விரைவான செயல்களையும் காட்டுகிறது.';
 
   @override
   String get tourCallsTitle => 'அழைப்புகள்';
@@ -1365,11 +1585,11 @@ class AppLocalizationsTa extends AppLocalizations {
       'நீங்கள் புகாரளிக்கும் அனைத்தும் இங்கே வரும். விவாதத்தைக் கண்காணித்து, ஒரு மதிப்பீட்டாளர் உங்கள் இடுகையை மதிப்பாய்வு செய்தபோது பார்க்கவும்.';
 
   @override
-  String get tourProfileTitle => 'Your Profile';
+  String get tourProfileTitle => 'உங்கள் சுயவிவரம்';
 
   @override
   String get tourProfileBody =>
-      'See your account details and all your posts in one place. Open settings or sign out from the buttons at the top.';
+      'உங்கள் கணக்கு விவரங்களையும், இங்கே நீங்கள் புகாரளித்த மோசடிகளையும் பார்க்கவும்.';
 
   @override
   String get tourSettingsTitle => 'அமைப்புகள்';

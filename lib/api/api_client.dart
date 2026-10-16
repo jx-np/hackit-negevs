@@ -79,6 +79,79 @@ class ApiClient {
   }) =>
       _send('DELETE', path, body: body, auth: auth);
 
+  /// Returns request headers carrying the current bearer token, suitable for
+  /// authenticated reads made outside this client (e.g. `Image.network` for
+  /// owner-only redacted post images). Empty when there is no session.
+  Future<Map<String, String>> authHeaders() async {
+    final token = await _tokens.accessToken();
+    if (token == null || token.isEmpty) return const {};
+    return {'Authorization': 'Bearer $token'};
+  }
+
+  /// Whether a bearer access token is physically present in storage right now.
+  ///
+  /// This is stronger than the `AuthController.isSignedIn` UI flag: it confirms
+  /// a token can actually be attached to the next request. Callers that create
+  /// server resources which can only be read back by their authenticated owner
+  /// (e.g. a `/uploads` detection check polled via an owner-only endpoint) use
+  /// this to refuse to proceed anonymously.
+  Future<bool> hasAccessToken() async {
+    final token = await _tokens.accessToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  /// Sends a `multipart/form-data` request. [files] maps a form field name to
+  /// the file to attach; [fields] carries any extra text fields. Reuses the
+  /// same auth, 401-refresh retry, and error handling as JSON requests.
+  Future<ApiResponse> multipart(
+    String path, {
+    required Map<String, http.MultipartFile> files,
+    Map<String, String> fields = const {},
+    String method = 'POST',
+    bool auth = true,
+    bool isRetry = false,
+  }) async {
+    final uri = ApiConfig.uri(path);
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (auth) {
+      final token = await _tokens.accessToken();
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
+
+    http.Response response;
+    try {
+      final request = http.MultipartRequest(method, uri)
+        ..headers.addAll(headers)
+        ..fields.addAll(fields)
+        ..files.addAll(files.values);
+      final streamed = await _http.send(request).timeout(_timeout);
+      response = await http.Response.fromStream(streamed);
+    } catch (error) {
+      throw ApiException.network(error);
+    }
+
+    final requestId = response.headers['x-request-id'];
+
+    if (response.statusCode == 401 && auth && !isRetry && onRefresh != null) {
+      final refreshed = await onRefresh!.call();
+      if (refreshed) {
+        return multipart(
+          path,
+          files: files,
+          fields: fields,
+          method: method,
+          auth: auth,
+          isRetry: true,
+        );
+      }
+      await onUnauthorized?.call();
+    }
+
+    return _handle(response, requestId, auth: auth);
+  }
+
   Future<ApiResponse> _send(
     String method,
     String path, {
@@ -131,6 +204,14 @@ class ApiClient {
       await onUnauthorized?.call();
     }
 
+    return _handle(response, requestId, auth: auth);
+  }
+
+  Future<ApiResponse> _handle(
+    http.Response response,
+    String? requestId, {
+    bool auth = true,
+  }) async {
     final parsed = _decode(response.body);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {

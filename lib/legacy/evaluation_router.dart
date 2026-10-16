@@ -1,6 +1,19 @@
+// LEGACY — cloud escalation routing (no longer wired into the app).
+//
+// This file used to decide whether a message was checked on-device or
+// escalated to the remote cloud model. Scam checks are now on-device only:
+// the background runner evaluates every message against the local model and
+// never sends message content off the device. See
+// `lib/background/background_runner.dart`.
+//
+// It is kept here (unused) so the cloud-escalation behavior can be restored
+// later if needed. Nothing in `lib/` imports this; it is intentionally
+// excluded from the live code path. The companion
+// `lib/legacy/remote_api_evaluator.dart` is the cloud evaluator it drove.
+
 import '../core/notification_record.dart';
 import '../core/scam_verdict.dart';
-import 'scam_evaluator.dart';
+import '../services/scam_evaluator.dart';
 
 class EvaluationRouter {
   EvaluationRouter({

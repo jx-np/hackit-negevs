@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
@@ -79,8 +80,17 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
             email: email,
             password: password,
             displayName: _nameController.text.trim(),
+            locale: _backendLocale(context),
           )
         : controller.login(email: email, password: password));
+
+    // On a successful sign-in, commit the autofill context so the platform's
+    // password manager offers to save (or update) the credentials the user
+    // just submitted. On failure the context stays open so the manager can
+    // still fill on the retry.
+    if (controller.isSignedIn) {
+      TextInput.finishAutofillContext();
+    }
 
     // On success the AuthController flips status to signedIn and notifies
     // listeners. We handle the result in _onAuthChanged: if this screen was
@@ -116,6 +126,20 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
     return null;
   }
 
+  /// The backend locale tag to register with, based on the in-app language.
+  ///
+  /// [Localizations.localeOf] gives the locale the app is actually showing —
+  /// the user's in-app override when set, otherwise the device default already
+  /// resolved against our supported locales. The backend expects a full tag
+  /// (e.g. `en-SG`); we only vary the language and keep the `SG` region, and
+  /// fall back to `en-SG` for anything unexpected.
+  String _backendLocale(BuildContext context) {
+    const Set<String> supported = {'en', 'zh', 'ta', 'ms'};
+    final String language = Localizations.localeOf(context).languageCode;
+    if (!supported.contains(language)) return 'en-SG';
+    return '$language-SG';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -128,7 +152,8 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
       scrollable: true,
       body: Form(
             key: _formKey,
-            child: Column(
+            child: AutofillGroup(
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(height: context.tokens.space.sm),
@@ -152,6 +177,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   TextFormField(
                     controller: _nameController,
                     textCapitalization: TextCapitalization.words,
+                    autofillHints: const [AutofillHints.name],
                     style: theme.textTheme.titleMedium,
                     decoration: _fieldDecoration(l10n.authYourNameHint),
                     autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -165,6 +191,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   autocorrect: false,
+                  autofillHints: const [
+                    AutofillHints.username,
+                    AutofillHints.email,
+                  ],
                   style: theme.textTheme.titleMedium,
                   decoration: _fieldDecoration(l10n.authEmailHint),
                   autovalidateMode: AutovalidateMode.onUserInteraction,
@@ -176,6 +206,15 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  autofillHints: [
+                    _registerMode
+                        ? AutofillHints.newPassword
+                        : AutofillHints.password,
+                  ],
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) {
+                    if (!busy) _submit();
+                  },
                   style: theme.textTheme.titleMedium,
                   decoration: _fieldDecoration(l10n.authPasswordHint).copyWith(
                     suffixIcon: IconButton(
@@ -257,6 +296,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   ),
                 ),
               ],
+              ),
             ),
           ),
     );

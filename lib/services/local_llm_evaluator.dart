@@ -2,6 +2,7 @@ import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:flutter/foundation.dart';
 
 import '../core/notification_record.dart';
+import '../core/scam_hints.dart';
 import '../core/scam_prompt.dart';
 import '../core/scam_verdict.dart';
 import 'model_manager.dart';
@@ -204,11 +205,13 @@ class LocalLlmEvaluator implements ScamEvaluator {
   ) async {
     final budget = _inputTokenBudget;
     final message = _truncate(record.content, _inputCharCap);
+    final hints = (await ScamHintBuilder.fromRecord(record)).render();
     String build(String text) => buildScamPrompt(
           compact: true,
           appLabel: record.appLabel,
           sender: record.title,
           message: text,
+          hints: hints,
         );
     final prompt = build(message);
     final tokens = await _countTokens(session, prompt);

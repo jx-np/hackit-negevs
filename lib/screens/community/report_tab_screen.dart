@@ -1,16 +1,93 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_editor_plus/image_editor_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:scamwatch_mobile_app/api/api_client.dart';
 import 'package:scamwatch_mobile_app/api/api_exception.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
+import 'package:scamwatch_mobile_app/models/api/community_models.dart';
+import 'package:scamwatch_mobile_app/models/api/detection_models.dart';
+import 'package:scamwatch_mobile_app/screens/community/post_detail_screen.dart';
 import 'package:scamwatch_mobile_app/services/api/community_service.dart';
+import 'package:scamwatch_mobile_app/services/api/detection_service.dart';
+import 'package:scamwatch_mobile_app/state/posts_refresh_signal.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_card.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
+
+/// The lifecycle of a single attached screenshot.
+///
+/// Every picked image begins uploading immediately in parallel
+/// ([_UploadStatus.uploading]). When its upload finishes it does NOT start its
+/// detection check right away — to keep load off the server only one check runs
+/// at a time. Instead it becomes [_UploadStatus.queued] (uploaded, waiting its
+/// turn) and the check driver works through the queue LIFO (last-picked first).
+/// When an image reaches the front it moves to [_UploadStatus.processing] and
+/// polls `GET /detection/{check_id}` until it is [_UploadStatus.ready] or
+/// [_UploadStatus.failed]; only then does the next queued image start its check.
+enum _UploadStatus { uploading, queued, processing, ready, failed }
+
+/// Tracks one picked screenshot through upload + detection so the UI can show
+/// per-image progress and the submit step can collect the ready `check_id`s.
+class _ImageUpload {
+  _ImageUpload(this.file);
+
+  /// The on-disk image shown in the grid. Mutable so an edited version can
+  /// replace the original after it's re-uploaded through `/uploads`.
+  XFile file;
+
+  /// The stored upload returned by `/uploads`. Null until it responds. This is
+  /// what gets attached to the post via `upload_ids`.
+  String? uploadId;
+
+  /// The detection check auto-scheduled by the upload. Null until `/uploads`
+  /// responds. Used only to poll `GET /detection/{check_id}` for processing
+  /// status; the post itself is attached by [uploadId], not this.
+  String? checkId;
+
+  _UploadStatus status = _UploadStatus.uploading;
+
+  /// How many times a `failed` check has been retried. Capped at one retry.
+  int retries = 0;
+
+  /// Active poll timer for this image; cancelled when the image resolves or is
+  /// removed.
+  Timer? pollTimer;
+
+  /// Deadline after which polling gives up and the image is treated as failed.
+  DateTime? pollDeadline;
+
+  /// The last error that pushed this image toward failure, surfaced to the user
+  /// and logged so a silent drop becomes diagnosable (bad type, network, or the
+  /// backend's screenshot check resolving to `failed`).
+  String? failureReason;
+
+  /// True while an edited version of this image is being re-uploaded through
+  /// `/uploads`. Shown as a distinct overlay so the user knows the edit is
+  /// saving. The image keeps its [_UploadStatus.ready] status throughout since
+  /// an edited re-upload is trusted and not re-checked.
+  bool reuploading = false;
+
+  bool get isReady => status == _UploadStatus.ready;
+
+  /// True while the image is still working toward a terminal state: uploading,
+  /// waiting in the check queue, or being checked. [_waitForImages] and
+  /// [_submit] block until every image is out of this set (ready or failed).
+  bool get isPending =>
+      status == _UploadStatus.uploading ||
+      status == _UploadStatus.queued ||
+      status == _UploadStatus.processing;
+
+  /// True once the upload has finished and the image is waiting in the check
+  /// queue for its turn (no check is running for it yet).
+  bool get isQueued => status == _UploadStatus.queued;
+}
 
 class ReportTabScreen extends StatefulWidget {
   const ReportTabScreen({
@@ -33,9 +110,13 @@ class ReportTabScreen extends StatefulWidget {
 }
 
 class _ReportTabScreenState extends State<ReportTabScreen> {
-  static const int _maxImageBytes = 20 * 1024 * 1024;
+  /// Matches the server's hard `/uploads` cap (10 MiB). Keeping this in sync
+  /// with [DetectionService.maxUploadBytes] means a file rejected here is the
+  /// same one the server would reject with `413`.
+  static const int _maxImageBytes = DetectionService.maxUploadBytes;
 
   late final CommunityService _community = CommunityService(widget.client);
+  late final DetectionService _detection = DetectionService(widget.client);
   final ImagePicker _imagePicker = ImagePicker();
 
   static const List<String> _reasons = <String>['spam', 'scam', 'other'];
@@ -46,11 +127,47 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   final TextEditingController _numberController = TextEditingController();
   String _reason = 'scam';
 
-  final List<XFile> _images = <XFile>[];
+  final List<_ImageUpload> _images = <_ImageUpload>[];
+
+  /// How often to poll a processing detection check.
+  static const Duration _pollInterval = Duration(seconds: 3);
+
+  /// How long to keep polling a single check before giving up (treated as
+  /// failed, which then follows the retry-once-then-drop path). Screenshot
+  /// analysis runs OCR plus a separate PII-redaction service, so over a slow
+  /// tunnel it can take well over a minute; keep polling for a few minutes
+  /// before giving up so a slow-but-working backend isn't treated as a failure.
+  static const Duration _pollTimeout = Duration(minutes: 3);
 
   bool _submitting = false;
   String? _error;
   bool _justShared = false;
+
+  /// True while the final `createPost` request is in flight. Drives the
+  /// center-of-screen posting overlay (distinct from the per-image progress and
+  /// the bottom button spinner).
+  bool _posting = false;
+
+  /// The post returned by `createPost`, kept so the success view can redirect
+  /// the user into it (opening its detail screen under "My posts").
+  PostDetail? _createdPost;
+
+  /// Set once the user ticks the "I've reviewed the images" checkbox. The Share
+  /// button only becomes enabled/primary after this is true (when images are
+  /// attached). Reset whenever the set of images changes so a late edit or a
+  /// newly added photo forces a fresh review.
+  bool _reviewed = false;
+
+  /// True when at least one screenshot is attached.
+  bool get _hasImages => _images.isNotEmpty;
+
+  /// True when every attached image has finished analysis (ready). An empty
+  /// list counts as ready so a text-only post can be shared immediately.
+  bool get _allImagesReady =>
+      _images.every((image) => image.status == _UploadStatus.ready);
+
+  /// True when any attached image is still uploading, queued, or processing.
+  bool get _anyImagePending => _images.any((image) => image.isPending);
 
   @override
   void initState() {
@@ -65,6 +182,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
 
   @override
   void dispose() {
+    for (final _ImageUpload image in _images) {
+      image.pollTimer?.cancel();
+    }
     _titleController.dispose();
     _textController.dispose();
     _numberController.dispose();
@@ -73,6 +193,30 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
 
   Future<void> _addPhoto() async {
     final l10n = AppLocalizations.of(context);
+    // Attaching photos runs a detection check we later poll via an
+    // owner-only endpoint, so it requires an account. Prompt sign-in before
+    // picking anything; bail quietly if the user backs out.
+    final bool signedIn = await requireLogin(context);
+    if (!signedIn) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.reportTabSignInToAddPhotos)),
+      );
+      return;
+    }
+    // `requireLogin` only confirms the UI "signed in" flag. The detection
+    // check is created under whatever identity the upload carries, and it can
+    // only be polled back by its authenticated owner — so make sure a bearer
+    // token is physically present before uploading, otherwise the check would
+    // be created anonymously and poll forever as "check not found".
+    final bool hasToken = await widget.client.hasAccessToken();
+    if (!mounted) return;
+    if (!hasToken) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.reportTabSignInToAddPhotos)),
+      );
+      return;
+    }
     final List<XFile> picked = await _imagePicker.pickMultiImage();
     if (picked.isEmpty) return;
     final List<XFile> accepted = <XFile>[];
@@ -86,20 +230,292 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       accepted.add(file);
     }
     if (!mounted) return;
+    final List<_ImageUpload> added = <_ImageUpload>[];
     setState(() {
-      _images.addAll(accepted);
+      for (final XFile file in accepted) {
+        final _ImageUpload upload = _ImageUpload(file);
+        _images.add(upload);
+        added.add(upload);
+      }
+      // New photos invalidate any prior review — the user must look again.
+      _reviewed = false;
     });
     if (rejected) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.commonImageTooLarge)),
       );
     }
+    // Start every upload right away, in parallel — uploads are cheap on the
+    // server. The detection *checks* are what we serialize: as each upload
+    // finishes the image joins the check queue, and [_processNextCheck] runs
+    // them one at a time, last-picked first.
+    for (final _ImageUpload upload in added) {
+      unawaited(_startUpload(upload));
+    }
   }
 
-  void _removePhoto(XFile file) {
+  void _removePhoto(_ImageUpload image) {
+    image.pollTimer?.cancel();
     setState(() {
-      _images.remove(file);
+      _images.remove(image);
+      // Changing the image set invalidates the review confirmation.
+      _reviewed = false;
     });
+    // Removing the image that was being checked (or waiting at the top) frees
+    // the single check slot — let the driver promote the next queued image.
+    _processNextCheck();
+  }
+
+  /// Uploads a single image to `POST /uploads`. Uploads run in parallel. The
+  /// upload auto-schedules a detection check, but we do NOT start polling it
+  /// here — instead the image moves to [_UploadStatus.queued] and waits its
+  /// turn so only one check runs at a time. [_processNextCheck] drives the
+  /// queue (last-picked first). A client-side validation or network failure
+  /// marks the image failed via the retry-once path.
+  Future<void> _startUpload(_ImageUpload image) async {
+    try {
+      final Upload upload = await _detection.uploadImage(File(image.file.path));
+      if (!mounted || !_images.contains(image)) return;
+      setState(() {
+        image.uploadId = upload.uploadId;
+        image.checkId = upload.checkId;
+        // Uploaded, but wait in the check queue rather than polling now.
+        image.status = _UploadStatus.queued;
+      });
+      _processNextCheck();
+    } on ApiException catch (e) {
+      debugPrint('Image upload failed: ${e.statusCode} ${e.code} ${e.message}');
+      image.failureReason = e.message;
+      _markFailed(image);
+    }
+  }
+
+  /// Serial driver for detection checks. Only one check runs at a time to keep
+  /// load off the server. Images are checked in reverse pick order (LIFO): the
+  /// most recently picked image has priority.
+  ///
+  /// Priority is strict — if the top (last-picked) image is still uploading,
+  /// the driver waits for it rather than checking an earlier image that already
+  /// uploaded. It is re-invoked whenever an upload finishes or a check settles,
+  /// so the queue keeps draining until every image is terminal.
+  void _processNextCheck() {
+    if (!mounted) return;
+    // A check is already running (exactly one image is ever `processing`).
+    if (_images.any((image) => image.status == _UploadStatus.processing)) {
+      return;
+    }
+    // The top of the stack is the last-picked image still needing a check,
+    // i.e. the highest-index image that is queued or still uploading.
+    _ImageUpload? top;
+    for (final _ImageUpload image in _images) {
+      if (image.status == _UploadStatus.queued ||
+          image.status == _UploadStatus.uploading) {
+        top = image; // keep the last match → highest index → last picked
+      }
+    }
+    if (top == null) return; // nothing left to check
+    if (top.status == _UploadStatus.uploading) {
+      // The highest-priority image hasn't finished uploading yet. Wait for it;
+      // _startUpload will call us again when it lands in the queue. Do NOT
+      // skip ahead to an earlier image.
+      return;
+    }
+    // Promote the queued top image to a running check.
+    setState(() {
+      top!.status = _UploadStatus.processing;
+      top.pollDeadline = DateTime.now().add(_pollTimeout);
+    });
+    _startPolling(top);
+  }
+
+  /// Begins (or restarts) periodic polling of a processing image's detection
+  /// check until it is ready, failed, or the poll deadline passes.
+  void _startPolling(_ImageUpload image) {
+    image.pollTimer?.cancel();
+    image.pollTimer = Timer.periodic(_pollInterval, (_) => _poll(image));
+    // Poll once immediately so a fast check doesn't wait a full interval.
+    unawaited(_poll(image));
+  }
+
+  Future<void> _poll(_ImageUpload image) async {
+    final String? checkId = image.checkId;
+    if (checkId == null || !mounted || !_images.contains(image)) {
+      image.pollTimer?.cancel();
+      return;
+    }
+    final DateTime? deadline = image.pollDeadline;
+    if (deadline != null && DateTime.now().isAfter(deadline)) {
+      debugPrint('Image check $checkId timed out while processing');
+      image.failureReason = 'Analysis timed out';
+      _markFailed(image);
+      return;
+    }
+    try {
+      final DetectionResult result = await _detection.get(checkId);
+      if (!mounted || !_images.contains(image)) return;
+      // Log the raw status each tick so a slow backend vs. a terminal failure
+      // (and any unexpected status string) is visible when running attached.
+      debugPrint('Image check $checkId status: "${result.status}"');
+      if (result.isReady) {
+        image.pollTimer?.cancel();
+        setState(() => image.status = _UploadStatus.ready);
+        // Slot freed — let the next queued image start its check.
+        _processNextCheck();
+      } else if (result.isFailed) {
+        // The server resolves a screenshot check to `failed` when its PII
+        // redaction service can't process the image (e.g. PII_SERVICE_URL
+        // unset) — the upload succeeded but analysis could not complete.
+        debugPrint('Image check $checkId resolved to failed on the server');
+        image.failureReason = 'Analysis could not complete';
+        _markFailed(image);
+      }
+      // Otherwise still processing; keep polling until ready/failed/timeout.
+    } on ApiException catch (e) {
+      if (e.isNotFound || e.isForbidden || e.isUnauthorized) {
+        // Terminal: the check can't be read by this caller (e.g. it was
+        // created under a different identity, or the session is gone).
+        // Retrying can't fix that, so stop immediately instead of spinning
+        // until the deadline. _markFailed re-uploads once, which also
+        // re-creates the check under the current (authenticated) identity.
+        debugPrint(
+          'Image check $checkId poll failed terminally: '
+          '${e.statusCode} ${e.code} ${e.message}',
+        );
+        image.failureReason = e.message;
+        _markFailed(image);
+        return;
+      }
+      // Transient errors (network, 5xx) shouldn't kill the whole image — let
+      // polling retry on the next tick; the deadline guard eventually gives up.
+      debugPrint('Image check $checkId poll error (will retry): ${e.message}');
+    }
+  }
+
+  /// Handles a failed (or timed-out) detection check: retry the upload once
+  /// automatically, then leave the image in the grid marked [_UploadStatus.failed]
+  /// so the user can see it and decide at submit time whether to retry again or
+  /// post without it. The image is NOT auto-dropped — [_submit] prompts about
+  /// any failed images so a post never silently drops the user's screenshots.
+  void _markFailed(_ImageUpload image) {
+    image.pollTimer?.cancel();
+    if (!mounted || !_images.contains(image)) return;
+    if (image.retries < 1) {
+      // Retry once automatically: re-upload from scratch (a new check is
+      // scheduled). A manual retry from the submit dialog resets this counter.
+      setState(() {
+        image.retries += 1;
+        image.uploadId = null;
+        image.checkId = null;
+        image.status = _UploadStatus.uploading;
+        image.pollDeadline = null;
+        image.failureReason = null;
+      });
+      unawaited(_startUpload(image));
+      // This image left the check slot (back to uploading). Let the driver
+      // advance: if a lower-priority image was queued it can run now, unless
+      // this (higher-priority) image is still the top, in which case the
+      // driver waits for its re-upload.
+      _processNextCheck();
+      return;
+    }
+    // Already retried once — keep the image visible with a failed badge. The
+    // submit flow surfaces these so the user chooses retry vs. post-without.
+    setState(() => image.status = _UploadStatus.failed);
+    // Terminal: free the check slot so the next queued image can run.
+    _processNextCheck();
+  }
+
+  /// Re-uploads every image currently marked failed, resetting its retry
+  /// counter so the automatic one-retry path applies again. Used by the submit
+  /// dialog's "Retry" action; the user stays on the report page.
+  void _retryFailedImages() {
+    final List<_ImageUpload> failed = <_ImageUpload>[
+      for (final _ImageUpload image in _images)
+        if (image.status == _UploadStatus.failed) image,
+    ];
+    if (failed.isEmpty) return;
+    setState(() {
+      for (final _ImageUpload image in failed) {
+        image.retries = 0;
+        image.uploadId = null;
+        image.checkId = null;
+        image.status = _UploadStatus.uploading;
+        image.pollDeadline = null;
+        image.failureReason = null;
+      }
+    });
+    for (final _ImageUpload image in failed) {
+      unawaited(_startUpload(image));
+    }
+  }
+
+  /// Drops every failed image from the grid. Used by the submit dialog's
+  /// "Post without photos" action so the post proceeds with only ready images.
+  void _dropFailedImages() {
+    setState(() {
+      _images.removeWhere((image) => image.status == _UploadStatus.failed);
+    });
+  }
+
+  /// Opens the image editor on a ready screenshot so the user can fix the PII
+  /// redaction (e.g. paint over anything the automatic censor missed). On save,
+  /// the edited bytes are re-uploaded through `/uploads` and the image keeps its
+  /// ready status WITHOUT re-polling — an edited re-upload is trusted. Editing
+  /// resets the review flag so the user re-confirms the final images.
+  Future<void> _editImage(_ImageUpload image) async {
+    final l10n = AppLocalizations.of(context);
+    // Only ready images can be edited; a pending/failed image has nothing
+    // stable to show in the editor.
+    if (image.status != _UploadStatus.ready || image.reuploading) return;
+
+    final Uint8List bytes = await File(image.file.path).readAsBytes();
+    if (!mounted) return;
+
+    final Uint8List? edited = await Navigator.push<Uint8List>(
+      context,
+      MaterialPageRoute<Uint8List>(
+        builder: (_) => ImageEditor(image: bytes),
+      ),
+    );
+    if (!mounted || edited == null) return;
+
+    // Persist the edited bytes to a temp file (uploadImage takes a File). A
+    // unique name avoids clobbering a previous edit of the same image.
+    final String tempPath =
+        '${Directory.systemTemp.path}/scamwatch_edit_'
+        '${DateTime.now().microsecondsSinceEpoch}.jpg';
+    final File tempFile = await File(tempPath).writeAsBytes(edited);
+
+    setState(() {
+      image.reuploading = true;
+      // A fresh edit must be reviewed again before sharing.
+      _reviewed = false;
+    });
+
+    try {
+      final Upload up = await _detection.uploadImage(
+        tempFile,
+        requireAuth: true,
+      );
+      if (!mounted) return;
+      if (!_images.contains(image)) return;
+      setState(() {
+        // Point the thumbnail at the edited file and attach the new upload.
+        image.file = XFile(tempPath);
+        image.uploadId = up.uploadId;
+        image.checkId = up.checkId;
+        // Trusted edit: ready immediately, no re-check (user decision).
+        image.status = _UploadStatus.ready;
+        image.reuploading = false;
+      });
+    } on ApiException catch (e) {
+      debugPrint('Edited image re-upload failed: ${e.message}');
+      if (!mounted) return;
+      setState(() => image.reuploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.reportTabEditorSaveFailed)),
+      );
+    }
   }
 
   Future<void> _pasteMessage() async {
@@ -121,6 +537,11 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
+    // Capture before the awaits so we don't touch `context` across async gaps.
+    // A content post adds to the user's "My posts"; a number report does not.
+    final postsSignal = widget.numberReport
+        ? null
+        : context.read<PostsRefreshSignal>();
     setState(() {
       _submitting = true;
       _error = null;
@@ -132,10 +553,68 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
           reason: _reason,
         );
       } else {
-        await _community.createPost(
+        // Screenshots are uploaded + polled as they're picked. The post must
+        // never go out with an unresolved image, so loop until every image is
+        // in a terminal state: first block on a progress overlay while any are
+        // pending (uploading or mid auto-retry), then — once nothing is pending
+        // — surface any that failed and let the user retry or post without
+        // them. A "Retry" re-uploads the failed images (putting them back into
+        // `pending`), so we loop around and wait again. The loop only exits,
+        // falling through to `createPost`, once nothing is pending AND nothing
+        // is failed. This closes the race where the overlay could pop on a
+        // transient "nothing pending" snapshot while a failing image was briefly
+        // back in `uploading`, letting an empty post slip through.
+        while (true) {
+          if (_images.any((image) => image.isPending)) {
+            await _waitForImages();
+            if (!mounted) return;
+            // Re-check from the top: a retry triggered while waiting may have
+            // put images back into `pending`.
+            continue;
+          }
+          if (_images.any((image) => image.status == _UploadStatus.failed)) {
+            final bool proceed = await _resolveFailedImages();
+            if (!mounted) return;
+            if (!proceed) {
+              // User chose to retry (or dismissed): return to the report page
+              // without posting. The failed images are re-uploading now.
+              setState(() => _submitting = false);
+              return;
+            }
+            // "Post without photos" dropped the failed images; loop once more
+            // to confirm nothing is pending or failed before posting.
+            continue;
+          }
+          // Nothing pending, nothing failed — safe to create the post.
+          break;
+        }
+        // Collect the upload IDs for every image that finished analysis; any
+        // failed ones were dropped by the "post without photos" choice above.
+        // The post attaches screenshots by `upload_id` (the `check_id` is only
+        // for polling).
+        final List<String> uploadIds = <String>[
+          for (final _ImageUpload image in _images)
+            if (image.isReady && image.uploadId != null) image.uploadId!,
+        ];
+        // The user has reviewed the images; now actually create the post. Show
+        // a center-of-screen posting overlay (distinct from the per-image
+        // progress) until the server responds with the created post.
+        setState(() => _posting = true);
+        final PostDetail detail = await _community.createPost(
           title: _titleController.text.trim(),
           redactedText: _textController.text.trim(),
+          uploadIds: uploadIds,
         );
+        // Tell "My posts" to reload once; it ignores all other visits.
+        postsSignal?.notifyPostCreated();
+        if (!mounted) return;
+        setState(() {
+          _posting = false;
+          _submitting = false;
+          _createdPost = detail;
+          _justShared = true;
+        });
+        return;
       }
       if (!mounted) return;
       setState(() {
@@ -147,14 +626,87 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       setState(() {
         _error = e.message;
         _submitting = false;
+        _posting = false;
       });
     }
   }
 
+  /// Opens the just-created post in its own detail screen (under "My posts"),
+  /// loading any attached images. Used by the success view's redirect button.
+  Future<void> _openCreatedPost() async {
+    final PostDetail? detail = _createdPost;
+    if (detail == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PostDetailScreen(
+          client: widget.client,
+          postId: detail.postId,
+        ),
+      ),
+    );
+  }
+
+  /// Blocks with a modal progress overlay until every pending image resolves
+  /// (ready, or dropped after the retry-once path). The uploads and polling are
+  /// already running from `_addPhoto`; this just waits for them to settle while
+  /// keeping the user from closing the app mid-processing.
+  Future<void> _waitForImages() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _ProcessingDialog(
+        isDone: () => _images.every((image) => !image.isPending),
+      ),
+    );
+  }
+
+  /// Prompts the user about images that failed to upload or analyze. Returns
+  /// `true` only when the post should proceed (the user chose "Post without
+  /// photos", so the failed images are dropped first). Returns `false` when the
+  /// user chose "Retry" (the failed images start re-uploading and the user
+  /// stays on the report page) or dismissed the dialog without deciding.
+  Future<bool> _resolveFailedImages() async {
+    final l10n = AppLocalizations.of(context);
+    final int failedCount =
+        _images.where((image) => image.status == _UploadStatus.failed).length;
+    final String? choice = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.reportTabFailedDialogTitle),
+        content: Text(l10n.reportTabFailedDialogBody(failedCount)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop('retry'),
+            child: Text(l10n.reportTabFailedRetry),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop('post'),
+            child: Text(l10n.reportTabFailedPostWithout),
+          ),
+        ],
+      ),
+    );
+    if (choice == 'post') {
+      _dropFailedImages();
+      return true;
+    }
+    // "retry" or dismissed: re-upload the failed images and stay on the page.
+    if (choice == 'retry') {
+      _retryFailedImages();
+    }
+    return false;
+  }
+
   void _reportAnother() {
+    for (final _ImageUpload image in _images) {
+      image.pollTimer?.cancel();
+    }
     setState(() {
       _justShared = false;
       _error = null;
+      _posting = false;
+      _createdPost = null;
+      _reviewed = false;
       _reason = 'scam';
       _titleController.clear();
       _textController.clear();
@@ -226,15 +778,38 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
           onReportAnother: _reportAnother,
           doneLabel: l10n.reportTabDone,
           onDone: canPop ? () => Navigator.of(context).pop() : null,
+          // Only content posts create a viewable post; number reports don't.
+          openPostLabel: l10n.reportTabViewPost,
+          onOpenPost: _createdPost != null ? _openCreatedPost : null,
         ),
       );
     }
 
-    return AppScreen(
+    final _SubmitPhase phase;
+    final String submitLabel;
+    if (!_hasImages || widget.numberReport) {
+      // Text-only posts (or number reports) can share immediately.
+      phase = _SubmitPhase.ready;
+      submitLabel = _submitting ? l10n.commonSharing : l10n.commonShare;
+    } else if (!_allImagesReady || _anyImagePending) {
+      // Images still uploading/analyzing: block until all are ready.
+      phase = _SubmitPhase.waiting;
+      submitLabel = l10n.reportTabWaitForImages;
+    } else if (!_reviewed) {
+      // All ready but not yet reviewed: nudge the user to check the images.
+      phase = _SubmitPhase.review;
+      submitLabel = l10n.reportTabCheckImages;
+    } else {
+      phase = _SubmitPhase.ready;
+      submitLabel = _submitting ? l10n.commonSharing : l10n.commonShare;
+    }
+
+    final Widget screen = AppScreen(
       title: l10n.reportTabTitle,
       bottomBar: _SubmitButton(
+        phase: phase,
         submitting: _submitting,
-        label: _submitting ? l10n.commonSharing : l10n.commonShare,
+        label: submitLabel,
         onPressed: _submit,
       ),
       body: Form(
@@ -265,6 +840,17 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
           ],
         ),
       ),
+    );
+
+    // While the post is being created, cover the screen with a blocking
+    // center-of-screen loader so the user can't double-submit or navigate away.
+    if (!_posting) return screen;
+    return Stack(
+      children: [
+        screen,
+        const ModalBarrier(dismissible: false, color: Colors.black54),
+        _PostingOverlay(message: l10n.reportTabPosting),
+      ],
     );
   }
 
@@ -353,9 +939,26 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         enabled: !_submitting,
         addLabel: l10n.commonAddPhoto,
         removeLabel: l10n.commonRemovePhoto,
+        processingLabel: l10n.reportTabPhotoProcessing,
+        failedLabel: l10n.reportTabPhotoFailed,
+        editLabel: l10n.reportTabEditImage,
+        reuploadingLabel: l10n.reportTabReuploading,
         onAdd: _addPhoto,
         onRemove: _removePhoto,
+        onEdit: _editImage,
       ),
+      // Review gate: once every attached image is ready, the user confirms
+      // they've looked over the (PII-redacted) screenshots before the post can
+      // be shared. Ticking this flips the submit button to its ready state.
+      if (_hasImages) ...[
+        const _SectionGap(),
+        _ReviewCheckbox(
+          value: _reviewed,
+          label: l10n.reportTabReviewCheckbox,
+          enabled: _allImagesReady && !_anyImagePending && !_submitting,
+          onChanged: (bool value) => setState(() => _reviewed = value),
+        ),
+      ],
     ];
   }
 }
@@ -605,16 +1208,37 @@ class _PhotoGrid extends StatelessWidget {
     required this.enabled,
     required this.addLabel,
     required this.removeLabel,
+    required this.processingLabel,
+    required this.failedLabel,
+    required this.editLabel,
+    required this.reuploadingLabel,
     required this.onAdd,
     required this.onRemove,
+    required this.onEdit,
   });
 
-  final List<XFile> images;
+  final List<_ImageUpload> images;
   final bool enabled;
   final String addLabel;
   final String removeLabel;
+
+  /// Shown over a thumbnail while it is still uploading or being analyzed.
+  final String processingLabel;
+
+  /// Shown over a thumbnail whose upload/analysis failed after the auto-retry.
+  final String failedLabel;
+
+  /// Tooltip/label for the edit affordance on a ready thumbnail.
+  final String editLabel;
+
+  /// Shown over a thumbnail while its edited version is being re-uploaded.
+  final String reuploadingLabel;
   final VoidCallback onAdd;
-  final ValueChanged<XFile> onRemove;
+  final ValueChanged<_ImageUpload> onRemove;
+
+  /// Opens the image editor for a ready thumbnail so the user can fix the
+  /// redaction before posting.
+  final ValueChanged<_ImageUpload> onEdit;
 
   static const double _tileSize = 104;
 
@@ -625,12 +1249,17 @@ class _PhotoGrid extends StatelessWidget {
       spacing: tokens.space.md,
       runSpacing: tokens.space.md,
       children: [
-        for (final XFile image in images)
+        for (final _ImageUpload image in images)
           _PhotoThumbnail(
-            file: image,
+            image: image,
             size: _tileSize,
             removeLabel: removeLabel,
+            processingLabel: processingLabel,
+            failedLabel: failedLabel,
+            editLabel: editLabel,
+            reuploadingLabel: reuploadingLabel,
             onRemove: enabled ? () => onRemove(image) : null,
+            onEdit: enabled ? () => onEdit(image) : null,
           ),
         _AddPhotoTile(
           size: _tileSize,
@@ -702,20 +1331,38 @@ class _AddPhotoTile extends StatelessWidget {
 
 class _PhotoThumbnail extends StatelessWidget {
   const _PhotoThumbnail({
-    required this.file,
+    required this.image,
     required this.size,
     required this.removeLabel,
+    required this.processingLabel,
+    required this.failedLabel,
+    required this.editLabel,
+    required this.reuploadingLabel,
     required this.onRemove,
+    required this.onEdit,
   });
 
-  final XFile file;
+  final _ImageUpload image;
   final double size;
   final String removeLabel;
+  final String processingLabel;
+  final String failedLabel;
+  final String editLabel;
+  final String reuploadingLabel;
   final VoidCallback? onRemove;
+  final VoidCallback? onEdit;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final bool showProcessing = image.isPending;
+    final bool showFailed = image.status == _UploadStatus.failed;
+    final bool showReuploading = image.reuploading;
+    // A ready image can be tapped to open the editor and fix the redaction,
+    // but not while it's re-uploading an edit or still processing.
+    final bool canEdit = onEdit != null &&
+        image.status == _UploadStatus.ready &&
+        !image.reuploading;
     return SizedBox(
       width: size,
       height: size,
@@ -724,8 +1371,175 @@ class _PhotoThumbnail extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: tokens.radii.mdRadius,
-            child: Image.file(File(file.path), fit: BoxFit.cover),
+            child: Image.file(File(image.file.path), fit: BoxFit.cover),
           ),
+          // Tap target for editing a ready image. Sits above the image but
+          // below the overlays and corner buttons.
+          if (canEdit)
+            Positioned.fill(
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onEdit,
+                  borderRadius: tokens.radii.mdRadius,
+                ),
+              ),
+            ),
+          if (showProcessing)
+            ClipRRect(
+              borderRadius: tokens.radii.mdRadius,
+              child: ColoredBox(
+                color: Colors.black54,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    SizedBox(height: tokens.space.sm),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: tokens.space.xs,
+                      ),
+                      child: Text(
+                        processingLabel,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (showReuploading)
+            ClipRRect(
+              borderRadius: tokens.radii.mdRadius,
+              child: ColoredBox(
+                color: Colors.black54,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                    SizedBox(height: tokens.space.sm),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: tokens.space.xs,
+                      ),
+                      child: Text(
+                        reuploadingLabel,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (showFailed)
+            ClipRRect(
+              borderRadius: tokens.radii.mdRadius,
+              child: ColoredBox(
+                color: tokens.risk.danger.withValues(alpha: 0.72),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      LucideIcons.circleAlert,
+                      size: 24,
+                      color: Colors.white,
+                    ),
+                    SizedBox(height: tokens.space.sm),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: tokens.space.xs,
+                      ),
+                      child: Text(
+                        failedLabel,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          // Edit hint badge on a ready, editable image (bottom-left).
+          if (canEdit)
+            Positioned(
+              bottom: tokens.space.xs,
+              left: tokens.space.xs,
+              child: IgnorePointer(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: tokens.space.sm,
+                    vertical: tokens.space.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: tokens.radii.smRadius,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        LucideIcons.pencil,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      SizedBox(width: tokens.space.xs),
+                      Text(
+                        editLabel,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           Positioned(
             top: 0,
             right: 0,
@@ -788,40 +1602,136 @@ class _ErrorNote extends StatelessWidget {
   }
 }
 
-class _SubmitButton extends StatelessWidget {
+/// The visual/behavioural state the submit button is in.
+enum _SubmitPhase {
+  /// Images are attached but still uploading/analyzing. Button is greyed out
+  /// and non-tappable until every image is ready.
+  waiting,
+
+  /// Every attached image is ready but the user hasn't confirmed they reviewed
+  /// them yet. Button pulses slowly to invite the review.
+  review,
+
+  /// No images attached, or all images are ready and reviewed. Button is the
+  /// normal primary/purple action and submits the post.
+  ready,
+}
+
+/// The bottom submit button. Its appearance and behaviour depend on the state
+/// of any attached screenshots:
+/// - [_SubmitPhase.waiting]: greyed out, label "Wait for images to be
+///   processed", shows an inline spinner, not tappable.
+/// - [_SubmitPhase.review]: pulses slowly, label "Check images", tappable so
+///   the user is nudged to look over the (now ready) images and tick the review
+///   checkbox before posting.
+/// - [_SubmitPhase.ready]: normal primary action, label "Share" (or "Sharing..."
+///   while posting), submits the post.
+class _SubmitButton extends StatefulWidget {
   const _SubmitButton({
+    required this.phase,
     required this.submitting,
     required this.label,
     required this.onPressed,
   });
 
+  final _SubmitPhase phase;
   final bool submitting;
   final String label;
+
+  /// Tapped when the button is enabled. Ignored while [_SubmitPhase.waiting] or
+  /// while [submitting] (the button is disabled in those cases).
   final VoidCallback onPressed;
+
+  @override
+  State<_SubmitButton> createState() => _SubmitButtonState();
+}
+
+class _SubmitButtonState extends State<_SubmitButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1300),
+  );
+  late final Animation<double> _pulse = Tween<double>(
+    begin: 1.0,
+    end: 0.55,
+  ).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+
+  @override
+  void initState() {
+    super.initState();
+    _syncPulse();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SubmitButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.phase != widget.phase) _syncPulse();
+  }
+
+  /// Runs the slow pulse only while in the review phase; stops it elsewhere so
+  /// the button sits at full opacity.
+  void _syncPulse() {
+    if (widget.phase == _SubmitPhase.review) {
+      if (!_pulseController.isAnimating) {
+        _pulseController.repeat(reverse: true);
+      }
+    } else {
+      _pulseController.stop();
+      _pulseController.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    return SizedBox(
-      height: 60,
-      child: FilledButton.icon(
-        onPressed: submitting ? null : onPressed,
-        style: FilledButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: tokens.radii.lgRadius),
-        ),
-        icon: submitting
+    final bool waiting = widget.phase == _SubmitPhase.waiting;
+    // Disabled while images are still processing, or while a post is in flight.
+    final bool enabled = !waiting && !widget.submitting;
+
+    final Widget icon = widget.submitting
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          )
+        : waiting
             ? const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2.5),
               )
-            : const Icon(LucideIcons.send, size: 24),
+            : Icon(
+                widget.phase == _SubmitPhase.review
+                    ? LucideIcons.scanEye
+                    : LucideIcons.send,
+                size: 24,
+              );
+
+    final Widget button = SizedBox(
+      height: 60,
+      child: FilledButton.icon(
+        onPressed: enabled ? widget.onPressed : null,
+        style: FilledButton.styleFrom(
+          shape: RoundedRectangleBorder(borderRadius: tokens.radii.lgRadius),
+        ),
+        icon: icon,
         label: Text(
-          label,
+          widget.label,
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
         ),
       ),
     );
+
+    if (widget.phase != _SubmitPhase.review) return button;
+    // Slow pulse to draw the eye to the "Check images" prompt.
+    return FadeTransition(opacity: _pulse, child: button);
   }
 }
 
@@ -832,6 +1742,8 @@ class _SuccessView extends StatelessWidget {
     required this.onReportAnother,
     required this.doneLabel,
     required this.onDone,
+    required this.openPostLabel,
+    required this.onOpenPost,
   });
 
   final String message;
@@ -839,6 +1751,13 @@ class _SuccessView extends StatelessWidget {
   final VoidCallback onReportAnother;
   final String doneLabel;
   final VoidCallback? onDone;
+
+  /// Label for the "view your post" redirect button.
+  final String openPostLabel;
+
+  /// Opens the just-created post under "My posts". Null for number reports or
+  /// when no post was created, in which case the redirect button is hidden.
+  final VoidCallback? onOpenPost;
 
   @override
   Widget build(BuildContext context) {
@@ -902,24 +1821,63 @@ class _SuccessView extends StatelessWidget {
             ),
           ),
           SizedBox(height: tokens.space.xl3),
-          if (onDone != null) ...[
+          if (onOpenPost != null) ...[
             SizedBox(
               height: 60,
-              child: FilledButton(
-                onPressed: onDone,
+              child: FilledButton.icon(
+                onPressed: onOpenPost,
                 style: FilledButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: tokens.radii.lgRadius,
                   ),
                 ),
-                child: Text(
-                  doneLabel,
+                icon: const Icon(LucideIcons.arrowRight, size: 24),
+                label: Text(
+                  openPostLabel,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
+            ),
+            SizedBox(height: tokens.space.md),
+          ],
+          if (onDone != null) ...[
+            SizedBox(
+              height: 60,
+              child: onOpenPost != null
+                  ? OutlinedButton(
+                      onPressed: onDone,
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: tokens.radii.lgRadius,
+                        ),
+                        side: BorderSide(color: scheme.primary, width: 1.5),
+                      ),
+                      child: Text(
+                        doneLabel,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    )
+                  : FilledButton(
+                      onPressed: onDone,
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: tokens.radii.lgRadius,
+                        ),
+                      ),
+                      child: Text(
+                        doneLabel,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
             ),
             SizedBox(height: tokens.space.md),
           ],
@@ -944,6 +1902,204 @@ class _SuccessView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The bottom-of-form review gate. Once every attached screenshot is ready the
+/// user ticks this to confirm they've looked over the redacted images; only
+/// then does the submit button leave its pulsing "Check images" state and
+/// become the normal "Share" action. Disabled (greyed) until images are ready.
+class _ReviewCheckbox extends StatelessWidget {
+  const _ReviewCheckbox({
+    required this.value,
+    required this.label,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final String label;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    final scheme = theme.colorScheme;
+    final Color textColor =
+        enabled ? scheme.onSurface : scheme.onSurfaceVariant.withValues(alpha: 0.6);
+    return Material(
+      color: enabled
+          ? scheme.primary.withValues(alpha: 0.06)
+          : scheme.onSurface.withValues(alpha: 0.03),
+      shape: RoundedRectangleBorder(
+        borderRadius: tokens.radii.mdRadius,
+        side: BorderSide(
+          color: value && enabled
+              ? scheme.primary
+              : scheme.outlineVariant,
+          width: 1.5,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: enabled ? () => onChanged(!value) : null,
+        child: Padding(
+          padding: EdgeInsets.all(tokens.space.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Checkbox(
+                value: value,
+                onChanged:
+                    enabled ? (bool? v) => onChanged(v ?? false) : null,
+              ),
+              SizedBox(width: tokens.space.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontSize: 16,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Full-screen centered loader shown over the report form while the post is
+/// being created. Paired with a [ModalBarrier] in `build` so the user can't
+/// interact with the form or double-submit while the request is in flight.
+class _PostingOverlay extends StatelessWidget {
+  const _PostingOverlay({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    return Center(
+      child: Container(
+        padding: EdgeInsets.all(tokens.space.xl2),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: tokens.radii.lgRadius,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            SizedBox(height: tokens.space.xl2),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Blocking modal shown while attached screenshots finish uploading and being
+/// analyzed. It is non-dismissible: the user is asked not to close the app
+/// mid-processing. A short timer polls [isDone]; once every image has settled
+/// (ready, or dropped after the retry-once path) the dialog pops itself so
+/// `_submit` can continue creating the post. The trailing dots animate
+/// (`.`/`..`/`...`) to signal ongoing work.
+class _ProcessingDialog extends StatefulWidget {
+  const _ProcessingDialog({required this.isDone});
+
+  /// Returns true once no attached image is still pending.
+  final bool Function() isDone;
+
+  @override
+  State<_ProcessingDialog> createState() => _ProcessingDialogState();
+}
+
+class _ProcessingDialogState extends State<_ProcessingDialog> {
+  static const Duration _tick = Duration(milliseconds: 500);
+
+  Timer? _timer;
+  int _dots = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Guard against the race where everything settled before the dialog even
+    // mounted (e.g. uploads finished during the frame it took to show).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _check());
+    _timer = Timer.periodic(_tick, (_) => _check());
+  }
+
+  void _check() {
+    if (!mounted) return;
+    if (widget.isDone()) {
+      _timer?.cancel();
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _dots = (_dots + 1) % 3);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    final l10n = AppLocalizations.of(context);
+    // 1, 2, or 3 trailing dots so the title reads as "Processing..." in motion.
+    final String trailing = '.' * (_dots + 1);
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+            SizedBox(height: tokens.space.xl2),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                '${l10n.reportTabProcessingTitle}$trailing',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

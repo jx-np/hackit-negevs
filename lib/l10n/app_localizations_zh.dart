@@ -78,148 +78,211 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonRemovePhoto => '移除照片';
 
   @override
-  String get commonImageTooLarge => '每张图片不得超过 20 MB。';
+  String get commonImageTooLarge => '每张图片不得超过 10 MB。';
 
   @override
-  String get homeTitle => 'Home';
+  String get reportTabPhotoProcessing => '分析中...';
 
   @override
-  String get homeWelcomePrefix => 'Welcome, ';
+  String get reportTabPhotoReady => '就绪';
 
   @override
-  String get homeWelcomeGuestLabel => 'not signed in';
+  String get reportTabPhotoFailed => '无法分析';
 
   @override
-  String get myProfileTitle => 'My Profile';
+  String get reportTabPhotoDropped => '部分图片无法分析，已被移除。';
 
   @override
-  String get myProfileAccountSection => 'Account details';
+  String get reportTabProcessingTitle => '请勿关闭应用。正在处理';
 
   @override
-  String get myProfileName => 'Name';
+  String get reportTabSignInToAddPhotos => '登录以附加照片。';
 
   @override
-  String get myProfileEmail => 'Email';
+  String get reportTabFailedDialogTitle => '部分图片无法分析';
 
   @override
-  String get myProfileMemberSince => 'Member since';
-
-  @override
-  String get myProfilePosts => 'Posts';
-
-  @override
-  String get myProfileRole => 'Role';
-
-  @override
-  String get myProfileRoleResident => 'Member';
-
-  @override
-  String get myProfileRoleModerator => 'Moderator';
-
-  @override
-  String get myProfileRoleAdmin => 'Administrator';
-
-  @override
-  String get myProfileSignOut => 'Sign out';
-
-  @override
-  String get myProfileSignOutHint => 'You can sign back in at any time';
-
-  @override
-  String get myProfileNotSignedInTitle => 'You\'re not signed in';
-
-  @override
-  String get myProfileNotSignedInBody =>
-      'Sign in to see your account details and manage your profile.';
-
-  @override
-  String get myProfileSignIn => 'Sign in';
-
-  @override
-  String get homeNewsTitle => 'Scam alerts & news';
-
-  @override
-  String get homeNewsError => 'Couldn\'t load the latest alerts.';
-
-  @override
-  String get homeNewsRetry => 'Try again';
-
-  @override
-  String get homeQuickActionsTitle => 'What would you like to do?';
-
-  @override
-  String get homeActionMyPosts => 'My posts';
-
-  @override
-  String get homeActionMyPostsBody => 'Track the scams you\'ve reported';
-
-  @override
-  String get homeActionProfile => 'My profile';
-
-  @override
-  String get homeActionProfileBody => 'See your details and your posts';
-
-  @override
-  String get homeActionCalls => 'Recent calls';
-
-  @override
-  String get homeActionCallsBody => 'Review calls from unknown numbers';
-
-  @override
-  String get homeActionReport => 'Report a scam';
-
-  @override
-  String get homeActionReportBody => 'Warn others in the community';
-
-  @override
-  String get homeActionSafety => 'Protection';
-
-  @override
-  String get homeActionSafetyBody => 'Turn on Scam Shield';
-
-  @override
-  String get homeStatusOnBody => 'We are checking your messages for scams.';
-
-  @override
-  String get homeStatusOffBody =>
-      'Turn it on so we can warn you about scam messages.';
-
-  @override
-  String get homeStatusProblemTitle => 'Protection needs attention';
-
-  @override
-  String get homeStatusProblemBody =>
-      'Something went wrong. Tap below to fix it.';
-
-  @override
-  String get homeStatusStartingTitle => 'Getting ready';
-
-  @override
-  String get homeStatusStartingBody =>
-      'Protection is starting up. This can take a minute.';
-
-  @override
-  String get homeStatusOpen => 'See details';
-
-  @override
-  String get homeStatusFix => 'Fix it now';
-
-  @override
-  String get homeNewsReadMore => 'Read more';
-
-  @override
-  String get homeNewsClose => 'Close';
-
-  @override
-  String homeNewsCount(Object current, Object total) {
-    return '$current of $total';
+  String reportTabFailedDialogBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 张图片上传或分析失败。重试，还是不含它们直接发布？',
+      one: '1 张图片上传或分析失败。重试，还是不含它直接发布？',
+    );
+    return '$_temp0';
   }
 
   @override
-  String get homeNewsPrevious => 'Previous alert';
+  String get reportTabFailedRetry => '重试';
 
   @override
-  String get homeNewsNext => 'Next alert';
+  String get reportTabFailedPostWithout => '不含图片发布';
+
+  @override
+  String get reportTabWaitForImages => 'Wait for images to be processed';
+
+  @override
+  String get reportTabCheckImages => 'Check images';
+
+  @override
+  String get reportTabReviewCheckbox =>
+      'I\'ve reviewed the images and the personal details are hidden correctly';
+
+  @override
+  String get reportTabEditImage => 'Edit image';
+
+  @override
+  String get reportTabReuploading => 'Re-uploading edited image...';
+
+  @override
+  String get reportTabPosting => 'Posting...';
+
+  @override
+  String get reportTabEditorSaveFailed =>
+      'Couldn\'t re-upload the edited image. Try again.';
+
+  @override
+  String get reportTabViewPost => 'View your post';
+
+  @override
+  String get homeTitle => '主页';
+
+  @override
+  String get homeWelcomePrefix => '欢迎， ';
+
+  @override
+  String get homeWelcomeGuestLabel => '未登录';
+
+  @override
+  String get homeWelcomeGuest => 'Welcome';
+
+  @override
+  String get myProfileTitle => '我的个人资料';
+
+  @override
+  String get myProfileAccountSection => '账户详情';
+
+  @override
+  String get myProfileName => '姓名';
+
+  @override
+  String get myProfileEmail => '电子邮件';
+
+  @override
+  String get myProfileMemberSince => '注册于';
+
+  @override
+  String get myProfilePosts => '帖子';
+
+  @override
+  String get myProfileRole => '角色';
+
+  @override
+  String get myProfileRoleResident => '成员';
+
+  @override
+  String get myProfileRoleModerator => '版主';
+
+  @override
+  String get myProfileRoleAdmin => '管理员';
+
+  @override
+  String get myProfileSignOut => '退出登录';
+
+  @override
+  String get myProfileSignOutHint => '您可以随时重新登录';
+
+  @override
+  String get myProfileNotSignedInTitle => '您尚未登录';
+
+  @override
+  String get myProfileNotSignedInBody => '登录后即可查看您的账户详情并管理您的个人资料。';
+
+  @override
+  String get myProfileSignIn => '登录';
+
+  @override
+  String get homeNewsTitle => '诈骗警报与新闻';
+
+  @override
+  String get homeNewsError => '无法加载最新警报。';
+
+  @override
+  String get homeNewsRetry => '重试';
+
+  @override
+  String get homeQuickActionsTitle => '您想做什么？';
+
+  @override
+  String get homeActionMyPosts => '我的帖子';
+
+  @override
+  String get homeActionMyPostsBody => '查看您举报过的诈骗';
+
+  @override
+  String get homeActionProfile => '我的个人资料';
+
+  @override
+  String get homeActionProfileBody => '查看您的个人信息和帖子';
+
+  @override
+  String get homeActionCalls => '最近通话';
+
+  @override
+  String get homeActionCallsBody => '查看来自陌生号码的来电';
+
+  @override
+  String get homeActionReport => '举报诈骗';
+
+  @override
+  String get homeActionReportBody => '提醒社区里的其他人';
+
+  @override
+  String get homeActionSafety => '防护';
+
+  @override
+  String get homeActionSafetyBody => '开启 Scam Shield';
+
+  @override
+  String get homeStatusOnBody => '我们正在检查您的消息中是否存在诈骗。';
+
+  @override
+  String get homeStatusOffBody => '请开启它，以便我们向您发出诈骗消息警报。';
+
+  @override
+  String get homeStatusProblemTitle => '防护需要注意';
+
+  @override
+  String get homeStatusProblemBody => '出现问题。请点击下方进行修复。';
+
+  @override
+  String get homeStatusStartingTitle => '正在准备';
+
+  @override
+  String get homeStatusStartingBody => '防护正在启动，可能需要一分钟。';
+
+  @override
+  String get homeStatusOpen => '查看详情';
+
+  @override
+  String get homeStatusFix => '立即修复';
+
+  @override
+  String get homeNewsReadMore => '阅读更多';
+
+  @override
+  String get homeNewsClose => '关闭';
+
+  @override
+  String homeNewsCount(Object current, Object total) {
+    return '第 $current 条，共 $total 条';
+  }
+
+  @override
+  String get homeNewsPrevious => '上一条警报';
+
+  @override
+  String get homeNewsNext => '下一条警报';
 
   @override
   String get settingsDetectionModel => '检测模型';
@@ -513,8 +576,90 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callBlockAndReport => '拦截并举报';
 
   @override
-  String get callBlockNeedsScreening =>
-      'To stop blocked numbers from ringing, choose this app for call screening.';
+  String get callBlockNeedsScreening => '要阻止已屏蔽的号码响铃，请选择此应用进行来电筛选。';
+
+  @override
+  String get callHighRiskTitle => '高风险来电者';
+
+  @override
+  String get callHighRiskBody => '此号码已被举报为诈骗。请勿透露个人信息或转账。';
+
+  @override
+  String callHighRiskScore(int score) {
+    return '信任评分：$score/100';
+  }
+
+  @override
+  String callHighRiskReports(int count) {
+    return '已被举报 $count 次';
+  }
+
+  @override
+  String get callHighRiskDismiss => '关闭';
+
+  @override
+  String get callCheckNumber => '检查此号码';
+
+  @override
+  String get callChecking => '正在检查号码...';
+
+  @override
+  String callCheckSafe(String number) {
+    return '$number 看起来安全';
+  }
+
+  @override
+  String callCheckUnknown(String number) {
+    return '没有关于 $number 的举报';
+  }
+
+  @override
+  String callCheckHighRisk(String number) {
+    return '$number 属于高风险';
+  }
+
+  @override
+  String get callCheckFailed => '无法检查此号码';
+
+  @override
+  String get callCheckTitle => '号码检查';
+
+  @override
+  String get callCheckNumberLabel => '正在检查的号码';
+
+  @override
+  String get callCheckResultHighRisk => '高风险号码';
+
+  @override
+  String get callCheckResultUnknown => '暂无记录';
+
+  @override
+  String get callCheckResultSafe => '看起来安全';
+
+  @override
+  String get callCheckResultFailed => '检查失败';
+
+  @override
+  String get callCheckDetailHighRisk => '此号码曾被举报为诈骗。请勿透露个人信息或转账。';
+
+  @override
+  String get callCheckDetailUnknown => '此号码没有举报记录。请保持警惕。';
+
+  @override
+  String get callCheckDetailSafe => '此号码没有诈骗举报记录。';
+
+  @override
+  String get callCheckDetailFailed => '目前无法检查此号码。请重试。';
+
+  @override
+  String callCheckScore(int score) {
+    return '信任评分：$score/100';
+  }
+
+  @override
+  String callCheckReports(int count) {
+    return '被举报 $count 次';
+  }
 
   @override
   String get reportPhone => '电话';
@@ -661,6 +806,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get permAlertsSub => '以通知形式发布诈骗警报';
 
   @override
+  String get permBackground => '在后台运行';
+
+  @override
+  String get permBackgroundSub => '忽略电池优化，让防护持续运行';
+
+  @override
+  String get permBatterySettings => '电池优化设置';
+
+  @override
+  String get permBatterySettingsSub => '有些手机仍会限制应用。请打开列表，将本应用设为\"不优化\"。';
+
+  @override
   String get permGranted => '已授予';
 
   @override
@@ -791,6 +948,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get safetyTurnOn => '开启防护';
 
   @override
+  String get safetyPressToStart => '点按以开始';
+
+  @override
+  String get safetyDownloadingModel => '正在下载模型…';
+
+  @override
+  String get safetySettingUpModel => '正在设置模型…';
+
+  @override
   String get safetyNoScams => '未发现诈骗';
 
   @override
@@ -869,6 +1035,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get notificationsTitle => '通知';
+
+  @override
+  String get notificationsTestTitle => 'Test the on-device AI';
+
+  @override
+  String get notificationsTestHint => 'Paste or type a message to check';
+
+  @override
+  String get notificationsTestRun => 'Check message';
+
+  @override
+  String get notificationsTestServiceOff =>
+      'Turn protection on first so the model can run the check.';
+
+  @override
+  String get notificationsTestSent =>
+      'Checking… the result will appear below once the model finishes.';
 
   @override
   String settingsScreenModelInstalled(String name) {
@@ -973,6 +1156,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingOverlayBody => '当可疑来电响铃时，应用可以在屏幕上显示一条小提示。';
 
   @override
+  String get onboardingBackgroundTitle => '在后台持续运行';
+
+  @override
+  String get onboardingBackgroundBody => '允许应用忽略电池优化，这样即使屏幕关闭，它也能持续监测诈骗。';
+
+  @override
+  String get onboardingBatterySettingsTitle => '停止电池优化';
+
+  @override
+  String get onboardingBatterySettingsBody =>
+      '有些手机在首次提示后仍会限制应用。请打开电池设置，找到本应用，将其设为\"不优化\"，让防护永不中断。';
+
+  @override
   String get onboardingSettingsHint => '将打开手机设置。在列表中找到本应用，将其开启，然后返回这里。';
 
   @override
@@ -1056,17 +1252,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authToggleToRegister => '初次使用？创建账户';
 
   @override
-  String get authGateMessage => 'Sign in to use this feature.';
+  String get authGateMessage => '请登录以继续';
 
   @override
-  String get authGateTitle => 'Sign in to continue';
+  String get authGateTitle => '需要登录';
 
   @override
-  String get authGateBody =>
-      'This feature needs an account. Sign in to post to the community, sync your reports, and keep everything in one place.';
+  String get authGateBody => '您需要登录才能使用此功能。';
 
   @override
-  String get authGateAction => 'Sign in';
+  String get authGateAction => '登录';
 
   @override
   String get communityTitle => '社区';
@@ -1099,51 +1294,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportTabTrackIt => '已分享到社区。可在“我的帖子”中追踪。';
 
   @override
-  String get reportTabHeroTitle => 'Warn others about a scam';
+  String get reportTabHeroTitle => '举报诈骗';
 
   @override
-  String get reportTabNumberHeroTitle => 'Report a phone number';
+  String get reportTabNumberHeroTitle => '举报号码';
 
   @override
-  String get reportTabNumberHeroBody =>
-      'Tell us why this number is suspicious. Your report helps protect others.';
+  String get reportTabNumberHeroBody => '举报曾对您实施诈骗或骚扰的电话号码。';
 
   @override
-  String get reportTabPaste => 'Paste';
+  String get reportTabPaste => '粘贴';
 
   @override
-  String get reportTabPasteEmpty => 'Nothing to paste. Copy the message first.';
+  String get reportTabPasteEmpty => '剪贴板是空的';
 
   @override
-  String get reportTabNumberLabel => 'Phone number';
+  String get reportTabNumberLabel => '电话号码';
 
   @override
-  String get reportTabNumberHint => 'e.g. +65 9123 4567';
+  String get reportTabNumberHint => '例如：+65 8123 4567';
 
   @override
-  String get reportTabNumberRequired => 'Please enter the phone number.';
+  String get reportTabNumberRequired => '请输入电话号码';
 
   @override
-  String get reportTabReasonLabel => 'What happened?';
+  String get reportTabReasonLabel => '发生了什么？';
 
   @override
-  String get reportTabReasonSpamBody => 'Unwanted calls or adverts';
+  String get reportTabReasonSpamBody => '不需要的推销或反复来电';
 
   @override
-  String get reportTabReasonScamBody =>
-      'They tried to trick me or take my money';
+  String get reportTabReasonScamBody => '企图窃取钱财或个人信息';
 
   @override
-  String get reportTabReasonOtherBody => 'Something else felt wrong';
+  String get reportTabReasonOtherBody => '其他';
 
   @override
-  String get reportTabSuccessTitle => 'Thank you for helping';
+  String get reportTabSuccessTitle => '感谢您的举报';
 
   @override
-  String get reportTabReportAnother => 'Report another';
+  String get reportTabReportAnother => '再举报一个';
 
   @override
-  String get reportTabDone => 'Done';
+  String get reportTabDone => '完成';
 
   @override
   String get myPostsTitle => '我的帖子';
@@ -1235,7 +1428,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String postDetailShowMoreReplies(int count) {
-    return 'Show $count more replies';
+    return '显示另外 $count 条回复';
   }
 
   @override
@@ -1278,11 +1471,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get guidanceNoAdviceBody => '在上方选择发生的情况，查看你可以采取的步骤。';
 
   @override
-  String get tourHomeTitle => 'Home';
+  String get tourHomeTitle => '欢迎使用 ScamWatch';
 
   @override
-  String get tourHomeBody =>
-      'This is your home screen. See the latest scam alerts and quickly get to everything the app can do.';
+  String get tourHomeBody => '您的主页会显示您的防护状态和快捷操作。';
 
   @override
   String get tourCallsTitle => '通话';
@@ -1311,11 +1503,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tourMyPostsBody => '你举报的所有内容都会汇总到这里。追踪讨论，查看版主何时审核了你的帖子。';
 
   @override
-  String get tourProfileTitle => 'Your Profile';
+  String get tourProfileTitle => '您的个人资料';
 
   @override
-  String get tourProfileBody =>
-      'See your account details and all your posts in one place. Open settings or sign out from the buttons at the top.';
+  String get tourProfileBody => '在这里查看您的账户详情和您举报过的诈骗。';
 
   @override
   String get tourSettingsTitle => '设置';

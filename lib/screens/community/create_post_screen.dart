@@ -13,12 +13,10 @@ class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({
     super.key,
     required this.client,
-    this.checkId,
     this.initialText,
   });
 
   final ApiClient client;
-  final String? checkId;
   final String? initialText;
 
   @override
@@ -87,7 +85,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
     try {
       final post = await _community.createPost(
-        checkId: widget.checkId,
         title: _titleController.text.trim(),
         redactedText: _textController.text.trim(),
         scamType: _scamType!,

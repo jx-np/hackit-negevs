@@ -1,3 +1,35 @@
+/// Result of `POST /uploads`. Uploading automatically schedules a detection
+/// check, so the response also carries the [checkId] of a check already in
+/// `processing`. Poll `GET /detection/{check_id}` (via [DetectionService.get])
+/// until its status is `ready` or `failed`.
+class Upload {
+  const Upload({
+    required this.uploadId,
+    required this.mediaType,
+    required this.checkId,
+    required this.status,
+  });
+
+  final String uploadId;
+  final String mediaType;
+
+  /// The detection check scheduled for this upload. Use it to poll for the
+  /// verdict and to attach the screenshot to a community post.
+  final String checkId;
+
+  /// Detection status at upload time — normally `processing`.
+  final String status;
+
+  factory Upload.fromJson(Map<String, dynamic> json) {
+    return Upload(
+      uploadId: '${json['upload_id']}',
+      mediaType: (json['media_type'] as String?) ?? '',
+      checkId: '${json['check_id']}',
+      status: (json['status'] as String?) ?? 'processing',
+    );
+  }
+}
+
 class DetectionSignal {
   const DetectionSignal({
     required this.code,

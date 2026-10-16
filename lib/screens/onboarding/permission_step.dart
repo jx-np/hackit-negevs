@@ -26,6 +26,8 @@ enum PermissionStepKind {
   notifications,
   messageAccess,
   overlay,
+  backgroundRun,
+  batteryOptimizationSettings,
 }
 
 /// One page of the onboarding flow: a single permission, how to check it and
@@ -76,6 +78,9 @@ class PermissionStep {
     PermissionStepKind.notifications => l10n.onboardingNotificationsTitle,
     PermissionStepKind.messageAccess => l10n.onboardingMessagesTitle,
     PermissionStepKind.overlay => l10n.onboardingOverlayTitle,
+    PermissionStepKind.backgroundRun => l10n.onboardingBackgroundTitle,
+    PermissionStepKind.batteryOptimizationSettings =>
+      l10n.onboardingBatterySettingsTitle,
   };
 
   String body(AppLocalizations l10n) => switch (kind) {
@@ -85,6 +90,9 @@ class PermissionStep {
     PermissionStepKind.notifications => l10n.onboardingNotificationsBody,
     PermissionStepKind.messageAccess => l10n.onboardingMessagesBody,
     PermissionStepKind.overlay => l10n.onboardingOverlayBody,
+    PermissionStepKind.backgroundRun => l10n.onboardingBackgroundBody,
+    PermissionStepKind.batteryOptimizationSettings =>
+      l10n.onboardingBatterySettingsBody,
   };
 }
 
@@ -147,6 +155,33 @@ class OnboardingPermissions {
       check: () async =>
           _fromBool(await ScamShieldController.hasOverlayPermission()),
       request: ScamShieldController.requestOverlayPermission,
+    ),
+    PermissionStep._(
+      kind: PermissionStepKind.backgroundRun,
+      icon: LucideIcons.batteryCharging,
+      // The direct exemption dialog is a single Allow/Deny prompt rather than a
+      // settings page, so this reads as a normal "Allow" step.
+      opensSettings: false,
+      check: () async => _fromBool(
+        await ScamShieldController.hasIgnoreBatteryOptimizations(),
+      ),
+      request: ScamShieldController.requestIgnoreBatteryOptimizations,
+    ),
+    PermissionStep._(
+      kind: PermissionStepKind.batteryOptimizationSettings,
+      icon: LucideIcons.batteryWarning,
+      // Opens the system battery-optimization list so the user can set this app
+      // to "Don't optimize" by hand. Aggressive OEM ROMs ignore the one-tap
+      // exemption, so this manual route is always available.
+      opensSettings: true,
+      // There is no API to detect OEM-specific throttling, so the Doze
+      // exemption is the best "granted" signal available. On strict ROMs it may
+      // report granted while hidden throttling persists; this step still gives
+      // the user the manual lever.
+      check: () async => _fromBool(
+        await ScamShieldController.hasIgnoreBatteryOptimizations(),
+      ),
+      request: ScamShieldController.openBatteryOptimizationSettings,
     ),
   ];
 

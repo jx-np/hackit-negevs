@@ -32,6 +32,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _loading = true;
   String? _error;
   PostDetail? _post;
+  Map<String, String> _imageHeaders = const {};
   List<PostComment> _comments = const [];
   bool _postingComment = false;
   bool _voting = false;
@@ -62,6 +63,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     });
     try {
       final post = await _community.post(widget.postId);
+      final imageHeaders = post.imageUrls.isEmpty
+          ? const <String, String>{}
+          : await widget.client.authHeaders();
       final comments = <PostComment>[];
       String? cursor;
       do {
@@ -76,6 +80,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       if (!mounted) return;
       setState(() {
         _post = post;
+        _imageHeaders = imageHeaders;
         _comments = comments;
         _loading = false;
       });
@@ -110,7 +115,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           commentCount: post.commentCount,
           reactions: PostReactions(up: result.upCount, down: result.downCount),
           myVote: result.myVote,
-          images: post.images,
+          imageUrls: post.imageUrls,
         );
       });
     } on ApiException catch (e) {
@@ -300,9 +305,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       padding: EdgeInsets.only(top: tokens.space.sm, bottom: tokens.space.xl2),
       children: [
         Text(post.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-        if (post.images.isNotEmpty) ...[
+        if (post.tags.isNotEmpty) ...[
+          SizedBox(height: tokens.space.sm),
+          _TagChips(tags: post.tags),
+        ],
+        if (post.imageUrls.isNotEmpty) ...[
           SizedBox(height: tokens.space.md),
-          _pictureStrip(theme, post.images),
+          _pictureStrip(theme, post.imageUrls),
         ],
         SizedBox(height: tokens.space.md),
         Text(post.redactedText, style: theme.textTheme.bodyLarge),
@@ -334,22 +343,40 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         itemCount: images.length,
          separatorBuilder: (_, _) => SizedBox(width: tokens.space.md),
         itemBuilder: (context, index) {
-          return ClipRRect(
-             borderRadius: tokens.radii.lgRadius,
-            child: Image.network(
-              images[index],
-              width: 160,
-              height: 160,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
+          return GestureDetector(
+            onTap: () => _openImageViewer(images, index),
+            child: ClipRRect(
+               borderRadius: tokens.radii.lgRadius,
+              child: Image.network(
+                images[index],
+                headers: _imageHeaders.isEmpty ? null : _imageHeaders,
                 width: 160,
                 height: 160,
-                color: theme.colorScheme.surfaceContainerHighest,
-                 child: Icon(LucideIcons.imageOff, size: 40, color: theme.colorScheme.onSurfaceVariant),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 160,
+                  height: 160,
+                  color: theme.colorScheme.surfaceContainerHighest,
+                   child: Icon(LucideIcons.imageOff, size: 40, color: theme.colorScheme.onSurfaceVariant),
+                ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  /// Opens a full-screen, pinch-to-zoom viewer starting at [initialIndex].
+  void _openImageViewer(List<String> images, int initialIndex) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => _ImageViewer(
+          images: images,
+          initialIndex: initialIndex,
+          headers: _imageHeaders.isEmpty ? null : _imageHeaders,
+        ),
       ),
     );
   }
@@ -649,6 +676,52 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   }
 }
 
+/// A compact row of tag pills (e.g. "Bank impersonation"). Wraps onto multiple
+/// lines when there are many tags. Shown next to a post's title.
+class _TagChips extends StatelessWidget {
+  const _TagChips({required this.tags});
+
+  final List<ScamTag> tags;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final tokens = context.tokens;
+    return Wrap(
+      spacing: tokens.space.xs,
+      runSpacing: tokens.space.xs,
+      children: [
+        for (final tag in tags)
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: tokens.space.sm,
+              vertical: tokens.space.xs,
+            ),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.12),
+              borderRadius: tokens.radii.pillRadius,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.tag, size: 14, color: scheme.primary),
+                SizedBox(width: tokens.space.xs),
+                Text(
+                  tag.displayName,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _FlagDialog extends StatefulWidget {
   @override
   State<_FlagDialog> createState() => _FlagDialogState();
@@ -714,6 +787,84 @@ class _FlagDialogState extends State<_FlagDialog> {
           child: Text(l10n.commonReport, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         ),
       ],
+    );
+  }
+}
+
+/// Full-screen, pinch-to-zoom image viewer. Swipe horizontally to move between
+/// a post's images; tap the close button (or system back) to dismiss. Loads the
+/// owner-only redacted images with the caller's auth [headers].
+class _ImageViewer extends StatefulWidget {
+  const _ImageViewer({
+    required this.images,
+    required this.initialIndex,
+    this.headers,
+  });
+
+  final List<String> images;
+  final int initialIndex;
+  final Map<String, String>? headers;
+
+  @override
+  State<_ImageViewer> createState() => _ImageViewerState();
+}
+
+class _ImageViewerState extends State<_ImageViewer> {
+  late final PageController _controller =
+      PageController(initialPage: widget.initialIndex);
+  late int _index = widget.initialIndex;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final multiple = widget.images.length > 1;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(LucideIcons.x),
+          tooltip: AppLocalizations.of(context).commonCancel,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: multiple
+            ? Text('${_index + 1} / ${widget.images.length}')
+            : null,
+      ),
+      body: PageView.builder(
+        controller: _controller,
+        itemCount: widget.images.length,
+        onPageChanged: (i) => setState(() => _index = i),
+        itemBuilder: (context, index) {
+          return InteractiveViewer(
+            minScale: 1,
+            maxScale: 5,
+            child: Center(
+              child: Image.network(
+                widget.images[index],
+                headers: widget.headers,
+                fit: BoxFit.contain,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => const Center(
+                  child: Icon(LucideIcons.imageOff, size: 64, color: Colors.white54),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

@@ -10,6 +10,9 @@ class CallRecord {
     this.reported = false,
     this.reportReason,
     this.reportedAt,
+    this.trustScore,
+    this.trustRating,
+    this.trustCheckedAt,
   });
 
   final int? id;
@@ -22,6 +25,28 @@ class CallRecord {
   final bool reported;
   final String? reportReason;
   final int? reportedAt;
+
+  /// Cached phone trust score (0-100) from the last lookup, or null if the
+  /// number has never been checked. Persisted on the `calls` table so a known
+  /// number isn't re-checked on every load.
+  final int? trustScore;
+
+  /// Cached trust rating from the last lookup: `high_risk`, `unknown`, or
+  /// `trusted`. Null when never checked.
+  final String? trustRating;
+
+  /// When the trust score was last fetched (epoch millis), or null if never.
+  final int? trustCheckedAt;
+
+  static const String ratingHighRisk = 'high_risk';
+  static const String ratingUnknown = 'unknown';
+  static const String ratingTrusted = 'trusted';
+
+  /// True when the cached rating marks this number as high risk.
+  bool get isHighRisk => trustRating == ratingHighRisk;
+
+  /// True once a trust lookup has been recorded for this number.
+  bool get hasTrustCheck => trustRating != null;
 
   static const String statusAnswered = 'answered';
   static const String statusRejected = 'rejected';
@@ -43,6 +68,9 @@ class CallRecord {
     bool? reported,
     String? reportReason,
     int? reportedAt,
+    int? trustScore,
+    String? trustRating,
+    int? trustCheckedAt,
   }) {
     return CallRecord(
       id: id ?? this.id,
@@ -55,6 +83,9 @@ class CallRecord {
       reported: reported ?? this.reported,
       reportReason: reportReason ?? this.reportReason,
       reportedAt: reportedAt ?? this.reportedAt,
+      trustScore: trustScore ?? this.trustScore,
+      trustRating: trustRating ?? this.trustRating,
+      trustCheckedAt: trustCheckedAt ?? this.trustCheckedAt,
     );
   }
 
@@ -70,6 +101,9 @@ class CallRecord {
       'reported': reported ? 1 : 0,
       'report_reason': reportReason,
       'reported_at': reportedAt,
+      'trust_score': trustScore,
+      'trust_rating': trustRating,
+      'trust_checked_at': trustCheckedAt,
     };
   }
 
@@ -85,6 +119,9 @@ class CallRecord {
       reported: ((map['reported'] as int?) ?? 0) == 1,
       reportReason: map['report_reason'] as String?,
       reportedAt: map['reported_at'] as int?,
+      trustScore: map['trust_score'] as int?,
+      trustRating: map['trust_rating'] as String?,
+      trustCheckedAt: map['trust_checked_at'] as int?,
     );
   }
 }

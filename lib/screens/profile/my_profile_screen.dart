@@ -11,6 +11,7 @@ import 'package:scamwatch_mobile_app/screens/community/post_detail_screen.dart';
 import 'package:scamwatch_mobile_app/screens/settings/settings_page.dart';
 import 'package:scamwatch_mobile_app/services/api/community_service.dart';
 import 'package:scamwatch_mobile_app/state/auth_controller.dart';
+import 'package:scamwatch_mobile_app/state/posts_refresh_signal.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_card.dart';
@@ -41,13 +42,76 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   String? _error;
   List<FeedPost> _posts = const [];
 
+  /// First-image preview URL per post id, for the small thumbnail on each card.
+  /// Only populated for the few newest posts (see [_kPreviewCount]) because the
+  /// `/me/posts` list response carries no image URLs — we fetch each post's
+  /// detail to learn its images, which is costly, so we cap it.
+  Map<String, String> _previewUrls = const {};
+
+  /// Auth headers for loading owner-only redacted post images via
+  /// `Image.network`. Fetched alongside the previews.
+  Map<String, String> _imageHeaders = const {};
+
+  /// Tags per post id, sourced from the fetched post detail for the newest
+  /// posts. The `/me/posts` list response often omits tags, so we take them
+  /// from the same detail fetch that powers the image previews.
+  Map<String, List<ScamTag>> _postTags = const {};
+
+  /// How many of the newest posts get a thumbnail preview.
+  static const int _kPreviewCount = 3;
+
+  /// Post IDs with a vote request in flight. Used to disable that card's vote
+  /// buttons so a double-tap can't fire two reaction calls at once.
+  final Set<String> _votingPostIds = <String>{};
+
+  /// The posts list is fetched once in [initState], then only reloaded when a
+  /// post is made (via [PostsRefreshSignal]) or the user pulls to refresh. We
+  /// track the signal and the revision we last handled so a new post triggers
+  /// exactly one reload.
+  PostsRefreshSignal? _postsSignal;
+  int _handledRevision = 0;
+
   @override
   void initState() {
     super.initState();
+    // Initial open: load the list and the newest previews.
+    _load(fetchPreviews: true);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final signal = context.read<PostsRefreshSignal>();
+    if (!identical(signal, _postsSignal)) {
+      _postsSignal?.removeListener(_onPostsSignal);
+      _postsSignal = signal;
+      _handledRevision = signal.revision;
+      signal.addListener(_onPostsSignal);
+    }
+  }
+
+  @override
+  void dispose() {
+    _postsSignal?.removeListener(_onPostsSignal);
+    super.dispose();
+  }
+
+  void _onPostsSignal() {
+    final signal = _postsSignal;
+    if (signal == null) return;
+    // Coalesce rapid signals: only reload if the revision advanced past the
+    // last one we handled.
+    if (signal.revision == _handledRevision) return;
+    _handledRevision = signal.revision;
     _load();
   }
 
-  Future<void> _load() async {
+  /// Loads the posts list. When [fetchPreviews] is true, also fetches the
+  /// newest few posts' detail to learn their first image and show an 86px
+  /// thumbnail on the card. The `/me/posts` list carries no image URLs, so
+  /// previews cost one detail request per post — we only pay that on initial
+  /// open and pull-to-refresh, and only for the [_kPreviewCount] newest posts.
+  Future<void> _load({bool fetchPreviews = false}) async {
     setState(() {
       _loading = true;
       _error = null;
@@ -59,6 +123,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         _posts = page.items;
         _loading = false;
       });
+      if (fetchPreviews) {
+        await _loadPreviews(page.items);
+      }
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -68,14 +135,57 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     }
   }
 
+  /// Fetches the first-image preview and tags for the newest [_kPreviewCount]
+  /// posts, plus the auth headers needed to load those owner-only images. The
+  /// `/me/posts` list carries no image URLs and often omits tags, so we read
+  /// both from each post's detail. Posts without an image simply get no preview
+  /// entry. Failures per post are ignored so one bad post never blocks the rest.
+  Future<void> _loadPreviews(List<FeedPost> posts) async {
+    final newest = posts.take(_kPreviewCount).toList(growable: false);
+    if (newest.isEmpty) return;
+    final headers = await widget.client.authHeaders();
+    final previews = <String, String>{};
+    final tags = <String, List<ScamTag>>{};
+    for (final post in newest) {
+      try {
+        final detail = await _community.post(post.postId);
+        if (detail.imageUrls.isNotEmpty) {
+          previews[post.postId] = detail.imageUrls.first;
+        }
+        if (detail.tags.isNotEmpty) {
+          tags[post.postId] = detail.tags;
+        }
+      } on ApiException {
+        // Ignore: a post whose detail fails just shows no thumbnail or tags.
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _previewUrls = previews;
+      _imageHeaders = headers;
+      _postTags = tags;
+    });
+  }
+
+  /// Tags to show on a post card. Prefers the tags the list endpoint returned,
+  /// falling back to the detail-fetched tags for the newest posts (the
+  /// `/me/posts` list often omits tags, so the detail fetch is the reliable
+  /// source for the few cards that have a preview).
+  List<ScamTag> _tagsFor(FeedPost post) {
+    if (post.tags.isNotEmpty) return post.tags;
+    return _postTags[post.postId] ?? const [];
+  }
+
   Future<void> _openPost(FeedPost post) async {
+    // Just view the post; returning from the detail screen does not refetch the
+    // list. "My posts" only reloads when a post is made or the user asks for it
+    // (pull-to-refresh), per the one-fetch-on-open behavior.
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) =>
             PostDetailScreen(client: widget.client, postId: post.postId),
       ),
     );
-    await _load();
   }
 
   Future<void> _deletePost(FeedPost post) async {
@@ -107,6 +217,37 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  /// Casts (or clears) the caller's vote on [post] and updates just that card
+  /// in place. Tapping the vote you already hold clears it; any other tap sets
+  /// the new vote. Mirrors the post-detail behavior so the two stay consistent.
+  Future<void> _vote(FeedPost post, int vote) async {
+    if (_votingPostIds.contains(post.postId)) return;
+    setState(() => _votingPostIds.add(post.postId));
+    try {
+      final result = post.myVote == vote
+          ? await _community.clearReaction(post.postId)
+          : await _community.setReaction(postId: post.postId, vote: vote);
+      if (!mounted) return;
+      setState(() {
+        _posts = [
+          for (final p in _posts)
+            if (p.postId == post.postId)
+              p.copyWithVote(
+                reactions: PostReactions(up: result.upCount, down: result.downCount),
+                myVote: result.myVote,
+              )
+            else
+              p,
+        ];
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _votingPostIds.remove(post.postId));
     }
   }
 
@@ -150,7 +291,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         _LogOutAction(onPressed: () => context.read<AuthController>().logout()),
       ],
       body: RefreshIndicator(
-        onRefresh: _load,
+        // Pull-to-refresh is user-triggered, so refresh the newest previews too.
+        onRefresh: () => _load(fetchPreviews: true),
         child: _buildBody(l10n, user),
       ),
     );
@@ -223,6 +365,17 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
               ],
             ],
           ),
+          if (_tagsFor(post).isNotEmpty) ...[
+            SizedBox(height: tokens.space.xs),
+            _PostTagChips(tags: _tagsFor(post)),
+          ],
+          if (_previewUrls[post.postId] != null) ...[
+            SizedBox(height: tokens.space.sm),
+            _PostThumbnail(
+              url: _previewUrls[post.postId]!,
+              headers: _imageHeaders,
+            ),
+          ],
           SizedBox(height: tokens.space.sm),
           Text(
             post.redactedExcerpt,
@@ -233,6 +386,24 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           SizedBox(height: tokens.space.md),
           Row(
             children: [
+              _voteButton(
+                theme,
+                icon: LucideIcons.thumbsUp,
+                label: '${post.reactions.up}',
+                active: post.myVote == 1,
+                onTap: () => _vote(post, 1),
+                enabled: !_votingPostIds.contains(post.postId),
+              ),
+              SizedBox(width: tokens.space.sm),
+              _voteButton(
+                theme,
+                icon: LucideIcons.thumbsDown,
+                label: '${post.reactions.down}',
+                active: post.myVote == -1,
+                onTap: () => _vote(post, -1),
+                enabled: !_votingPostIds.contains(post.postId),
+              ),
+              SizedBox(width: tokens.space.lg),
               Icon(
                 LucideIcons.messageCircle,
                 size: 20,
@@ -263,6 +434,42 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Compact upvote/downvote control for a post card. Highlights with the
+  /// primary color when it's the caller's current vote; disabled while a
+  /// reaction request for this post is in flight.
+  Widget _voteButton(
+    ThemeData theme, {
+    required IconData icon,
+    required String label,
+    required bool active,
+    required VoidCallback onTap,
+    required bool enabled,
+  }) {
+    final scheme = theme.colorScheme;
+    final Color foreground = active ? scheme.primary : scheme.onSurfaceVariant;
+    return OutlinedButton.icon(
+      onPressed: enabled ? onTap : null,
+      icon: Icon(icon, size: 20),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      ),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        padding: EdgeInsets.symmetric(
+          horizontal: context.tokens.space.md,
+          vertical: context.tokens.space.sm,
+        ),
+        backgroundColor:
+            active ? scheme.primary.withValues(alpha: 0.12) : null,
+        foregroundColor: foreground,
+        side: BorderSide(
+          color: active ? scheme.primary : scheme.outlineVariant,
+        ),
       ),
     );
   }
@@ -324,6 +531,105 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A small 86px rounded preview of a post's first redacted image, shown on the
+/// "My posts" card. Falls back to nothing visible on error (the parent only
+/// renders this when a preview URL exists, but the image fetch can still fail).
+/// Small pill chips for a post's scam tags, shown beneath the title on each
+/// "My posts" card. Renders nothing when the post has no tags.
+class _PostTagChips extends StatelessWidget {
+  const _PostTagChips({required this.tags});
+
+  final List<ScamTag> tags;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tags.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final tokens = context.tokens;
+    final scheme = theme.colorScheme;
+    return Wrap(
+      spacing: tokens.space.xs,
+      runSpacing: tokens.space.xs,
+      children: [
+        for (final tag in tags)
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: tokens.space.sm,
+              vertical: tokens.space.xs,
+            ),
+            decoration: BoxDecoration(
+              color: scheme.primary.withValues(alpha: 0.10),
+              borderRadius: tokens.radii.pillRadius,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(LucideIcons.tag, size: 14, color: scheme.primary),
+                SizedBox(width: tokens.space.xs),
+                Text(
+                  tag.displayName,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PostThumbnail extends StatelessWidget {
+  const _PostThumbnail({required this.url, required this.headers});
+
+  final String url;
+  final Map<String, String> headers;
+
+  static const double _size = 86;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ClipRRect(
+      borderRadius: context.tokens.radii.mdRadius,
+      child: Image.network(
+        url,
+        headers: headers.isEmpty ? null : headers,
+        width: _size,
+        height: _size,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return Container(
+            width: _size,
+            height: _size,
+            color: theme.colorScheme.surfaceContainerHighest,
+            alignment: Alignment.center,
+            child: const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => Container(
+          width: _size,
+          height: _size,
+          color: theme.colorScheme.surfaceContainerHighest,
+          alignment: Alignment.center,
+          child: Icon(
+            LucideIcons.imageOff,
+            size: 28,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
       ),
     );
   }

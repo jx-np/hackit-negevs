@@ -24,6 +24,7 @@ class _PermissionsTabState extends State<PermissionsTab>
   bool _overlayGranted = false;
   bool _notificationPermission = true;
   bool _isCallScreening = false;
+  bool _ignoreBattery = false;
   Map<Permission, PermissionStatus> _permissions = {};
 
   @override
@@ -56,6 +57,7 @@ class _PermissionsTabState extends State<PermissionsTab>
       ScamShieldController.hasOverlayPermission(),
       ScamShieldController.hasNotificationPermission(),
       RoleService.isCallScreening(),
+      ScamShieldController.hasIgnoreBatteryOptimizations(),
       Permission.phone.status,
       Permission.contacts.status,
       Permission.notification.status,
@@ -65,16 +67,18 @@ class _PermissionsTabState extends State<PermissionsTab>
     final overlay = results[1] as bool;
     final alerts = results[2] as bool;
     final screening = results[3] as bool;
+    final battery = results[4] as bool;
     final permissions = <Permission, PermissionStatus>{
-      Permission.phone: results[4] as PermissionStatus,
-      Permission.contacts: results[5] as PermissionStatus,
-      Permission.notification: results[6] as PermissionStatus,
+      Permission.phone: results[5] as PermissionStatus,
+      Permission.contacts: results[6] as PermissionStatus,
+      Permission.notification: results[7] as PermissionStatus,
     };
     setState(() {
       _notificationAccess = access;
       _overlayGranted = overlay;
       _notificationPermission = alerts;
       _isCallScreening = screening;
+      _ignoreBattery = battery;
       _permissions = permissions;
     });
   }
@@ -91,6 +95,16 @@ class _PermissionsTabState extends State<PermissionsTab>
 
   Future<void> _requestAlerts() async {
     await ScamShieldController.requestNotificationPermission();
+    await _refreshAll();
+  }
+
+  Future<void> _requestIgnoreBattery() async {
+    await ScamShieldController.requestIgnoreBatteryOptimizations();
+    await _refreshAll();
+  }
+
+  Future<void> _openBatteryOptimizationSettings() async {
+    await ScamShieldController.openBatteryOptimizationSettings();
     await _refreshAll();
   }
 
@@ -222,6 +236,20 @@ class _PermissionsTabState extends State<PermissionsTab>
               l10n.permAlertsSub,
               _notificationPermission,
               _requestAlerts,
+            ),
+            Divider(height: tokens.space.lg),
+            _checkTile(
+              l10n.permBackground,
+              l10n.permBackgroundSub,
+              _ignoreBattery,
+              _requestIgnoreBattery,
+            ),
+            Divider(height: tokens.space.lg),
+            _checkTile(
+              l10n.permBatterySettings,
+              l10n.permBatterySettingsSub,
+              _ignoreBattery,
+              _openBatteryOptimizationSettings,
             ),
           ],
       ),

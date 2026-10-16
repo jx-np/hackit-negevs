@@ -80,7 +80,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonRemovePhoto => 'Remove photo';
 
   @override
-  String get commonImageTooLarge => 'Each image must be 20 MB or smaller.';
+  String get commonImageTooLarge => 'Each image must be 10 MB or smaller.';
+
+  @override
+  String get reportTabPhotoProcessing => 'Analyzing...';
+
+  @override
+  String get reportTabPhotoReady => 'Ready';
+
+  @override
+  String get reportTabPhotoFailed => 'Couldn\'t analyze';
+
+  @override
+  String get reportTabPhotoDropped =>
+      'Some photos couldn\'t be analyzed and were removed.';
+
+  @override
+  String get reportTabProcessingTitle =>
+      'Do not close the application. Processing';
+
+  @override
+  String get reportTabSignInToAddPhotos => 'Sign in to attach photos.';
+
+  @override
+  String get reportTabFailedDialogTitle => 'Some photos couldn\'t be analyzed';
+
+  @override
+  String reportTabFailedDialogBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count photos failed to upload or analyze. Retry them, or post without them?',
+      one: '1 photo failed to upload or analyze. Retry it, or post without it?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportTabFailedRetry => 'Retry';
+
+  @override
+  String get reportTabFailedPostWithout => 'Post without photos';
+
+  @override
+  String get reportTabWaitForImages => 'Wait for images to be processed';
+
+  @override
+  String get reportTabCheckImages => 'Check images';
+
+  @override
+  String get reportTabReviewCheckbox =>
+      'I\'ve reviewed the images and the personal details are hidden correctly';
+
+  @override
+  String get reportTabEditImage => 'Edit image';
+
+  @override
+  String get reportTabReuploading => 'Re-uploading edited image...';
+
+  @override
+  String get reportTabPosting => 'Posting...';
+
+  @override
+  String get reportTabEditorSaveFailed =>
+      'Couldn\'t re-upload the edited image. Try again.';
+
+  @override
+  String get reportTabViewPost => 'View your post';
 
   @override
   String get homeTitle => 'Home';
@@ -90,6 +157,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeWelcomeGuestLabel => 'not signed in';
+
+  @override
+  String get homeWelcomeGuest => 'Welcome';
 
   @override
   String get myProfileTitle => 'My Profile';
@@ -525,6 +595,94 @@ class AppLocalizationsEn extends AppLocalizations {
       'To stop blocked numbers from ringing, choose this app for call screening.';
 
   @override
+  String get callHighRiskTitle => 'High-risk caller';
+
+  @override
+  String get callHighRiskBody =>
+      'This number has been reported as a scam. Do not share personal details or money.';
+
+  @override
+  String callHighRiskScore(int score) {
+    return 'Trust score: $score/100';
+  }
+
+  @override
+  String callHighRiskReports(int count) {
+    return 'Reported $count times';
+  }
+
+  @override
+  String get callHighRiskDismiss => 'Dismiss';
+
+  @override
+  String get callCheckNumber => 'Check this number';
+
+  @override
+  String get callChecking => 'Checking number...';
+
+  @override
+  String callCheckSafe(String number) {
+    return '$number looks safe';
+  }
+
+  @override
+  String callCheckUnknown(String number) {
+    return 'No reports for $number';
+  }
+
+  @override
+  String callCheckHighRisk(String number) {
+    return '$number is high risk';
+  }
+
+  @override
+  String get callCheckFailed => 'Could not check this number';
+
+  @override
+  String get callCheckTitle => 'Number check';
+
+  @override
+  String get callCheckNumberLabel => 'Number checked';
+
+  @override
+  String get callCheckResultHighRisk => 'High risk';
+
+  @override
+  String get callCheckResultUnknown => 'No reports';
+
+  @override
+  String get callCheckResultSafe => 'Looks safe';
+
+  @override
+  String get callCheckResultFailed => 'Check failed';
+
+  @override
+  String get callCheckDetailHighRisk =>
+      'This number has been reported as a scam. Do not share personal details or money.';
+
+  @override
+  String get callCheckDetailUnknown =>
+      'We have no scam reports for this number yet. Stay cautious with unknown callers.';
+
+  @override
+  String get callCheckDetailSafe =>
+      'This number has a good reputation. Stay alert if anything feels off.';
+
+  @override
+  String get callCheckDetailFailed =>
+      'We couldn\'t check this number right now. Check your connection and try again.';
+
+  @override
+  String callCheckScore(int score) {
+    return 'Trust score: $score/100';
+  }
+
+  @override
+  String callCheckReports(int count) {
+    return 'Reported $count times';
+  }
+
+  @override
   String get reportPhone => 'Phone';
 
   @override
@@ -673,6 +831,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permAlertsSub => 'Posts scam alerts as notifications';
 
   @override
+  String get permBackground => 'Run in the background';
+
+  @override
+  String get permBackgroundSub =>
+      'Ignore battery optimizations so protection keeps running';
+
+  @override
+  String get permBatterySettings => 'Battery optimization settings';
+
+  @override
+  String get permBatterySettingsSub =>
+      'Some phones throttle apps anyway. Open the list and set this app to \"Don\'t optimize\".';
+
+  @override
   String get permGranted => 'Granted';
 
   @override
@@ -809,6 +981,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get safetyTurnOn => 'Turn protection on';
 
   @override
+  String get safetyPressToStart => 'Press to start';
+
+  @override
+  String get safetyDownloadingModel => 'Downloading model…';
+
+  @override
+  String get safetySettingUpModel => 'Setting up the model…';
+
+  @override
   String get safetyNoScams => 'No scams found';
 
   @override
@@ -888,6 +1069,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsTestTitle => 'Test the on-device AI';
+
+  @override
+  String get notificationsTestHint => 'Paste or type a message to check';
+
+  @override
+  String get notificationsTestRun => 'Check message';
+
+  @override
+  String get notificationsTestServiceOff =>
+      'Turn protection on first so the model can run the check.';
+
+  @override
+  String get notificationsTestSent =>
+      'Checking… the result will appear below once the model finishes.';
 
   @override
   String settingsScreenModelInstalled(String name) {
@@ -996,6 +1194,20 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onboardingOverlayBody =>
       'This lets the app show a small notice on your screen while a suspicious call is ringing.';
+
+  @override
+  String get onboardingBackgroundTitle => 'Keep running in the background';
+
+  @override
+  String get onboardingBackgroundBody =>
+      'Let the app ignore battery optimizations so it can keep watching for scams even when your screen is off.';
+
+  @override
+  String get onboardingBatterySettingsTitle => 'Stop battery optimization';
+
+  @override
+  String get onboardingBatterySettingsBody =>
+      'Some phones keep throttling apps even after the first prompt. Open the battery settings, find this app, and set it to \"Don\'t optimize\" so protection never stops.';
 
   @override
   String get onboardingSettingsHint =>

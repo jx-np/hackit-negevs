@@ -1,3 +1,5 @@
+import 'package:scamwatch_mobile_app/api/api_config.dart';
+
 class Paginated<T> {
   const Paginated({required this.items, this.nextCursor});
 
@@ -87,6 +89,8 @@ class FeedPost {
     required this.reviewStatus,
     required this.createdAt,
     required this.commentCount,
+    this.reactions = const PostReactions(up: 0, down: 0),
+    this.myVote = 0,
   });
 
   final String postId;
@@ -98,11 +102,19 @@ class FeedPost {
   final DateTime? createdAt;
   final int commentCount;
 
+  /// The post's up/down vote counts. The feed, search, and my-posts list all
+  /// carry the same `reactions`/`my_vote` shape as post detail (§5/§6), so a
+  /// card can show the score and the caller's own vote without opening the
+  /// post. [myVote] is `1`, `-1`, or `0` (always `0` for anonymous callers).
+  final PostReactions reactions;
+  final int myVote;
+
   bool get isReviewed => reviewStatus == 'reviewed';
 
   factory FeedPost.fromJson(Map<String, dynamic> json) {
     final cat = json['category'];
     final created = json['created_at'];
+    final reactions = json['reactions'];
     return FeedPost(
       postId: '${json['post_id']}',
       title: (json['title'] as String?) ?? '',
@@ -112,6 +124,27 @@ class FeedPost {
       reviewStatus: (json['review_status'] as String?) ?? 'unverified',
       createdAt: created is String ? DateTime.tryParse(created) : null,
       commentCount: (json['comment_count'] as num?)?.toInt() ?? 0,
+      reactions: reactions is Map<String, dynamic>
+          ? PostReactions.fromJson(reactions)
+          : const PostReactions(up: 0, down: 0),
+      myVote: (json['my_vote'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  /// Returns a copy with the vote fields replaced. Used to update a single
+  /// card in place after the user votes, without refetching the whole list.
+  FeedPost copyWithVote({required PostReactions reactions, required int myVote}) {
+    return FeedPost(
+      postId: postId,
+      title: title,
+      redactedExcerpt: redactedExcerpt,
+      category: category,
+      tags: tags,
+      reviewStatus: reviewStatus,
+      createdAt: createdAt,
+      commentCount: commentCount,
+      reactions: reactions,
+      myVote: myVote,
     );
   }
 
@@ -137,7 +170,7 @@ class PostDetail {
     required this.commentCount,
     required this.reactions,
     required this.myVote,
-    this.images = const [],
+    this.imageUrls = const [],
   });
 
   final String postId;
@@ -151,7 +184,10 @@ class PostDetail {
   final int commentCount;
   final PostReactions reactions;
   final int myVote;
-  final List<String> images;
+
+  /// Absolute URLs for the post's redacted screenshot derivatives. Loading
+  /// them is owner-only, so pass [ApiClient.authHeaders] to `Image.network`.
+  final List<String> imageUrls;
 
   bool get isReviewed => reviewStatus == 'reviewed';
 
@@ -174,13 +210,21 @@ class PostDetail {
           ? PostReactions.fromJson(reactions)
           : const PostReactions(up: 0, down: 0),
       myVote: (json['my_vote'] as num?)?.toInt() ?? 0,
-      images: _images(json['images']),
+      imageUrls: _images(json['redacted_image_urls']),
     );
   }
 
+  /// Reads `redacted_image_urls` (server-relative paths such as
+  /// `/api/v1/community/posts/12/images/0`) and resolves each to an absolute
+  /// URL. Only the redacted derivatives are ever served; the raw upload is
+  /// never exposed. These endpoints are owner-only, so loading them needs the
+  /// bearer token (see [ApiClient.authHeaders]).
   static List<String> _images(Object? raw) {
     if (raw is! List) return const [];
-    return raw.whereType<String>().toList(growable: false);
+    return raw
+        .whereType<String>()
+        .map(ApiConfig.absoluteUrl)
+        .toList(growable: false);
   }
 }
 

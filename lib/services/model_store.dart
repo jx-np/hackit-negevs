@@ -178,6 +178,12 @@ class ModelStore {
       if (!resuming) existing = 0;
       var received = existing;
       onProgress?.call(DownloadProgress(received: received, total: total));
+      // Reporting on every chunk means thousands of callbacks a second on a
+      // fast link; each one can bubble up to a widget rebuild. Coalesce to a
+      // short interval so the download loop spends its time draining the
+      // socket, not notifying listeners. The final frame is always sent.
+      var lastReport = DateTime.now();
+      const reportEvery = Duration(milliseconds: 100);
       await for (final chunk in response.stream) {
         if (handle?.isCancelled ?? false) {
           await out.flush();
@@ -187,11 +193,18 @@ class ModelStore {
         }
         out.add(chunk);
         received += chunk.length;
-        onProgress?.call(DownloadProgress(received: received, total: total));
+        final now = DateTime.now();
+        if (now.difference(lastReport) >= reportEvery) {
+          lastReport = now;
+          onProgress?.call(DownloadProgress(received: received, total: total));
+        }
       }
       await out.flush();
       await out.close();
       sink = null;
+      // Final frame so the bar always reaches 100% rather than freezing a
+      // beat short at the last throttled sample.
+      onProgress?.call(DownloadProgress(received: received, total: total));
 
       // Integrity: a truncated download must not be promoted to the final name.
       final got = await part.length();
@@ -255,32 +268,80 @@ class ModelStore {
     }
   }
 
-  /// Looks for model files the user has put inside the app models directory.
-  /// The all-files permission is gone, so shared-storage scanning is no longer
-  /// possible; this now only reports files the app itself can read.
+  /// Looks for model files the user has placed on the device.
+  ///
+  /// Always scans the app models directory (readable without any permission).
+  /// When All files access is granted (debug Dev Menu only), it also walks the
+  /// shared storage roots reported by the native `getScanRoots` channel
+  /// (external storage root, Download, Documents) to a bounded depth so a model
+  /// dropped into Download is discoverable. Without the permission the shared
+  /// scan silently no-ops and only app-private files are reported.
   static Future<List<FoundModelFile>> scanForModels({
     int limit = 60,
   }) async {
     if (!Platform.isAndroid) return const [];
-    final dir = await directory();
-    if (dir == null) return const [];
     final found = <String, FoundModelFile>{};
-    try {
-      await _scan(dir, found, limit);
-    } catch (error) {
-      debugPrint('[ModelStore] scan of ${dir.path} failed: $error');
+
+    final dir = await directory();
+    if (dir != null) {
+      try {
+        await _scan(dir, found, limit);
+      } catch (error) {
+        debugPrint('[ModelStore] scan of ${dir.path} failed: $error');
+      }
     }
+
+    // Shared storage is only reachable with All files access. The check is
+    // cheap and returns false in release (the permission is debug-only), so
+    // the shared scan is skipped entirely there.
+    if (found.length < limit && await ScamShieldController.hasAllFilesAccess()) {
+      for (final root in await _sharedScanRoots()) {
+        if (found.length >= limit) break;
+        try {
+          await _scan(root, found, limit, maxDepth: 4);
+        } catch (error) {
+          debugPrint('[ModelStore] scan of ${root.path} failed: $error');
+        }
+      }
+    }
+
     final list = found.values.toList()
       ..sort((a, b) => b.sizeMb.compareTo(a.sizeMb));
     debugPrint('[ModelStore] scan found ${list.length} model file(s)');
     return list.take(limit).toList();
   }
 
+  /// Shared-storage directories to scan, as reported by the native side
+  /// (`getScanRoots` returns newline-separated absolute paths). Only existing
+  /// directories are returned.
+  static Future<List<Directory>> _sharedScanRoots() async {
+    try {
+      final raw = await ScamShieldChannels.storage
+          .invokeMethod<String>('getScanRoots');
+      if (raw == null || raw.trim().isEmpty) return const [];
+      final roots = <Directory>[];
+      for (final line in raw.split('\n')) {
+        final path = line.trim();
+        if (path.isEmpty) continue;
+        final d = Directory(path);
+        if (await d.exists()) roots.add(d);
+      }
+      return roots;
+    } catch (error) {
+      debugPrint('[ModelStore] could not read scan roots: $error');
+      return const [];
+    }
+  }
+
+  /// Lists [dir] for model files. When [maxDepth] > 0, recurses into
+  /// subdirectories up to that depth (the app models dir is flat, so it uses
+  /// the default depth of 0). Honors [limit] so a huge tree can't run away.
   static Future<void> _scan(
     Directory dir,
     Map<String, FoundModelFile> found,
-    int limit,
-  ) async {
+    int limit, {
+    int maxDepth = 0,
+  }) async {
     if (found.length >= limit) return;
     final Stream<FileSystemEntity> entries;
     try {
@@ -289,8 +350,13 @@ class ModelStore {
       debugPrint('[ModelStore] cannot list ${dir.path}: $error');
       return;
     }
+    final subDirs = <Directory>[];
     await for (final entry in entries) {
       if (found.length >= limit) return;
+      if (entry is Directory) {
+        if (maxDepth > 0) subDirs.add(entry);
+        continue;
+      }
       if (entry is! File) continue;
       final path = entry.path;
       if (path.toLowerCase().endsWith('.part')) continue;
@@ -302,6 +368,15 @@ class ModelStore {
         if (size < 64 * 1024 * 1024) continue;
         found[path] = FoundModelFile(path: path, sizeMb: size ~/ (1024 * 1024));
       } catch (_) {}
+    }
+    // Recurse after fully listing the current level so breadth is covered
+    // before depth and the limit cuts off the cheapest results first.
+    for (final sub in subDirs) {
+      if (found.length >= limit) return;
+      // Skip Android's own data/obb trees — huge, and never user drop targets.
+      final name = sub.path.split(RegExp(r'[\\/]')).last.toLowerCase();
+      if (name == 'android') continue;
+      await _scan(sub, found, limit, maxDepth: maxDepth - 1);
     }
   }
 }

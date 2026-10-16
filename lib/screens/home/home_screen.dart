@@ -58,9 +58,17 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// The greeting shown as the home app-bar title. One compact, tappable line:
-/// "Welcome, {name}" when signed in, or "Welcome, not signed in" when signed
-/// out. Tapping it switches to the Profile tab, which owns both the signed-in
+/// The greeting shown as the home app-bar title. One compact, tappable line
+/// with three states:
+///
+/// * **Signed in with a name** — "Welcome, {name}", the name tinted.
+/// * **Signed out** — just "Welcome" (no trailing comma, no guest label).
+/// * **Loading** — while auth is still bootstrapping (status `unknown`), or
+///   signed in but the display name hasn't arrived yet, the name is replaced
+///   with a shimmering skeleton box so the header doesn't flicker between a
+///   guest label and the real name.
+///
+/// Tapping it switches to the Profile tab, which owns both the signed-in
 /// details and the signed-out login prompt itself.
 ///
 /// Rendered inside [AppScreen]'s app bar, so it inherits the standard
@@ -79,13 +87,50 @@ class _HomeHeaderTitle extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     final auth = context.watch<AuthController>();
-    final isSignedIn = auth.isSignedIn;
     final name = auth.user?.displayName.trim() ?? '';
-    final hasName = isSignedIn && name.isNotEmpty;
+    final hasName = auth.isSignedIn && name.isNotEmpty;
 
-    // Who the greeting names, and where tapping it leads.
-    final who = hasName ? name : l10n.homeWelcomeGuestLabel;
-    final whoColor = hasName ? scheme.primary : scheme.onSurfaceVariant;
+    // Loading window: bootstrap hasn't resolved yet, or we're signed in but
+    // the display name hasn't loaded. Stand a skeleton in for the name so we
+    // don't briefly show the guest label to someone who is actually signed in.
+    final isLoading =
+        auth.status == AuthStatus.unknown ||
+        (auth.isSignedIn && name.isEmpty);
+
+    final Widget greeting;
+    if (isLoading) {
+      greeting = Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: l10n.homeWelcomePrefix),
+            WidgetSpan(
+              alignment: PlaceholderAlignment.middle,
+              child: const _HeaderNameSkeleton(),
+            ),
+          ],
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    } else if (hasName) {
+      greeting = Text.rich(
+        TextSpan(
+          children: [
+            TextSpan(text: l10n.homeWelcomePrefix),
+            TextSpan(text: name, style: TextStyle(color: scheme.primary)),
+          ],
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    } else {
+      // Signed out: just "Welcome", with no trailing comma or guest label.
+      greeting = Text(
+        l10n.homeWelcomeGuest,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
 
     return InkWell(
       // The greeting taps through to the Profile tab, which owns both the
@@ -97,21 +142,7 @@ class _HomeHeaderTitle extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(text: l10n.homeWelcomePrefix),
-                    TextSpan(
-                      text: who,
-                      style: TextStyle(color: whoColor),
-                    ),
-                  ],
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+            Flexible(child: greeting),
             SizedBox(width: tokens.space.xs),
             Icon(
               LucideIcons.chevronRight,
@@ -121,6 +152,67 @@ class _HomeHeaderTitle extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A small shimmering placeholder that stands in for the user's name while
+/// authentication is still loading. Sized to roughly match one line of the
+/// app-bar title text, with a subtly animated highlight sweeping across a
+/// muted rounded fill.
+class _HeaderNameSkeleton extends StatefulWidget {
+  const _HeaderNameSkeleton();
+
+  @override
+  State<_HeaderNameSkeleton> createState() => _HeaderNameSkeletonState();
+}
+
+class _HeaderNameSkeletonState extends State<_HeaderNameSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1200),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    final scheme = Theme.of(context).colorScheme;
+
+    // Match the placeholder height to the current app-bar text line so the
+    // box sits on the baseline like real text would.
+    final textStyle = DefaultTextStyle.of(context).style;
+    final fontSize = textStyle.fontSize ?? 20;
+    final height = fontSize * 0.9;
+
+    final base = scheme.onSurfaceVariant.withValues(alpha: 0.18);
+    final highlight = scheme.onSurfaceVariant.withValues(alpha: 0.08);
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        // Sweep the highlight band from left to right across the box.
+        final t = _controller.value;
+        return Container(
+          width: 90,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: tokens.radii.smRadius,
+            gradient: LinearGradient(
+              begin: Alignment(-1.0 + 2.0 * t - 0.6, 0),
+              end: Alignment(-1.0 + 2.0 * t + 0.6, 0),
+              colors: [base, highlight, base],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -139,7 +231,12 @@ _ProtectionState _deriveProtectionState({
 }) {
   if (!enabled) return _ProtectionState.off;
   if (status.modelError) return _ProtectionState.problem;
-  if (status.modelReady) return _ProtectionState.on;
+  // The model loads into memory lazily on the first message and is released
+  // again after an idle period, so [modelReady] drops back to false during
+  // normal operation. As long as the weights are on disk (or already loaded)
+  // and nothing has errored, protection is up and working — only treat it as
+  // "getting ready" when the model has yet to be downloaded.
+  if (status.modelReady || status.modelInstalled) return _ProtectionState.on;
   return _ProtectionState.starting;
 }
 

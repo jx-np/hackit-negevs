@@ -67,8 +67,9 @@ class ProtectionSettings {
   static const String _kCustomThinking = 'custom_model_thinking';
   static const String _kModelBackend = 'model_backend';
   static const String _kProtectionSetupComplete = 'protection_setup_complete';
+  static const String _kSetupModelId = 'setup_model_id';
   static const String _kSeenTutorial = 'seen_tutorial';
-  static const String _kOnboardingComplete = 'onboarding_complete';
+  static const String _kPendingBackendTest = 'pending_backend_test';
   static const int _maxHistory = 60;
 
   final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
@@ -85,23 +86,31 @@ class ProtectionSettings {
     Future<void> setProtectionSetupComplete(bool value) =>
       _prefs.setBool(_kProtectionSetupComplete, value);
 
+  /// The id of the model that the last successful staged-warmup setup pinned a
+  /// backend for. Activation re-probes the backend whenever the currently
+  /// selected model differs from this, because a backend pinned for one model
+  /// (e.g. GPU for a generic bundle) can be wrong for another (e.g. an
+  /// NPU-only SoC bundle), which otherwise fails to load.
+  Future<String?> setupModelId() async =>
+      await _prefs.getString(_kSetupModelId);
+
+  Future<void> setSetupModelId(String value) =>
+      _prefs.setString(_kSetupModelId, value);
+
+      Future<bool> onboardingComplete() async =>
+        await _prefs.getBool('onboarding_complete') ?? false;
+
+      Future<void> setOnboardingComplete(bool value) =>
+        _prefs.setBool('onboarding_complete', value);
+
   Future<bool> seenTutorial() async =>
       await _prefs.getBool(_kSeenTutorial) ?? false;
 
   Future<void> setSeenTutorial(bool value) =>
       _prefs.setBool(_kSeenTutorial, value);
 
-  /// Whether the first-run onboarding walkthrough has been completed. The app
-  /// root opens on onboarding until this is set, after which it opens on the
-  /// main app. Independent of auth and of the coach-mark tutorial.
-  Future<bool> onboardingComplete() async =>
-      await _prefs.getBool(_kOnboardingComplete) ?? false;
-
-  Future<void> setOnboardingComplete(bool value) =>
-      _prefs.setBool(_kOnboardingComplete, value);
-
   Future<String> selectedModelId() async =>
-      await _prefs.getString(_kModelId) ?? modelCatalog.first.id;
+      await _prefs.getString(_kModelId) ?? kDefaultModelId;
 
   Future<void> setSelectedModelId(String value) =>
       _prefs.setString(_kModelId, value);
@@ -121,6 +130,30 @@ class ProtectionSettings {
 
   Future<void> setModelBackend(ModelBackend value) =>
       _prefs.setString(_kModelBackend, value.name);
+
+  /// Backend currently being warmed up during a staged CPU->GPU->NPU test, or
+  /// null when no test is in flight. It is a crash marker: a backend such as
+  /// NPU can hard-kill the process while loading, so we write the candidate
+  /// here *before* the attempt and clear it once the attempt returns (pass or
+  /// fail). On the next launch a non-null value means that backend crashed
+  /// mid-test, so the caller discards it and keeps the last-good backend that
+  /// is already persisted in [modelBackend].
+  Future<ModelBackend?> pendingBackendTest() async {
+    final stored = await _prefs.getString(_kPendingBackendTest);
+    if (stored == null || stored.isEmpty) return null;
+    for (final backend in ModelBackend.values) {
+      if (backend.name == stored) return backend;
+    }
+    return null;
+  }
+
+  Future<void> setPendingBackendTest(ModelBackend? value) async {
+    if (value == null) {
+      await _prefs.remove(_kPendingBackendTest);
+    } else {
+      await _prefs.setString(_kPendingBackendTest, value.name);
+    }
+  }
 
   Future<String> customModelPath() async =>
       await _prefs.getString(_kCustomPath) ?? '';

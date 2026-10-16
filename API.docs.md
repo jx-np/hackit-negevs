@@ -100,6 +100,7 @@ Request:
 { "email": "user@example.com", "password": "at-least-8-chars", "display_name": "Alex", "locale": "en-SG" }
 ```
 `locale` is optional (defaults to `en-SG`). Password: 8+ chars, max 72 bytes.
+`display_name`: letters, digits and at most one interior space only (no leading/trailing spaces, no punctuation or non-ASCII characters).
 
 Response `201`:
 ```json
@@ -159,7 +160,10 @@ Request (text):
 { "text": "Your bank account is suspended. Verify now: http://bit.ly/x", "locale": "en-SG" }
 ```
 Request (screenshot — deferred): `{ "upload_id": "12", "locale": "en-SG" }`
-(Upload creation endpoint is not yet implemented; see §10.)
+First upload the screenshot with `POST /uploads` (below) to obtain the
+`upload_id`. Note that `POST /uploads` already schedules the detection check
+automatically, so this separate call is only needed if you deliberately split
+uploading and scheduling into two steps.
 
 Response `201` (text, ready):
 ```json
@@ -186,13 +190,56 @@ Response `201` (text, ready):
 a safety guarantee. `unclear` is a valid, expected outcome.
 
 Response `202` (screenshot, processing): `{ "check_id": "56", "status": "processing" }`
-Poll `GET /detection/{id}` until `status` is `ready` or `failed`.
+Poll `GET /detection/{id}` until `status` is `ready` or `failed`. A screenshot
+check runs OCR, removes PII from the extracted text **and** produces a redacted
+copy of the image; the raw upload is never analyzed publicly or exposed. If the
+redaction service is unavailable the check resolves to `status: "failed"` rather
+than returning un-redacted content.
 
 Errors: `422` if neither `text` nor `upload_id` is provided.
+
+### POST /uploads
+Optional auth (anonymous allowed). Upload a screenshot to analyze. This is a
+**`multipart/form-data`** request (not JSON): send the image in a form field
+named `image`. An optional `locale` form field tunes analysis.
+
+Uploading **automatically schedules the detection check** — there is no need to
+call `POST /detection` separately. The response carries the `check_id` of a
+check already in `processing`; poll `GET /detection/{check_id}` until `status`
+is `ready` or `failed`.
+
+- Allowed types: `image/jpeg`, `image/png`, `image/webp`.
+- Max size: **10 MiB**.
+
+Response `201`:
+```json
+{ "upload_id": "12", "media_type": "image/png", "check_id": "56", "status": "processing" }
+```
+
+Errors:
+- `422` if the `image` field is missing or the media type is not one of the allowed types.
+- `413` (`payload_too_large`) if the image exceeds 10 MiB.
+
+The raw upload is stored privately for OCR + redaction only; it is never logged
+or exposed through any public endpoint. Only the redacted derivative is served
+back (see `GET /detection/{id}/redacted-image`).
+
+`POST /detection` with an `upload_id` is still accepted for callers that want to
+upload and schedule as two separate steps, but is no longer required.
 
 ### GET /detection/{id}
 Authenticated, owner-only. Returns the current check (same shape as above). Returns
 `404` if it is not yours. Anonymous checks are not retrievable.
+
+### GET /detection/{id}/redacted-image
+Authenticated, owner-only. Returns the **redacted** image produced for a
+screenshot check — the PII-censored copy, never the original upload. The
+response body is the raw image bytes (`Content-Type` is the redacted image's
+media type), sent with `Cache-Control: private, no-store`.
+
+Returns `404` if the check is not yours, has no redacted image yet (still
+`processing` or `failed`), or does not exist. Anonymous checks are not
+retrievable.
 
 ### GET /me/detection
 Authenticated. The user's own check history (paginated). Never returns the original
@@ -265,11 +312,15 @@ processing by the classification system; the reported number is **never logged**
 Errors:
 - `401` if the request is unauthenticated.
 - `422` if `phone_number` has no digits, `reason` is empty, or `reason` exceeds 32 characters.
+- `409` if you already reported this phone number inside the current reporting window. Each user
+  may report a given number **once per window** — repeating a report cannot inflate a number's
+  report count or drag its trust score down.
 
 > **Windowed scoring note:** reports only influence a number's trust score and
 > classification for a bounded window (currently **30 days**). Older reports age out, so a
 > number that stops being reported recovers its neutral default over time. This limits the
-> impact of spoofed or temporary numbers.
+> impact of spoofed or temporary numbers. The same window governs the per-user duplicate-report
+> limit: when your report ages out, you may report that number again.
 
 ---
 
@@ -318,6 +369,10 @@ caller's own vote (`1`, `-1`, or `0`; always `0` for anonymous callers) — the
 same shape as post detail (§6), so the card can render the current score and
 highlight the user's vote without opening the post.
 
+Posts that have not yet been assigned a scam category by the classifier are
+excluded from the public feed and search for everyone except their author (who
+sees them with `"category": null`).
+
 `is_mine` is `true` when the post was authored by the authenticated caller, and
 `false` otherwise (always `false` for anonymous callers). Posts are published
 anonymously — the feed never exposes who authored a post — so `is_mine` is the
@@ -356,11 +411,30 @@ Response `200`:
   "updated_at": "2026-09-29T09:00:00Z",
   "comment_count": 4,
   "reactions": { "up": 10, "down": 1 },
-  "my_vote": 1
+  "my_vote": 1,
+  "redacted_image_urls": [
+    "/api/v1/community/posts/12/images/0",
+    "/api/v1/community/posts/12/images/1"
+  ]
 }
 ```
-`my_vote` is `1`, `-1`, or `0` (and `0` for anonymous callers). `404` if the post is
+`my_vote` is `1`, `-1`, or `0` (and `0` for anonymous callers). `category` is
+`null` until the classifier assigns one; an unclassified post is only returned to
+its author (and moderators). `404` if the post is
 deleted/hidden/removed (moderators/admins can still see those).
+
+`redacted_image_urls` lists every redacted screenshot attached to the post, in
+display order; each entry is a relative API path (see
+`GET /community/posts/{id}/images/{n}`), not a storage location. The field is
+omitted when the post has no images.
+
+### GET /community/posts/{id}/images/{n}
+Public. Returns the redacted screenshot at 0-based position `{n}` in the post's
+image list (the ordering of `redacted_image_urls`). PII-censored image only,
+never a raw upload; body is raw image bytes (`Content-Type` is the image's media
+type) with `Cache-Control: public, max-age=86400`; the copy is independent of the
+author's private uploads. Returns `404` when `{n}` is out of range, the post is
+not publicly visible, or does not exist.
 
 ### POST /community/posts
 Authenticated. Publish a post. **Requires explicit `confirm_publication: true`.**
@@ -370,19 +444,40 @@ Request:
 ```json
 {
   "check_id": "55",
+  "upload_ids": ["12", "13"],
   "title": "Fake bank SMS",
   "redacted_text": "Your account is suspended ...",
-  "scam_type": "phishing",
   "tags": ["bank-impersonation"],
   "confirm_publication": true,
   "locale": "en-SG"
 }
 ```
-`check_id` is optional (links the post to your own detection; ignored if not yours).
-`scam_type` must be a known category slug. `tags` must be known tag slugs.
+`check_id` is optional and now only records provenance (links the post to your
+own detection; ignored if not yours). `tags` must be known tag slugs.
+
+`upload_ids` is an optional ordered list of uploads to attach as the post's
+images. Each must be **your own** upload (from `POST /uploads`) whose detection
+has finished and produced a redacted image. For each one the server copies the
+**redacted** image into a fresh post-owned object; the copies are independent, so
+they survive the private uploads' later expiry or deletion. The attached images
+are served via `GET /community/posts/{id}/images/{n}` and surfaced as
+`redacted_image_urls` (in `upload_ids` order) in the response. Only the redacted
+copy is ever used; the raw upload is never published.
+
+If any `upload_id` is not yours, does not exist, or its redaction has not yet
+completed, the whole publish is rejected with `422` (`upload_ids`) and no post is
+created. Poll `GET /detection/{check_id}` until `status` is `ready` before
+publishing.
+
+The scam category is **not** client-supplied: it is assigned by the backend
+classifier. Any `scam_type` in the request body is ignored. Until a category has
+been assigned the post is *unclassified*: `"category": null`, and it appears only
+in `GET /me/posts` and to its own author — it is excluded from the public feed,
+search, other users' post detail, and cannot be voted on or flagged.
 
 Response `201`: post detail (same shape as `GET /community/posts/{id}`).
-Errors: `422` (missing confirmation, empty title/body, unknown `scam_type` or `tags`).
+Errors: `422` (missing confirmation, empty title/body, unknown `tags`, or any
+`upload_ids` not yours / nonexistent / not yet redacted).
 
 ### PATCH /community/posts/{id}
 Authenticated; author or moderator/admin. Edit title/body/tags. Fields are optional;
@@ -666,14 +761,17 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 | POST | `/auth/refresh` | Public |
 | POST | `/auth/logout` | Public |
 | GET | `/me` | Authenticated |
+| POST | `/uploads` | Optional auth |
 | POST | `/detection` | Optional auth |
 | GET | `/detection/{id}` | Authenticated (owner) |
+| GET | `/detection/{id}/redacted-image` | Authenticated (owner) |
 | GET | `/me/detection` | Authenticated |
 | POST | `/detection/{id}/resource-opens` | Optional auth |
 | GET | `/detection/phone-number/trust-score` | Optional auth |
 | GET | `/community/feed` | Optional auth |
 | GET | `/community/feed/search` | Optional auth |
 | GET | `/community/posts/{id}` | Optional auth |
+| GET | `/community/posts/{id}/images/{n}` | Public |
 | POST | `/community/posts` | Authenticated |
 | PATCH | `/community/posts/{id}` | Authenticated (author/mod) |
 | DELETE | `/community/posts/{id}` | Authenticated (author/mod) |
@@ -703,7 +801,7 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 
 ## 16. Notes for teammates
 
-- **Screenshot uploads:** `POST /detection` accepts an `upload_id`, but the upload-creation endpoint (`POST /uploads`) and OCR worker are not implemented yet. Text detection is fully working. Coordinate before building screenshot UI.
+- **Screenshot uploads:** the full flow is implemented end to end — `POST /uploads` stores the image **and automatically schedules the detection check**, returning the `check_id` directly; OCR + PII redaction then run in the background and the redacted image is retrievable via `GET /detection/{id}/redacted-image` (and reusable on a published post via `GET /community/posts/{id}/images/{n}`). Clients just upload and poll `GET /detection/{check_id}`; a separate `POST /detection` call with the `upload_id` is still accepted but no longer required. The OCR + redaction itself is delegated to a separate Python PII-removal service over HTTP; when that service is not configured (`PII_SERVICE_URL` unset) screenshot checks resolve to `status: "failed"` rather than returning un-redacted content. Text detection does not depend on it.
 - **Phone-number data source:** `GET /detection/phone-number/trust-score` works end to end but its data source is stubbed — until the data team wires the phone reputation table, every number returns `known: false` with the default score 60. The response contract is final.
 - **Flag vs. phone report:** "flag" (§9) escalates a *post/comment* to moderators. The phone-number feature (§5) is a *lookup* against the scam-number database. They are unrelated.
 - **DB note (backend/DB team):** the `report_receipts` table in `init.sql` is now unused — the "I received this too" feature was removed in favour of reactions. It can be dropped in a future migration.

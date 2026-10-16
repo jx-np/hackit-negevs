@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -7,15 +9,14 @@ import 'package:notification_listener_service/notification_listener_service.dart
 import '../core/messaging_apps.dart';
 import '../core/model_catalog.dart';
 import '../core/notification_record.dart';
+import '../core/scam_hints.dart';
 import '../core/scam_verdict.dart';
-import '../services/evaluation_router.dart';
 import '../services/local_llm_evaluator.dart';
 import '../services/model_manager.dart';
 import '../services/model_store.dart';
 import '../services/notification_log.dart';
 import '../services/notification_stream.dart';
 import '../services/protection_settings.dart';
-import '../services/remote_api_evaluator.dart';
 import '../services/scamshield_channels.dart';
 
 class BackgroundRunner {
@@ -30,8 +31,6 @@ class BackgroundRunner {
 
   late final LocalLlmEvaluator _local =
       LocalLlmEvaluator(_models, settings: _settings);
-  EvaluationRouter? _router;
-  bool _forceCloud = false;
 
   StreamSubscription<IncomingNotification>? _subscription;
   final Map<String, _NotificationFingerprint> _lastNotification =
@@ -80,7 +79,6 @@ class BackgroundRunner {
     _running = true;
     await _models.ensureInitialized();
     await _applySelectedModel();
-    await _refreshRouter();
     // The model is loaded lazily on the first notification, and released again
     // once the device is idle (see [_scheduleIdleUnload]).
     if (!_running) return;
@@ -312,26 +310,34 @@ class BackgroundRunner {
   }
 
   Future<void> _evaluateRecord(String id, NotificationRecord record) async {
-    final router = _router;
-    if (router == null) return;
-
     _busy = true;
     _wakeLock('acquireWakeLock');
     try {
       // A notification arrived: keep the model alive and load it if this is
-      // the first message since it was unloaded. In force-cloud mode the
-      // on-device model is not needed unless the cloud fails (handled by the
-      // router).
+      // the first message since it was unloaded. Scam checks run entirely
+      // on-device — the message is never sent off the device.
       _cancelIdleUnload();
-      if (!_forceCloud && !_modelReady) {
+      if (!_modelReady) {
         await _warmUp();
       }
 
-      final verdict = await router.evaluate(record);
+      ScamVerdict verdict;
+      try {
+        verdict = await _local.evaluate(record);
+      } catch (error) {
+        // A failed on-device evaluation must not escalate off-device; surface
+        // it as an inconclusive verdict instead.
+        verdict = ScamVerdict.unsure(reason: 'On-device check failed: $error');
+      }
       _evaluated++;
       await _log.attachVerdict(id, record, verdict);
 
-      if (verdict.shouldAlert) {
+      // Gate the alert on the cheap local hints, not just the model's verdict.
+      // A small model misfires on short, vague or odd-looking messages, so an
+      // alert also requires high confidence and at least two corroborating
+      // signals computed independently of the model.
+      final hints = await ScamHintBuilder.fromRecord(record);
+      if (hints.shouldAlert(verdict.label.wire, verdict.confidence)) {
         await _raiseAlert(record, verdict);
       }
     } finally {
@@ -410,7 +416,6 @@ class BackgroundRunner {
         return _statusMap();
       case 'syncSettings':
         await _applySelectedModel();
-        await _refreshRouter();
         return _statusMap();
       case 'testEvaluate':
         final text = (call.arguments as Map?)?['text'] as String? ?? '';
@@ -425,29 +430,149 @@ class BackgroundRunner {
         await _log.record(id, record);
         _enqueue(id, record);
         return _statusMap();
+      case 'runBatch':
+        // Debug-only: evaluate a pushed JSON batch of notifications through the
+        // on-device model and write a results file. Triggered from a computer
+        // via an adb broadcast to the debug BatchRunReceiver. See [_runBatch].
+        final args = (call.arguments as Map?) ?? const {};
+        final inputPath = args['inputPath'] as String? ?? '';
+        final outputPath = args['outputPath'] as String? ?? '';
+        return _runBatch(inputPath: inputPath, outputPath: outputPath);
       default:
         return null;
     }
   }
 
-  Future<void> _refreshRouter() async {
-    final endpoint = (await _settings.remoteEndpoint()).trim();
-    final apiKey = (await _settings.remoteApiKey()).trim();
-    final model = (await _settings.remoteModel()).trim();
-    _forceCloud = await _settings.forceCloud();
-    _router = EvaluationRouter(
-      local: _local,
-      remote: RemoteApiEvaluator(
-        endpoint: endpoint.isEmpty ? null : endpoint,
-        apiKey: apiKey.isEmpty ? null : apiKey,
-        model: model.isEmpty ? kDefaultRemoteModel : model,
-        reasoningBudget: await _settings.reasoningBudget(),
-        maxTokensOverride: await _settings.remoteMaxTokens(),
-      ),
-      confidenceThreshold: await _settings.confidenceThreshold(),
-      forceCloud: _forceCloud,
-    );
+  /// Debug-only batch runner. Reads a JSON array of notifications from
+  /// [inputPath], evaluates each one through the on-device model in order, and
+  /// writes a JSON results file to [outputPath]. Each result carries the input,
+  /// the model verdict, the computed hints and the per-item timing.
+  ///
+  /// The run is serialized against live notification handling with [_busy] so a
+  /// batch item never overlaps a real evaluation (the native model cannot run
+  /// two generations at once). Any per-item failure is captured as an error
+  /// entry rather than aborting the whole batch.
+  Future<Map<String, dynamic>> _runBatch({
+    required String inputPath,
+    required String outputPath,
+  }) async {
+    if (inputPath.isEmpty || outputPath.isEmpty) {
+      return {'ok': false, 'error': 'inputPath and outputPath are required'};
+    }
+
+    // ignore: avoid_print
+    print('[runBatch] start input=$inputPath output=$outputPath');
+
+    List<dynamic> items;
+    try {
+      final raw = await File(inputPath).readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return {'ok': false, 'error': 'input must be a JSON array'};
+      }
+      items = decoded;
+    } catch (error) {
+      // ignore: avoid_print
+      print('[runBatch] read failed: $error');
+      return {'ok': false, 'error': 'could not read input: $error'};
+    }
+    // ignore: avoid_print
+    print('[runBatch] parsed ${items.length} item(s)');
+
+    // Hold off the idle-unload timer and keep the model loaded for the whole
+    // batch. The run blocks the control handler, so no live notification can be
+    // evaluated concurrently, but _busy is still set per item to match the
+    // model-switch/unload guards.
+    _cancelIdleUnload();
+    if (!_modelReady) {
+      await _warmUp();
+    }
+
+    final results = <Map<String, dynamic>>[];
+    final batchStarted = DateTime.now();
+    for (var i = 0; i < items.length; i++) {
+      final entry = <String, dynamic>{'index': i};
+      final item = items[i];
+      if (item is! Map) {
+        entry['error'] = 'item is not a JSON object';
+        results.add(entry);
+        continue;
+      }
+
+      NotificationRecord record;
+      try {
+        record = NotificationRecord.fromJson(Map<String, dynamic>.from(item));
+      } catch (error) {
+        entry['error'] = 'could not parse notification: $error';
+        results.add(entry);
+        continue;
+      }
+
+      entry['input'] = record.toJson();
+      _setStatus('Batch ${i + 1}/${items.length}');
+
+      _busy = true;
+      final started = DateTime.now();
+      try {
+        final hints = await ScamHintBuilder.fromRecord(record);
+        final verdict = await _local.evaluate(record);
+        final elapsedMs = DateTime.now().difference(started).inMilliseconds;
+        entry['verdict'] = verdict.toJson();
+        entry['hints'] = _hintsToJson(hints);
+        entry['timing_ms'] = elapsedMs;
+      } catch (error) {
+        entry['error'] = 'evaluation failed: $error';
+        entry['timing_ms'] = DateTime.now().difference(started).inMilliseconds;
+      } finally {
+        _busy = false;
+      }
+      results.add(entry);
+    }
+
+    final output = <String, dynamic>{
+      'model_id': _models.spec.id,
+      'count': results.length,
+      'started_at': batchStarted.toIso8601String(),
+      'finished_at': DateTime.now().toIso8601String(),
+      'total_ms': DateTime.now().difference(batchStarted).inMilliseconds,
+      'results': results,
+    };
+
+    try {
+      final file = File(outputPath);
+      await file.parent.create(recursive: true);
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(output),
+      );
+    } catch (error) {
+      // ignore: avoid_print
+      print('[runBatch] write failed: $error');
+      _scheduleIdleUnload();
+      return {'ok': false, 'error': 'could not write output: $error'};
+    }
+
+    // ignore: avoid_print
+    print('[runBatch] done: ${results.length} result(s) -> $outputPath');
+    _setStatus('Batch done: ${results.length} message(s)');
+    _scheduleIdleUnload();
+    return {'ok': true, 'count': results.length, 'outputPath': outputPath};
   }
+
+  /// Serializes the full set of computed hints for a batch result, so a run can
+  /// be inspected signal-by-signal rather than only through the rendered line.
+  Map<String, dynamic> _hintsToJson(ScamHints hints) => {
+        'rendered': hints.render(),
+        'sender_type': hints.senderType.wire,
+        'link_type': hints.linkType.wire,
+        'asks_for_code': hints.asksForCode,
+        'delivers_code': hints.deliversCode,
+        'apk_or_remote_app': hints.apkOrRemoteApp,
+        'urgency': hints.urgency,
+        'money_ask': hints.moneyAsk,
+        'moves_off_platform': hints.movesOffPlatform,
+        'brand_mentioned': hints.brandMentioned,
+        'strong_signal_count': hints.strongSignalCount,
+      };
 
   void _setStatus(String message) {
     _lastMessage = message;

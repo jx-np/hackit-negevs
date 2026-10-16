@@ -45,8 +45,8 @@ dependencies:
   provider: ^6.1.2
   url_launcher: ^6.2.1
   forui: ^0.27.0
-  remixicon: ^4.9.3
   lucide_icons_flutter: ^3.1.25
+  remixicon: ^4.9.3
   material_ui: ^1.4.0
   notification_listener_service: ^1.0.0
   flutter_edge_ai: ^2.3.2
@@ -54,8 +54,10 @@ dependencies:
   flutter_edge_ai_mediapipe: ^1.2.2
   flutter_edge_ai_litertlm: ^1.13.2
   http: ^1.6.0
+  http_parser: ^4.1.2
   flutter_secure_storage: ^9.2.2
   image_picker: ^1.1.2
+  image_editor_plus: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -70,6 +72,20 @@ dev_dependencies:
   forui_cli: ^0.27.0
   shared_preferences_platform_interface: ^2.4.2
 
+# image_editor_plus pins permission_handler ^12, but the app uses ^13.0.2. The
+# only difference between 12 and 13 is the Android compileSdkVersion (35 vs 37);
+# there are no API changes and the editor only touches permission_handler for an
+# optional save-to-gallery path we don't use (we re-upload the edited bytes). So
+# force the whole tree onto 13 rather than splitting the native plugin version.
+# font_awesome_flutter 10.12.0 (pulled in transitively by image_editor_plus)
+# declares IconData subclasses that `extend IconData`, which no longer compiles
+# because Flutter 3.44+ marked IconData `final`. 11.0.0 does the official wrapper
+# migration (FaIconData no longer implements IconData). We don't use FA directly;
+# only image_editor_plus consumes it internally for its toolbar icons.
+dependency_overrides:
+  permission_handler: ^13.0.2
+  font_awesome_flutter: ^11.0.0
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -78,8 +94,7 @@ flutter:
 
   # Generate localization classes from ARB files in lib/l10n.
   generate: true
-  # assets:
-  #   - final_dataset.csv
+
   # Include the Material Icons font used by Icons.* widgets.
   uses-material-design: true
 

@@ -63,8 +63,12 @@ class CommunityService {
     return Paginated.fromJson(response.json, FeedPost.fromJson);
   }
 
+  /// Creates a community post. Attach analyzed screenshots by passing their
+  /// [uploadIds] (from `POST /uploads`); each is sent in the `upload_ids`
+  /// array. Poll `GET /detection/{check_id}` before posting to ensure each
+  /// upload has finished processing (OCR + redaction).
   Future<PostDetail> createPost({
-    String? checkId,
+    List<String> uploadIds = const [],
     required String title,
     required String redactedText,
     String? scamType,
@@ -74,7 +78,7 @@ class CommunityService {
     final response = await _client.post(
       '/community/posts',
       body: {
-        'check_id': ?checkId,
+        'upload_ids': uploadIds,
         'title': title,
         'redacted_text': redactedText,
         'scam_type': ?scamType,

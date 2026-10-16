@@ -1,11 +1,20 @@
+// LEGACY — cloud (remote) scam evaluator (no longer wired into the app).
+//
+// This posted message content to an OpenAI-compatible cloud endpoint for a
+// second-opinion verdict. Scam checks are now on-device only and no message
+// content leaves the device, so nothing in `lib/` constructs this anymore.
+// It is kept here (unused) alongside `lib/legacy/evaluation_router.dart` so
+// cloud review can be restored later if needed.
+
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
 import '../core/notification_record.dart';
+import '../core/scam_hints.dart';
 import '../core/scam_prompt.dart';
 import '../core/scam_verdict.dart';
-import 'scam_evaluator.dart';
+import '../services/scam_evaluator.dart';
 
 /// Calls an OpenAI-compatible `/v1/chat/completions` endpoint (the cloud
 /// review server). The model may be a reasoning model; its private thinking is
@@ -61,10 +70,12 @@ class RemoteApiEvaluator implements ScamEvaluator {
       );
     }
     try {
+      final hints = (await ScamHintBuilder.fromRecord(record)).render();
       final prompt = buildScamPrompt(
         appLabel: record.appLabel,
         sender: record.title,
         message: record.content,
+        hints: hints,
       );
       final response = await http
           .post(

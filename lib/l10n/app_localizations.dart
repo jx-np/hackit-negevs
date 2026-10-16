@@ -243,8 +243,116 @@ abstract class AppLocalizations {
   /// No description provided for @commonImageTooLarge.
   ///
   /// In en, this message translates to:
-  /// **'Each image must be 20 MB or smaller.'**
+  /// **'Each image must be 10 MB or smaller.'**
   String get commonImageTooLarge;
+
+  /// No description provided for @reportTabPhotoProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing...'**
+  String get reportTabPhotoProcessing;
+
+  /// No description provided for @reportTabPhotoReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get reportTabPhotoReady;
+
+  /// No description provided for @reportTabPhotoFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t analyze'**
+  String get reportTabPhotoFailed;
+
+  /// No description provided for @reportTabPhotoDropped.
+  ///
+  /// In en, this message translates to:
+  /// **'Some photos couldn\'t be analyzed and were removed.'**
+  String get reportTabPhotoDropped;
+
+  /// No description provided for @reportTabProcessingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not close the application. Processing'**
+  String get reportTabProcessingTitle;
+
+  /// No description provided for @reportTabSignInToAddPhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to attach photos.'**
+  String get reportTabSignInToAddPhotos;
+
+  /// No description provided for @reportTabFailedDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Some photos couldn\'t be analyzed'**
+  String get reportTabFailedDialogTitle;
+
+  /// No description provided for @reportTabFailedDialogBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, one{1 photo failed to upload or analyze. Retry it, or post without it?} other{{count} photos failed to upload or analyze. Retry them, or post without them?}}'**
+  String reportTabFailedDialogBody(int count);
+
+  /// No description provided for @reportTabFailedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get reportTabFailedRetry;
+
+  /// No description provided for @reportTabFailedPostWithout.
+  ///
+  /// In en, this message translates to:
+  /// **'Post without photos'**
+  String get reportTabFailedPostWithout;
+
+  /// No description provided for @reportTabWaitForImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for images to be processed'**
+  String get reportTabWaitForImages;
+
+  /// No description provided for @reportTabCheckImages.
+  ///
+  /// In en, this message translates to:
+  /// **'Check images'**
+  String get reportTabCheckImages;
+
+  /// No description provided for @reportTabReviewCheckbox.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ve reviewed the images and the personal details are hidden correctly'**
+  String get reportTabReviewCheckbox;
+
+  /// No description provided for @reportTabEditImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit image'**
+  String get reportTabEditImage;
+
+  /// No description provided for @reportTabReuploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-uploading edited image...'**
+  String get reportTabReuploading;
+
+  /// No description provided for @reportTabPosting.
+  ///
+  /// In en, this message translates to:
+  /// **'Posting...'**
+  String get reportTabPosting;
+
+  /// No description provided for @reportTabEditorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t re-upload the edited image. Try again.'**
+  String get reportTabEditorSaveFailed;
+
+  /// No description provided for @reportTabViewPost.
+  ///
+  /// In en, this message translates to:
+  /// **'View your post'**
+  String get reportTabViewPost;
 
   /// No description provided for @homeTitle.
   ///
@@ -263,6 +371,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'not signed in'**
   String get homeWelcomeGuestLabel;
+
+  /// No description provided for @homeWelcomeGuest.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome'**
+  String get homeWelcomeGuest;
 
   /// No description provided for @myProfileTitle.
   ///
@@ -1008,6 +1122,144 @@ abstract class AppLocalizations {
   /// **'To stop blocked numbers from ringing, choose this app for call screening.'**
   String get callBlockNeedsScreening;
 
+  /// No description provided for @callHighRiskTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'High-risk caller'**
+  String get callHighRiskTitle;
+
+  /// No description provided for @callHighRiskBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This number has been reported as a scam. Do not share personal details or money.'**
+  String get callHighRiskBody;
+
+  /// No description provided for @callHighRiskScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust score: {score}/100'**
+  String callHighRiskScore(int score);
+
+  /// No description provided for @callHighRiskReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported {count} times'**
+  String callHighRiskReports(int count);
+
+  /// No description provided for @callHighRiskDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get callHighRiskDismiss;
+
+  /// No description provided for @callCheckNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Check this number'**
+  String get callCheckNumber;
+
+  /// No description provided for @callChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking number...'**
+  String get callChecking;
+
+  /// No description provided for @callCheckSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'{number} looks safe'**
+  String callCheckSafe(String number);
+
+  /// No description provided for @callCheckUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports for {number}'**
+  String callCheckUnknown(String number);
+
+  /// No description provided for @callCheckHighRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'{number} is high risk'**
+  String callCheckHighRisk(String number);
+
+  /// No description provided for @callCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not check this number'**
+  String get callCheckFailed;
+
+  /// No description provided for @callCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Number check'**
+  String get callCheckTitle;
+
+  /// No description provided for @callCheckNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Number checked'**
+  String get callCheckNumberLabel;
+
+  /// No description provided for @callCheckResultHighRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'High risk'**
+  String get callCheckResultHighRisk;
+
+  /// No description provided for @callCheckResultUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'No reports'**
+  String get callCheckResultUnknown;
+
+  /// No description provided for @callCheckResultSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'Looks safe'**
+  String get callCheckResultSafe;
+
+  /// No description provided for @callCheckResultFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check failed'**
+  String get callCheckResultFailed;
+
+  /// No description provided for @callCheckDetailHighRisk.
+  ///
+  /// In en, this message translates to:
+  /// **'This number has been reported as a scam. Do not share personal details or money.'**
+  String get callCheckDetailHighRisk;
+
+  /// No description provided for @callCheckDetailUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'We have no scam reports for this number yet. Stay cautious with unknown callers.'**
+  String get callCheckDetailUnknown;
+
+  /// No description provided for @callCheckDetailSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'This number has a good reputation. Stay alert if anything feels off.'**
+  String get callCheckDetailSafe;
+
+  /// No description provided for @callCheckDetailFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t check this number right now. Check your connection and try again.'**
+  String get callCheckDetailFailed;
+
+  /// No description provided for @callCheckScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust score: {score}/100'**
+  String callCheckScore(int score);
+
+  /// No description provided for @callCheckReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported {count} times'**
+  String callCheckReports(int count);
+
   /// No description provided for @reportPhone.
   ///
   /// In en, this message translates to:
@@ -1284,6 +1536,30 @@ abstract class AppLocalizations {
   /// **'Posts scam alerts as notifications'**
   String get permAlertsSub;
 
+  /// No description provided for @permBackground.
+  ///
+  /// In en, this message translates to:
+  /// **'Run in the background'**
+  String get permBackground;
+
+  /// No description provided for @permBackgroundSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore battery optimizations so protection keeps running'**
+  String get permBackgroundSub;
+
+  /// No description provided for @permBatterySettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Battery optimization settings'**
+  String get permBatterySettings;
+
+  /// No description provided for @permBatterySettingsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Some phones throttle apps anyway. Open the list and set this app to \"Don\'t optimize\".'**
+  String get permBatterySettingsSub;
+
   /// No description provided for @permGranted.
   ///
   /// In en, this message translates to:
@@ -1536,6 +1812,24 @@ abstract class AppLocalizations {
   /// **'Turn protection on'**
   String get safetyTurnOn;
 
+  /// No description provided for @safetyPressToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Press to start'**
+  String get safetyPressToStart;
+
+  /// No description provided for @safetyDownloadingModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading model…'**
+  String get safetyDownloadingModel;
+
+  /// No description provided for @safetySettingUpModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Setting up the model…'**
+  String get safetySettingUpModel;
+
   /// No description provided for @safetyNoScams.
   ///
   /// In en, this message translates to:
@@ -1679,6 +1973,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications'**
   String get notificationsTitle;
+
+  /// No description provided for @notificationsTestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test the on-device AI'**
+  String get notificationsTestTitle;
+
+  /// No description provided for @notificationsTestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste or type a message to check'**
+  String get notificationsTestHint;
+
+  /// No description provided for @notificationsTestRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Check message'**
+  String get notificationsTestRun;
+
+  /// No description provided for @notificationsTestServiceOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn protection on first so the model can run the check.'**
+  String get notificationsTestServiceOff;
+
+  /// No description provided for @notificationsTestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking… the result will appear below once the model finishes.'**
+  String get notificationsTestSent;
 
   /// No description provided for @settingsScreenModelInstalled.
   ///
@@ -1871,6 +2195,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This lets the app show a small notice on your screen while a suspicious call is ringing.'**
   String get onboardingOverlayBody;
+
+  /// No description provided for @onboardingBackgroundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep running in the background'**
+  String get onboardingBackgroundTitle;
+
+  /// No description provided for @onboardingBackgroundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the app ignore battery optimizations so it can keep watching for scams even when your screen is off.'**
+  String get onboardingBackgroundBody;
+
+  /// No description provided for @onboardingBatterySettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop battery optimization'**
+  String get onboardingBatterySettingsTitle;
+
+  /// No description provided for @onboardingBatterySettingsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Some phones keep throttling apps even after the first prompt. Open the battery settings, find this app, and set it to \"Don\'t optimize\" so protection never stops.'**
+  String get onboardingBatterySettingsBody;
 
   /// No description provided for @onboardingSettingsHint.
   ///

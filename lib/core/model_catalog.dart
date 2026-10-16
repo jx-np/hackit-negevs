@@ -1,5 +1,4 @@
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
-import 'package:flutter_edge_ai_builtin_ai/flutter_edge_ai_builtin_ai.dart';
 
 const String kCustomModelId = 'custom-local';
 
@@ -50,7 +49,31 @@ class ScamModelSpec {
   bool get isBuiltIn => fileType == ModelFileType.builtIn;
 }
 
+/// The id of the built-in Android system model (Gemini Nano via AICore).
+const String kBuiltInModelId = 'aicore-system';
+
+/// The model selected by default on a fresh install. The built-in AICore entry
+/// leads the catalog for prominence in the UI, but it is unavailable on most
+/// devices, so the out-of-the-box default must point at a model that can always
+/// be downloaded. This is also the fallback [modelById] returns for unknown ids.
+const String kDefaultModelId = 'gemma-4-e2b';
+
 final List<ScamModelSpec> modelCatalog = [
+  ScamModelSpec(
+    id: kBuiltInModelId,
+    displayName: 'System AI (AICore)',
+    url: '',
+    // Must equal BuiltInAiModels.geminiNano.name so the built-in install path
+    // in GemmaModelManager can resolve it via builder.fromBundled(...).
+    fileName: 'gemini-nano',
+    modelType: ModelType.general,
+    fileType: ModelFileType.builtIn,
+    approxSizeMb: 0,
+    contextTokens: 4096,
+    note:
+        'Uses the AI built into your Android system. No download, nothing to '
+        'store. Only available on supported devices.',
+  ),
   ScamModelSpec(
     id: 'gemma-4-e2b',
     displayName: 'Big Model',
@@ -90,9 +113,19 @@ List<ScamModelSpec> get allModels => _customModel == null
     ? modelCatalog
     : [...modelCatalog, _customModel!];
 
+/// The catalog entry used as the safe default: the first non-built-in model,
+/// falling back to the first catalog entry if somehow none exists.
+ScamModelSpec get defaultModel => modelCatalog.firstWhere(
+      (spec) => spec.id == kDefaultModelId,
+      orElse: () => modelCatalog.firstWhere(
+        (spec) => !spec.isBuiltIn,
+        orElse: () => modelCatalog.first,
+      ),
+    );
+
 ScamModelSpec modelById(String id) => allModels.firstWhere(
       (spec) => spec.id == id,
-      orElse: () => modelCatalog.first,
+      orElse: () => defaultModel,
     );
 
 /// Builds the catalog entry for a model file sitting at [path]. The file type

@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../api/api_client.dart';
 import '../../api/api_exception.dart';
+import '../../models/api/detection_models.dart';
 import '../../models/call_record.dart';
 import '../../services/api/detection_service.dart';
 import '../../services/call_database.dart';
@@ -23,6 +24,8 @@ import '../../widgets/ui/app_card.dart';
 import '../../widgets/ui/app_screen.dart';
 import '../../widgets/ui/empty_state.dart';
 import 'blocked_numbers_screen.dart';
+import 'high_risk_call_alert.dart';
+import 'number_check_screen.dart';
 
 class CallHistoryScreen extends StatefulWidget {
   const CallHistoryScreen({super.key});
@@ -36,12 +39,22 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   static const String _blockedPrefsKey = 'spam_blocked_numbers';
   static const String _protectionEnabledPrefsKey = 'spam_protection_enabled';
 
+  /// How many of the most-recent unique numbers to auto-check for trust score.
+  static const int _trustCheckLimit = 10;
+
+  /// Only auto-check numbers seen within this window (the "last week").
+  static const Duration _trustCheckWindow = Duration(days: 7);
+
   List<CallRecord> _records = const [];
   final Set<String> _blockedNumbers = {};
   bool _isLoading = false;
   bool _needsPhonePermission = false;
   String? _error;
   StreamSubscription<CallEvent>? _callEventSub;
+
+  /// Number from the most recent incoming call event, used to avoid showing the
+  /// high-risk full-screen alert more than once for the same ringing call.
+  String? _lastAlertedNumber;
 
   @override
   void initState() {
@@ -80,9 +93,49 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
             ),
           ),
         );
+        // Check the live caller against the trust-score database and, if it
+        // comes back high risk, raise the full-screen alert.
+        unawaited(_checkIncomingCall(event.number));
+      } else if (event.isIdle) {
+        // The ringing call ended; allow a future call from the same number to
+        // alert again.
+        _lastAlertedNumber = null;
       }
       _loadHistory();
     });
+  }
+
+  /// Checks the currently-ringing caller against the trust-score database and,
+  /// when it is high risk, shows the full-screen [HighRiskCallAlert]. Guards
+  /// against alerting twice for the same ringing call. Errors are swallowed so
+  /// a failed lookup never interrupts an incoming call.
+  Future<void> _checkIncomingCall(String? number) async {
+    final normalized = _canonical(number);
+    if (normalized.isEmpty) return;
+    if (_lastAlertedNumber == normalized) return;
+    final detection = DetectionService(context.read<ApiClient>());
+    PhoneTrustScore score;
+    try {
+      score = await detection.phoneTrustScore(number!);
+    } on ApiException {
+      return;
+    } catch (_) {
+      return;
+    }
+    // Persist so the matching row in the list reflects the live-call verdict.
+    await CallDatabase.instance.setTrustByNumber(
+      normalized,
+      trustScore: score.trustScore,
+      trustRating: score.rating,
+    );
+    if (!mounted || !score.isHighRisk) return;
+    _lastAlertedNumber = normalized;
+    await HighRiskCallAlert.show(
+      context,
+      phoneNumber: number,
+      trustScore: score.trustScore,
+      reportCount: score.reportCount,
+    );
   }
 
   String _canonical(String? raw) {
@@ -164,7 +217,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     return CallRecord.directionIncoming;
   }
 
-  Future<void> _loadHistory() async {
+  Future<void> _loadHistory({bool forceRecheck = false}) async {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
@@ -213,6 +266,11 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
         _records = records;
         _isLoading = false;
       });
+
+      // Check trust scores for the most recent unique numbers from the last
+      // week. New numbers are always checked; previously-checked numbers are
+      // skipped unless the user explicitly refreshes (forceRecheck).
+      await _checkRecentTrustScores(records, forceRecheck: forceRecheck);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -239,6 +297,85 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
       final records = await CallDatabase.instance.all();
       if (mounted) setState(() => _records = records);
     } catch (_) {}
+  }
+
+  /// Checks trust scores for the most recent unique numbers (up to
+  /// [_trustCheckLimit]) seen within [_trustCheckWindow]. New numbers are
+  /// always checked; numbers that already have a cached rating are skipped
+  /// unless [forceRecheck] is set (the user pulled-to-refresh or tapped the
+  /// refresh action). Each lookup is persisted so the row keeps its color
+  /// across reloads without hitting the network again.
+  Future<void> _checkRecentTrustScores(
+    List<CallRecord> records, {
+    bool forceRecheck = false,
+  }) async {
+    final cutoff = DateTime.now()
+        .subtract(_trustCheckWindow)
+        .millisecondsSinceEpoch;
+
+    // Records come back newest-first; walk them and keep the first occurrence
+    // of each unique number that falls inside the window, up to the limit.
+    final seen = <String>{};
+    final toCheck = <CallRecord>[];
+    for (final record in records) {
+      if (record.timestamp < cutoff) continue;
+      if (!seen.add(record.normalizedNumber)) continue;
+      // Skip numbers we already have a verdict for unless forcing a recheck.
+      if (!forceRecheck && record.hasTrustCheck) continue;
+      toCheck.add(record);
+      if (seen.length >= _trustCheckLimit) break;
+    }
+    if (toCheck.isEmpty) return;
+
+    final detection = DetectionService(context.read<ApiClient>());
+    var anyChanged = false;
+    for (final record in toCheck) {
+      final changed = await _lookupAndPersist(detection, record);
+      anyChanged = anyChanged || changed;
+    }
+    if (anyChanged) await _refreshFromDb();
+  }
+
+  /// Looks up a single number's trust score and persists it. Returns true when
+  /// a rating was stored so the caller knows to refresh the list. Network and
+  /// API errors are swallowed here so one bad lookup never breaks the loop or
+  /// the whole history load.
+  Future<bool> _lookupAndPersist(
+    DetectionService detection,
+    CallRecord record,
+  ) async {
+    try {
+      final score = await detection.phoneTrustScore(record.rawNumber);
+      await CallDatabase.instance.setTrustByNumber(
+        record.normalizedNumber,
+        trustScore: score.trustScore,
+        trustRating: score.rating,
+      );
+      return true;
+    } on ApiException {
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Manually checks one number from the overflow menu by opening a dedicated
+  /// result screen that shows the number being checked and a clear verdict.
+  /// The screen performs the lookup and persists the rating like the automatic
+  /// check (via [CallDatabase.setTrustByNumber]); its [onResult] callback
+  /// refreshes this list so the matching row's color stays in sync.
+  Future<void> _checkNumber(CallRecord record) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => NumberCheckScreen(
+          rawNumber: record.rawNumber,
+          normalizedNumber: record.normalizedNumber,
+          onResult: () {
+            if (mounted) _refreshFromDb();
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _block(CallRecord record) async {
@@ -312,6 +449,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
 
   Future<void> _onMenuAction(String action, CallRecord record) async {
     switch (action) {
+      case 'check':
+        await _checkNumber(record);
+        break;
       case 'block':
         await _block(record);
         break;
@@ -414,7 +554,7 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
         IconButton(
           tooltip: l10n.commonRefresh,
           icon: const Icon(LucideIcons.refreshCw),
-          onPressed: _loadHistory,
+          onPressed: () => _loadHistory(forceRecheck: true),
         ),
       ],
       body: _buildBody(context, l10n),
@@ -517,8 +657,20 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final tokens = context.tokens;
-    final accent = isBlocked ? scheme.error : _statusColor(record);
+    // High-risk numbers tint the whole row red; blocked still wins the accent
+    // color. The high-risk background applies regardless of blocked state so a
+    // reported scam number stays visually loud.
+    final isHighRisk = record.isHighRisk;
+    final accent = isBlocked
+        ? scheme.error
+        : isHighRisk
+        ? tokens.risk.danger
+        : _statusColor(record);
     return AppCard(
+      color: isHighRisk ? tokens.risk.dangerContainer : null,
+      border: isHighRisk
+          ? Border.all(color: tokens.risk.danger.withValues(alpha: 0.5))
+          : null,
       padding: EdgeInsets.symmetric(
         horizontal: tokens.space.lg,
         vertical: tokens.space.md,
@@ -603,6 +755,11 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
       menuBuilder: (context, controller, _) => [
         FTileGroup(
           children: [
+            FTile(
+              prefix: const Icon(Icons.verified_user),
+              title: Text(l10n.callCheckNumber),
+              onPress: () => _runMenu(controller, 'check', record),
+            ),
             if (!isBlocked)
               FTile(
                 variant: FItemVariant.destructive,

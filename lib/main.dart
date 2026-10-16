@@ -18,8 +18,10 @@ import 'package:scamwatch_mobile_app/services/protection_settings.dart';
 import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
 import 'package:scamwatch_mobile_app/state/auth_controller.dart';
 import 'package:scamwatch_mobile_app/state/locale_controller.dart';
+import 'package:scamwatch_mobile_app/state/posts_refresh_signal.dart';
 import 'package:scamwatch_mobile_app/state/theme_controller.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/auth_gate.dart';
+import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/theme/theme.dart';
 import 'package:scamwatch_mobile_app/widgets/tour/coach_mark_overlay.dart';
@@ -171,6 +173,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<TourController>.value(value: tourController),
         ChangeNotifierProvider<LocaleController>.value(value: localeController),
         ChangeNotifierProvider<ThemeController>.value(value: themeController),
+        ChangeNotifierProvider<PostsRefreshSignal>(
+          create: (_) => PostsRefreshSignal(),
+        ),
       ],
       child: Consumer2<LocaleController, ThemeController>(
         builder: (context, localeController, themeController, _) => MaterialApp(
@@ -258,7 +263,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  final PageController _pageController = PageController();
   static const MethodChannel _deeplink = MethodChannel('report/deeplink');
 
   final List<_NavigationItem> _items = [
@@ -296,22 +300,30 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     if (_tour?.onShowTab == _showTab) _tour?.onShowTab = null;
-    _pageController.dispose();
     super.dispose();
   }
 
   void _showTab(int tabIndex) {
     if (!mounted) return;
     if (tabIndex < 0 || tabIndex >= _items.length) return;
+    if (tabIndex == _currentIndex) return;
+    // Switching tabs is an instant index change with a quick cross-fade
+    // (see [_FadeIndexedStack]). All screens stay mounted so their state and
+    // polling survive, but only the active one lays out, paints, and ticks —
+    // no scrolling through the heavy pages in between.
     setState(() => _currentIndex = tabIndex);
-    // Keep the swipeable page view in step with programmatic tab changes
-    // (bottom-nav taps, quick actions, the feature tour, deeplinks).
-    if (_pageController.hasClients) {
-      _pageController.animateToPage(
-        tabIndex,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOut,
-      );
+  }
+
+  /// Swipe left to advance to the next tab, right to go back one. A velocity
+  /// threshold ignores slow or accidental drags, and the index is clamped so
+  /// swiping past the first/last tab is a no-op.
+  void _handleHorizontalSwipe(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    const threshold = 200.0;
+    if (velocity <= -threshold) {
+      _showTab(_currentIndex + 1);
+    } else if (velocity >= threshold) {
+      _showTab(_currentIndex - 1);
     }
   }
 
@@ -334,6 +346,8 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     final client = context.read<ApiClient>();
     if (source == 'call') {
+      if (!await requireLogin(context)) return;
+      if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           fullscreenDialog: true,
@@ -346,6 +360,8 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
+    if (!await requireLogin(context)) return;
+    if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         fullscreenDialog: true,
@@ -377,7 +393,7 @@ class _HomePageState extends State<HomePage> {
     final screens = [
       HomeScreen(onNavigate: _showTab),
       const CallHistoryScreen(),
-      const AuthGate(child: SafetyScreen()),
+      const SafetyScreen(),
       AuthGate(child: ReportTabScreen(client: client)),
       MyProfileScreen(client: client),
     ];
@@ -387,11 +403,16 @@ class _HomePageState extends State<HomePage> {
         child: CoachMarkOverlay(
           controller: tour,
           targets: targets,
-          child: PageView(
-            controller: _pageController,
-            physics: const ClampingScrollPhysics(),
-            onPageChanged: (index) => setState(() => _currentIndex = index),
-            children: screens,
+          child: GestureDetector(
+            // Horizontal swipes move to the adjacent tab. We handle the gesture
+            // ourselves (instead of a scrolling PageView) so a swipe is just an
+            // index change with the same quick fade — no building or scrolling
+            // through the heavy pages in between.
+            onHorizontalDragEnd: _handleHorizontalSwipe,
+            child: _FadeIndexedStack(
+              index: _currentIndex,
+              children: screens,
+            ),
           ),
         ),
       ),
@@ -400,6 +421,71 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _currentIndex,
         targets: targets,
         onSelected: _showTab,
+      ),
+    );
+  }
+}
+
+/// Shows one of [children] at a time, keeping them all mounted so their state
+/// (scroll position, polling timers, in-flight requests) survives tab changes,
+/// while only the active child lays out, paints, and runs animations. Switching
+/// index plays a short cross-fade so the swap feels smooth without scrolling
+/// through the heavy pages in between (the old [PageView] built and laid out
+/// every intermediate screen mid-animation, which dropped frames).
+class _FadeIndexedStack extends StatefulWidget {
+  const _FadeIndexedStack({
+    required this.index,
+    required this.children,
+  });
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  State<_FadeIndexedStack> createState() => _FadeIndexedStackState();
+}
+
+class _FadeIndexedStackState extends State<_FadeIndexedStack>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 160),
+    value: 1,
+  );
+
+  @override
+  void didUpdateWidget(_FadeIndexedStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.index != widget.index) {
+      _fade
+        ..value = 0
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Freeze off-screen screens' animation controllers so only the visible tab
+    // ticks; IndexedStack's Offstage already stops their paint and hit-testing.
+    final children = [
+      for (var i = 0; i < widget.children.length; i++)
+        TickerMode(
+          enabled: i == widget.index,
+          child: widget.children[i],
+        ),
+    ];
+    return FadeTransition(
+      opacity: _fade,
+      child: IndexedStack(
+        index: widget.index,
+        sizing: StackFit.expand,
+        children: children,
       ),
     );
   }

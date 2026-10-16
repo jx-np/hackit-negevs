@@ -42,7 +42,7 @@
   "settingsModelFromDevice": "Model dari peranti ini (ujian)",
   "settingsScanForModels": "Imbas untuk fail model",
   "settingsScanningStorage": "Mengimbas storan…",
-  "settingsScanSubtitle": "Mencari fail .litertlm dan .task dalam Muat Turun dan Dokumen",
+  "settingsScanSubtitle": "Mencari fail .litertlm dan .task yang telah dimuat turun oleh apl",
   "settingsModelFilePath": "Laluan fail model",
   "settingsModelFilePathHelper": "Laluan yang ditaip juga berfungsi. Fail digunakan di tempatnya — ia tidak pernah disalin.",
   "settingsContextWindow": "Tetingkap konteks (token)",
@@ -71,7 +71,7 @@
   "@settingsOnDeviceModel": {
     "placeholders": { "name": { "type": "String" } }
   },
-  "settingsReadyKept": "Sedia · {mb} MB · disimpan dalam Muat Turun (kekal selepas pasang semula)",
+  "settingsReadyKept": "Sedia · {mb} MB · disimpan dalam apl (dibuang apabila dinyahpasang)",
   "@settingsReadyKept": {
     "placeholders": { "mb": { "type": "int" } }
   },
@@ -111,7 +111,7 @@
   },
   "settingsForget": "Lupakan",
   "settingsAllFilesAccess": "Benarkan \"Akses semua fail\" untuk Scam Shield dalam tetapan Android, kemudian imbas semula.",
-  "settingsNoModelFiles": "Tiada fail .litertlm atau .task dijumpai.\n\nLetakkan model dalam Muat Turun (atau taip laluannya di bawah) dan imbas semula.",
+  "settingsNoModelFiles": "Tiada fail .litertlm atau .task dijumpai.\n\nMuat turun model di atas (atau taip laluan fail di bawah) dan imbas semula.",
   "settingsFileSizeMb": "{mb} MB",
   "@settingsFileSizeMb": {
     "placeholders": { "mb": { "type": "int" } }

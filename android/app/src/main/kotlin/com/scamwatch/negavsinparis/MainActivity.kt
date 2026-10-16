@@ -147,6 +147,7 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getPublicDownloadsDir" -> result.success(PublicStorage.downloadsDir())
+                    "getAppModelsDir" -> result.success(PublicStorage.appModelsDir(this))
                     else -> result.notImplemented()
                 }
             }

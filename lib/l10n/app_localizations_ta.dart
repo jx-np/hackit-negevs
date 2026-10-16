@@ -222,7 +222,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get settingsScanSubtitle =>
-      'பதிவிறக்கங்கள் மற்றும் ஆவணங்களில் .litertlm மற்றும் .task கோப்புகளைக் கண்டறியும்';
+      'ஆப் ஏற்கெனவே பதிவிறக்கிய .litertlm மற்றும் .task கோப்புகளைக் கண்டறியும்';
 
   @override
   String get settingsModelFilePath => 'மாதிரி கோப்பு பாதை';
@@ -286,7 +286,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String settingsReadyKept(int mb) {
-    return 'தயார் · $mb MB · பதிவிறக்கங்களில் வைக்கப்பட்டுள்ளது (மறுநிறுவலுக்குப் பிறகும் இருக்கும்)';
+    return 'தயார் · $mb MB · ஆப்பில் சேமிக்கப்பட்டுள்ளது (நிறுவல் நீக்கும்போது அகற்றப்படும்)';
   }
 
   @override
@@ -348,7 +348,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get settingsNoModelFiles =>
-      '.litertlm அல்லது .task கோப்புகள் எதுவும் இல்லை.\n\nமாதிரியை பதிவிறக்கங்களில் வைக்கவும் (அல்லது கீழே அதன் பாதையை தட்டச்சு செய்யவும்) பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.';
+      '.litertlm அல்லது .task கோப்புகள் எதுவும் இல்லை.\n\nமேலே ஒரு மாதிரியைப் பதிவிறக்கவும் (அல்லது கீழே கோப்புப் பாதையைத் தட்டச்சு செய்யவும்) பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.';
 
   @override
   String settingsFileSizeMb(int mb) {

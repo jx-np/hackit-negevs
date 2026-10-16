@@ -220,7 +220,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsScanSubtitle =>
-      'Finds .litertlm and .task files in Downloads and Documents';
+      'Finds .litertlm and .task files the app has already downloaded';
 
   @override
   String get settingsModelFilePath => 'Model file path';
@@ -284,7 +284,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String settingsReadyKept(int mb) {
-    return 'Ready · $mb MB · kept in Downloads (survives reinstall)';
+    return 'Ready · $mb MB · stored in the app (removed on uninstall)';
   }
 
   @override
@@ -345,7 +345,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsNoModelFiles =>
-      'No .litertlm or .task files found.\n\nPut the model in Downloads (or type its path below) and scan again.';
+      'No .litertlm or .task files found.\n\nDownload a model above (or type a file path below) and scan again.';
 
   @override
   String settingsFileSizeMb(int mb) {

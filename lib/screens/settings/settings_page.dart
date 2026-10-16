@@ -145,6 +145,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final model = _model;
     final progress = model.progress;
     final downloading = model.busy && progress >= 0 && progress < 100;
+    final setupLabel = _downloadLabel(model, progress);
     return SettingsSection(
       title: 'Scam checker',
       caption:
@@ -162,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
               : model.installed
                 ? 'Ready to protect you'
                 : downloading
-                    ? 'Setting up… $progress%'
+                    ? setupLabel
                     : 'About ${model.spec.approxSizeMb} MB · one-time download',
           trailing: model.installed
               ? TextButton(
@@ -199,6 +200,23 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ],
     );
+  }
+
+  // "Setting up… 23% · 712 of 3100 MB" when the server reports a total,
+  // otherwise falls back to just the percent (and bytes if we have them).
+  String _downloadLabel(ModelController model, int progress) {
+    final received = model.receivedBytes;
+    final total = model.totalBytes;
+    if (total > 0) {
+      final gotMb = (received / (1024 * 1024)).round();
+      final totalMb = (total / (1024 * 1024)).round();
+      return 'Setting up… $progress% · $gotMb of $totalMb MB';
+    }
+    if (received > 0) {
+      final gotMb = (received / (1024 * 1024)).round();
+      return 'Setting up… $gotMb MB';
+    }
+    return 'Setting up… $progress%';
   }
 
   Widget _modelChoiceTile(ScamModelSpec spec) {

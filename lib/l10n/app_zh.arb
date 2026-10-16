@@ -42,7 +42,7 @@
   "settingsModelFromDevice": "来自本设备的模型（测试）",
   "settingsScanForModels": "扫描模型文件",
   "settingsScanningStorage": "正在扫描存储…",
-  "settingsScanSubtitle": "在“下载”和“文档”中查找 .litertlm 和 .task 文件",
+  "settingsScanSubtitle": "查找应用已下载的 .litertlm 和 .task 文件",
   "settingsModelFilePath": "模型文件路径",
   "settingsModelFilePathHelper": "也可手动输入路径。文件将就地使用，绝不会被复制。",
   "settingsContextWindow": "上下文窗口（词元）",
@@ -71,7 +71,7 @@
   "@settingsOnDeviceModel": {
     "placeholders": { "name": { "type": "String" } }
   },
-  "settingsReadyKept": "就绪 · {mb} MB · 保存在“下载”中（重装后仍保留）",
+  "settingsReadyKept": "就绪 · {mb} MB · 保存在应用中（卸载后删除）",
   "@settingsReadyKept": {
     "placeholders": { "mb": { "type": "int" } }
   },
@@ -111,7 +111,7 @@
   },
   "settingsForget": "忘记",
   "settingsAllFilesAccess": "请在 Android 设置中为 Scam Shield 授予“所有文件访问权限”，然后重新扫描。",
-  "settingsNoModelFiles": "未找到 .litertlm 或 .task 文件。\n\n请将模型放入“下载”文件夹（或在下方输入其路径），然后重新扫描。",
+  "settingsNoModelFiles": "未找到 .litertlm 或 .task 文件。\n\n请在上方下载模型（或在下方输入文件路径），然后重新扫描。",
   "settingsFileSizeMb": "{mb} MB",
   "@settingsFileSizeMb": {
     "placeholders": { "mb": { "type": "int" } }

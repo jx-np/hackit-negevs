@@ -222,7 +222,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get settingsScanSubtitle =>
-      'Mencari fail .litertlm dan .task dalam Muat Turun dan Dokumen';
+      'Mencari fail .litertlm dan .task yang telah dimuat turun oleh apl';
 
   @override
   String get settingsModelFilePath => 'Laluan fail model';
@@ -286,7 +286,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String settingsReadyKept(int mb) {
-    return 'Sedia · $mb MB · disimpan dalam Muat Turun (kekal selepas pasang semula)';
+    return 'Sedia · $mb MB · disimpan dalam apl (dibuang apabila dinyahpasang)';
   }
 
   @override
@@ -347,7 +347,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get settingsNoModelFiles =>
-      'Tiada fail .litertlm atau .task dijumpai.\n\nLetakkan model dalam Muat Turun (atau taip laluannya di bawah) dan imbas semula.';
+      'Tiada fail .litertlm atau .task dijumpai.\n\nMuat turun model di atas (atau taip laluan fail di bawah) dan imbas semula.';
 
   @override
   String settingsFileSizeMb(int mb) {

@@ -348,14 +348,6 @@ class _DevMenuPageState extends State<DevMenuPage> {
 
   Future<void> _scanForModels() async {
     setState(() => _scanning = true);
-    if (!await ModelStore.hasAccess() && !await ModelStore.ensureAccess()) {
-      if (!mounted) return;
-      setState(() => _scanning = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Grant all-files access to scan.')),
-      );
-      return;
-    }
     List<FoundModelFile> files;
     try {
       files = await ModelStore.scanForModels();

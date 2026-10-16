@@ -217,7 +217,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsScanningStorage => '正在扫描存储…';
 
   @override
-  String get settingsScanSubtitle => '在“下载”和“文档”中查找 .litertlm 和 .task 文件';
+  String get settingsScanSubtitle => '查找应用已下载的 .litertlm 和 .task 文件';
 
   @override
   String get settingsModelFilePath => '模型文件路径';
@@ -279,7 +279,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String settingsReadyKept(int mb) {
-    return '就绪 · $mb MB · 保存在“下载”中（重装后仍保留）';
+    return '就绪 · $mb MB · 保存在应用中（卸载后删除）';
   }
 
   @override
@@ -339,7 +339,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsNoModelFiles =>
-      '未找到 .litertlm 或 .task 文件。\n\n请将模型放入“下载”文件夹（或在下方输入其路径），然后重新扫描。';
+      '未找到 .litertlm 或 .task 文件。\n\n请在上方下载模型（或在下方输入文件路径），然后重新扫描。';
 
   @override
   String settingsFileSizeMb(int mb) {

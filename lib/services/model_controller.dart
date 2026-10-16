@@ -18,7 +18,10 @@ class ModelController extends ChangeNotifier {
   bool _persistent = false;
   bool _busy = false;
   int _progress = -1;
+  int _receivedBytes = 0;
+  int _totalBytes = 0;
   String _error = '';
+  DownloadHandle? _downloadHandle;
 
   ScamModelSpec get spec => _spec;
   bool get installed => _installed;
@@ -26,7 +29,20 @@ class ModelController extends ChangeNotifier {
   bool get busy => _busy;
   int get progress => _progress;
   String get error => _error;
+
+  /// Bytes received so far for the running file download, or 0 when unknown.
+  int get receivedBytes => _receivedBytes;
+
+  /// Total bytes expected for the running file download, or 0 when unknown.
+  int get totalBytes => _totalBytes;
   bool get isBundled => _spec.assetPath != null;
+
+  /// True while a cancellable file download is running.
+  bool get canCancel => _downloadHandle != null;
+
+  /// Aborts the running download. The partial file is kept so a later retry
+  /// resumes from where it stopped.
+  void cancelDownload() => _downloadHandle?.cancel();
 
   Future<void> load() async {
     await _settings.hydrateCustomModel();
@@ -197,6 +213,8 @@ class ModelController extends ChangeNotifier {
   Future<bool> download() async {
     _busy = true;
     _progress = 0;
+    _receivedBytes = 0;
+    _totalBytes = 0;
     _persistent = false;
     _error = '';
     notifyListeners();
@@ -204,20 +222,23 @@ class ModelController extends ChangeNotifier {
       final token = await _settings.hfToken();
       if (isBundled || _spec.isBuiltIn) {
         await _manager.ensureInstalled(onProgress: _report, token: token);
-      } else if (await ModelStore.ensureAccess()) {
+      } else {
         final path = await ModelStore.pathFor(_spec);
+        if (path == null) {
+          throw Exception('Could not resolve a storage path for the model.');
+        }
+        _downloadHandle = DownloadHandle();
         final ok = await ModelStore.download(
           _spec,
-          onProgress: _report,
+          onProgress: _reportBytes,
           token: token,
+          handle: _downloadHandle,
         );
-        if (!ok || path == null) {
+        if (!ok) {
           throw Exception('Download failed. Check your connection.');
         }
         await _manager.registerFromFile(path);
         _persistent = true;
-      } else {
-        await _manager.download(onProgress: _report, token: token);
       }
       _installed = true;
       _progress = 100;
@@ -228,6 +249,9 @@ class ModelController extends ChangeNotifier {
       _progress = -1;
       return false;
     } finally {
+      _downloadHandle = null;
+      _receivedBytes = 0;
+      _totalBytes = 0;
       _busy = false;
       notifyListeners();
     }
@@ -235,6 +259,13 @@ class ModelController extends ChangeNotifier {
 
   void _report(int value) {
     _progress = value;
+    notifyListeners();
+  }
+
+  void _reportBytes(DownloadProgress p) {
+    _receivedBytes = p.received;
+    _totalBytes = p.total;
+    _progress = p.percent;
     notifyListeners();
   }
 
@@ -259,6 +290,13 @@ class ModelController extends ChangeNotifier {
   }
 
   static String friendlyError(Object error) {
+    if (error is DownloadCancelled) return 'Download cancelled.';
+    if (error is InsufficientSpace) {
+      final needMb = error.neededBytes ~/ (1024 * 1024);
+      final freeMb = error.freeBytes ~/ (1024 * 1024);
+      return 'Not enough storage. This model needs about $needMb MB '
+          'but only $freeMb MB is free.';
+    }
     final text = error.toString();
     if (text.contains('401') || text.contains('403')) {
       return 'This model is gated. Add a HuggingFace token in Settings that has been granted access.';

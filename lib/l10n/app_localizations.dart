@@ -519,7 +519,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsScanSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Finds .litertlm and .task files in Downloads and Documents'**
+  /// **'Finds .litertlm and .task files the app has already downloaded'**
   String get settingsScanSubtitle;
 
   /// No description provided for @settingsModelFilePath.
@@ -621,7 +621,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsReadyKept.
   ///
   /// In en, this message translates to:
-  /// **'Ready · {mb} MB · kept in Downloads (survives reinstall)'**
+  /// **'Ready · {mb} MB · stored in the app (removed on uninstall)'**
   String settingsReadyKept(int mb);
 
   /// No description provided for @settingsReadyOffline.
@@ -711,7 +711,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsNoModelFiles.
   ///
   /// In en, this message translates to:
-  /// **'No .litertlm or .task files found.\n\nPut the model in Downloads (or type its path below) and scan again.'**
+  /// **'No .litertlm or .task files found.\n\nDownload a model above (or type a file path below) and scan again.'**
   String get settingsNoModelFiles;
 
   /// No description provided for @settingsFileSizeMb.

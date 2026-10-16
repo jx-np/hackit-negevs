@@ -53,7 +53,7 @@ class ScamModelSpec {
 final List<ScamModelSpec> modelCatalog = [
   ScamModelSpec(
     id: 'gemma-4-e2b',
-    displayName: 'Gemma4 E2B',
+    displayName: 'Big Model',
     url: 'https://img.jhh.moe/raw/gemma-4-E2B-it.litertlm',
     fileName: 'gemma-4-E2B-it.litertlm',
     modelType: ModelType.gemmaIt,
@@ -63,15 +63,15 @@ final List<ScamModelSpec> modelCatalog = [
     note: 'Runs entirely on your phone. Downloads once, then works offline.',
   ),
   ScamModelSpec(
-    id: 'gemini-nano',
-    displayName: 'Gemini Nano (system AI)',
-    url: '',
-    fileName: BuiltInAiModels.geminiNano.name,
-    modelType: ModelType.general,
-    fileType: ModelFileType.builtIn,
-    approxSizeMb: 0,
+    id: 'qwen3-1-7B',
+    displayName: 'Small Model',
+    url: 'https://img.jhh.moe/raw/Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm',
+    fileName: 'Qwen3-1.7B_dynamic_wi4b32_afp32.litertlm',
+    modelType: ModelType.qwen3,
+    fileType: ModelFileType.litertlm,
+    approxSizeMb: 1000,
     contextTokens: 4096,
-    note: 'Uses the model supplied by Android when Gemini Nano is available.',
+    note: 'Runs entirely on your phone. Downloads once, then works offline.',
   ),
 ];
 

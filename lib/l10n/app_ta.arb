@@ -42,7 +42,7 @@
   "settingsModelFromDevice": "இந்த சாதனத்திலிருந்து மாதிரி (சோதனை)",
   "settingsScanForModels": "மாதிரி கோப்புகளை ஸ்கேன் செய்",
   "settingsScanningStorage": "சேமிப்பகத்தை ஸ்கேன் செய்கிறது…",
-  "settingsScanSubtitle": "பதிவிறக்கங்கள் மற்றும் ஆவணங்களில் .litertlm மற்றும் .task கோப்புகளைக் கண்டறியும்",
+  "settingsScanSubtitle": "ஆப் ஏற்கெனவே பதிவிறக்கிய .litertlm மற்றும் .task கோப்புகளைக் கண்டறியும்",
   "settingsModelFilePath": "மாதிரி கோப்பு பாதை",
   "settingsModelFilePathHelper": "தட்டச்சு செய்த பாதைகளும் வேலை செய்யும். கோப்பு அப்படியே பயன்படுத்தப்படுகிறது — அது ஒருபோதும் நகலெடுக்கப்படாது.",
   "settingsContextWindow": "சூழல் சாளரம் (டோக்கன்கள்)",
@@ -71,7 +71,7 @@
   "@settingsOnDeviceModel": {
     "placeholders": { "name": { "type": "String" } }
   },
-  "settingsReadyKept": "தயார் · {mb} MB · பதிவிறக்கங்களில் வைக்கப்பட்டுள்ளது (மறுநிறுவலுக்குப் பிறகும் இருக்கும்)",
+  "settingsReadyKept": "தயார் · {mb} MB · ஆப்பில் சேமிக்கப்பட்டுள்ளது (நிறுவல் நீக்கும்போது அகற்றப்படும்)",
   "@settingsReadyKept": {
     "placeholders": { "mb": { "type": "int" } }
   },
@@ -111,7 +111,7 @@
   },
   "settingsForget": "மற",
   "settingsAllFilesAccess": "Android அமைப்புகளில் Scam Shield க்கு \"அனைத்து கோப்புகளுக்கான அணுகல்\" அனுமதிக்கவும், பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.",
-  "settingsNoModelFiles": ".litertlm அல்லது .task கோப்புகள் எதுவும் இல்லை.\n\nமாதிரியை பதிவிறக்கங்களில் வைக்கவும் (அல்லது கீழே அதன் பாதையை தட்டச்சு செய்யவும்) பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.",
+  "settingsNoModelFiles": ".litertlm அல்லது .task கோப்புகள் எதுவும் இல்லை.\n\nமேலே ஒரு மாதிரியைப் பதிவிறக்கவும் (அல்லது கீழே கோப்புப் பாதையைத் தட்டச்சு செய்யவும்) பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.",
   "settingsFileSizeMb": "{mb} MB",
   "@settingsFileSizeMb": {
     "placeholders": { "mb": { "type": "int" } }

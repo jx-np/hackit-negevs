@@ -22,8 +22,12 @@ import {
   ReportModal,
 } from '../components/forum/PostCard';
 import { ShareMenu } from '../components/forum/ShareMenu';
+import { PostImages } from '../components/forum/PostImages';
 import { useAuth } from '../context/AuthContext';
+import { useSavedFeeds } from '../context/SavedFeedsContext';
 import { usePost } from '../hooks/usePost';
+import { useIsMyPost } from '../hooks/useIsMyPost';
+import { useAuthorName } from '../hooks/useAuthorName';
 import { useReaction } from '../hooks/useReaction';
 import type { Post } from '../types';
 
@@ -82,13 +86,19 @@ export function PostDetailPage() {
   const { data: post, isLoading, isError, error } = usePost(id);
   const reaction = useReaction(post);
   const { isLoggedIn } = useAuth();
+  // The detail endpoint omits `is_mine`; resolve ownership from the user's own
+  // posts so the owner-only menu actions match the feed card.
+  const isMine = useIsMyPost(id);
+  const authorName = useAuthorName(post?.author.name ?? '', isMine);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [saved, setSaved] = useState(false);
+  const { isSaved, toggleSave } = useSavedFeeds();
+  const saved = post ? isSaved(post.id) : false;
   const [reportOpen, setReportOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const verified = post?.reviewStatus === 'reviewed';
   const risk = post?.risk ? RISK_META[riskKey(post.risk)] : null;
+  const imageCount = post?.imageUrls?.length ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: () => deletePost(post!.id),
@@ -147,12 +157,12 @@ export function PostDetailPage() {
         )}
 
         {post && (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
+          <div className="flex flex-col gap-6">
             <motion.article
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: 'easeOut' }}
-              className="relative overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card"
+              transition={{ opacity: { duration: 0.35, ease: 'easeOut' } }}
+              className="relative min-w-0 overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card"
             >
               {/* Colored left-border risk strip */}
               {post.risk && risk && (
@@ -162,15 +172,15 @@ export function PostDetailPage() {
                 />
               )}
 
-              {post.imageUrl && (
+              {imageCount > 0 && (
                 <div className="relative">
-                  <img
-                    src={post.imageUrl}
-                    alt=""
-                    className="block max-h-96 w-full bg-scam-750 object-cover"
+                  <PostImages
+                    urls={post.imageUrls ?? []}
+                    alt={post.title}
+                    variant="detail"
                   />
                   {post.risk && (
-                    <span className="absolute left-4 top-4">
+                    <span className="absolute left-4 top-4 z-10">
                       <RiskBadge risk={post.risk} />
                     </span>
                   )}
@@ -182,8 +192,8 @@ export function PostDetailPage() {
                 <div className="absolute right-4 top-4 z-10">
                   <PostMenu
                     onReport={() => setReportOpen(true)}
-                    onEdit={isLoggedIn && post.isMine ? () => setEditOpen(true) : undefined}
-                    onDelete={isLoggedIn && post.isMine ? handleDelete : undefined}
+                    onEdit={isLoggedIn && isMine ? () => setEditOpen(true) : undefined}
+                    onDelete={isLoggedIn && isMine ? handleDelete : undefined}
                   />
                 </div>
 
@@ -197,7 +207,7 @@ export function PostDetailPage() {
                       <ShieldCheck size={12} /> Verified
                     </span>
                   )}
-                  {!post.imageUrl && post.risk && <RiskBadge risk={post.risk} />}
+                  {!imageCount && post.risk && <RiskBadge risk={post.risk} />}
                   {post.tags.map((tag) => (
                     <span
                       key={tag.id}
@@ -219,10 +229,10 @@ export function PostDetailPage() {
                   </span>
                   <div>
                     <p className="font-semibold text-scam-text">
-                      {post.author.name}
+                      {authorName}
                     </p>
                     <p className="text-xs text-scam-muted">
-                      {initials(post.author.name)} · {formatDate(post.createdAt)}
+                      {initials(authorName)} · {formatDate(post.createdAt)}
                     </p>
                   </div>
                   <div className="ml-auto flex items-center gap-4 text-sm text-scam-muted">
@@ -326,7 +336,7 @@ export function PostDetailPage() {
                       type="button"
                       whileTap={{ scale: 0.8 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                      onClick={() => setSaved((s) => !s)}
+                      onClick={() => toggleSave(post)}
                       aria-label={saved ? 'Remove from saved' : 'Save'}
                       aria-pressed={saved}
                       className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400 ${
@@ -371,15 +381,15 @@ export function PostDetailPage() {
               </div>
             </motion.article>
 
-            {/* Comment thread — side column on large screens */}
+            {/* Comment thread — full-width section below the post */}
             <motion.aside
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
-              className="rounded-lg border border-scam-line bg-scam-800 p-6 shadow-card lg:sticky lg:top-24"
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="rounded-lg border border-scam-line bg-scam-800 p-6 shadow-card"
             >
               <h2 className="mb-4 border-b border-scam-line pb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-scam-muted">
-                Discussion · {post.replyCount} comments
+                Discussion · {post.replyCount} {post.replyCount === 1 ? 'comment' : 'comments'}
               </h2>
               <div className="mb-5">
                 <CommentList postId={post.id} />

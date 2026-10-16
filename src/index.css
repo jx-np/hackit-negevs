@@ -199,4 +199,10 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
+
+  /* Loading spinners must keep spinning — a frozen one misrepresents state.
+     Kept slower and smooth to stay gentle under reduced-motion. */
+  .animate-spin {
+    animation: spin 1.2s linear infinite !important;
+  }
 }

@@ -2,8 +2,9 @@
  * Phone number trust-score API.
  *
  * Uses GET /detection/phone-number/trust-score?phone_number=... which returns
- * { phone_number, trust_score, rating, report_count, known }. The backend does
- * NOT have a report/submit endpoint for phone numbers — only lookup.
+ * { phone_number, trust_score, rating, report_count, known, classification }.
+ * Reporting a number uses POST /detection/phone-number/report (auth required,
+ * one report per number per window).
  *
  * The UI maps `trust_score` + `rating` into a status verdict (scam / trusted /
  * unknown) matching the existing NumberCheckResult shape.
@@ -37,6 +38,7 @@ function mapTrustScore(raw: ApiTrustScore, display: string): NumberCheckResult {
     rating: raw.rating,
     reportCount: raw.report_count,
     known: raw.known,
+    classification: raw.classification ?? '',
   };
 }
 

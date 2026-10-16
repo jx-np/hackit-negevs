@@ -6,19 +6,23 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPost } from '../api/posts';
-import { MediaPicker } from '../components/report/MediaPicker';
+import {
+  MediaPicker,
+  type PickedImage,
+} from '../components/report/MediaPicker';
 import { useAuth } from '../context/AuthContext';
-import { useTags } from '../hooks/useTags';
-import type { RiskLevel } from '../types';
 import { reportSchema, todayISO, type ReportValues } from './reportSchema';
 
 export function ReportPage() {
   const { isLoggedIn, user } = useAuth();
   const navigate = useNavigate();
-  const { data: tags } = useTags();
 
-  // Media is handled outside RHF (it's an async upload → URL).
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // Media is handled outside RHF (each image uploads + gets redacted async).
+  const [images, setImages] = useState<PickedImage[]>([]);
+  const imagesProcessing = images.some((i) => i.status === 'processing');
+  const readyUploadIds = images
+    .filter((i) => i.status === 'ready')
+    .map((i) => i.uploadId);
 
   const {
     register,
@@ -26,19 +30,16 @@ export function ReportPage() {
     formState: { errors, isSubmitting },
   } = useForm<ReportValues>({
     resolver: zodResolver(reportSchema),
-    defaultValues: { risk: 'high', incidentDate: todayISO() },
+    defaultValues: { incidentDate: todayISO() },
   });
 
   const create = useMutation({
     mutationFn: (values: ReportValues) => {
-      const risk: RiskLevel =
-        values.risk === 'none' ? null : (values.risk as 'high' | 'medium');
       return createPost({
         title: values.title,
         excerpt: values.excerpt,
-        tagId: values.tagId,
-        risk,
-        imageUrl,
+        risk: null,
+        uploadIds: readyUploadIds,
         incidentDate: values.incidentDate,
         authorName: user?.name ?? 'Anonymous',
         authorId: user?.id ?? '',
@@ -116,36 +117,17 @@ export function ReportPage() {
             />
           </Field>
 
-          {/* Incident date + Category */}
-          <div className="grid gap-6 sm:grid-cols-2">
-            <Field label="When did it happen?" error={errors.incidentDate?.message}>
-              <input
-                type="date"
-                max={todayISO()}
-                {...register('incidentDate')}
-                className={`${inputCls} ${
-                  errors.incidentDate ? errBorder : okBorder
-                }`}
-              />
-            </Field>
-
-            <Field label="Category" error={errors.tagId?.message}>
-              <select
-                {...register('tagId')}
-                defaultValue=""
-                className={`${inputCls} ${errors.tagId ? errBorder : okBorder}`}
-              >
-                <option value="" disabled>
-                  Choose a category…
-                </option>
-                {tags?.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
+          {/* Incident date */}
+          <Field label="When did it happen?" error={errors.incidentDate?.message}>
+            <input
+              type="date"
+              max={todayISO()}
+              {...register('incidentDate')}
+              className={`${inputCls} ${
+                errors.incidentDate ? errBorder : okBorder
+              }`}
+            />
+          </Field>
 
           {/* Description */}
           <Field label="What happened?" error={errors.excerpt?.message}>
@@ -159,18 +141,14 @@ export function ReportPage() {
             />
           </Field>
 
-          {/* Risk */}
-          <Field label="Risk level" error={errors.risk?.message}>
-            <select {...register('risk')} className={`${inputCls} ${okBorder}`}>
-              <option value="high">High risk</option>
-              <option value="medium">Medium / under review</option>
-              <option value="none">Not sure</option>
-            </select>
-          </Field>
-
           {/* Media picker */}
           <Field label="Evidence (optional)">
-            <MediaPicker value={imageUrl} onChange={setImageUrl} />
+            <MediaPicker value={images} onChange={setImages} />
+            {imagesProcessing && (
+              <p className="mt-2 text-xs text-ink-400">
+                Waiting for screenshots to finish redaction before publishing.
+              </p>
+            )}
           </Field>
 
           {create.isError && (
@@ -185,11 +163,15 @@ export function ReportPage() {
             </span>
             <button
               type="submit"
-              disabled={isSubmitting || create.isPending}
+              disabled={isSubmitting || create.isPending || imagesProcessing}
               className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600 disabled:opacity-50"
             >
               <ShieldPlus size={18} />
-              {create.isPending ? 'Submitting…' : 'Submit report'}
+              {create.isPending
+                ? 'Submitting…'
+                : imagesProcessing
+                  ? 'Redacting…'
+                  : 'Submit report'}
             </button>
           </div>
         </form>

@@ -29,12 +29,6 @@ describe('ReportPage (auth gating)', () => {
   });
 
   it('shows the full report form when logged in', async () => {
-    mockFetch([
-      {
-        match: '/community/scam-types',
-        json: { items: [{ slug: 'phishing', name_key: 'category.phishing' }] },
-      },
-    ]);
     seedLoggedIn();
     renderWithProviders(<ReportPage />);
 
@@ -43,9 +37,9 @@ describe('ReportPage (auth gating)', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/when did it happen/i)).toBeInTheDocument();
     expect(screen.getByText(/click to choose an image/i)).toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.getByText(/choose a category/i)).toBeInTheDocument(),
-    );
+    // The category dropdown was removed — the backend classifier assigns the
+    // category, so there is no category chooser on the form.
+    expect(screen.queryByText(/choose a category/i)).not.toBeInTheDocument();
   });
 
   it('validates required fields before submitting', async () => {

@@ -2,12 +2,12 @@
  * Posts / feed API.
  *
  * Maps the backend's community feed + post shapes onto the UI `Post` type.
- * The backend has no author / risk / incident-date / image fields on posts,
- * so those are derived or left empty:
+ * The backend has no author / risk / incident-date fields on posts, so those
+ * are derived or left empty:
  *   - author        → a neutral label derived from review_status
  *   - risk          → null (not modelled server-side)
  *   - incidentDate  → null
- *   - imageUrl      → null
+ *   - imageUrls     → redacted_image_urls (detail only; the feed omits them)
  *   - replyCount    → comment_count
  *   - likeCount     → reactions.up (feed + detail)
  */
@@ -29,7 +29,7 @@ import type {
   SortKey,
   Tag,
 } from '../types';
-import { apiFetch } from './client';
+import { apiAssetUrl, apiFetch } from './client';
 
 const DEFAULT_LIMIT = 12;
 
@@ -70,12 +70,23 @@ function mapFeedItem(item: ApiFeedItem): Post {
     likeCount: item.reactions?.up ?? 0,
     downCount: item.reactions?.down ?? 0,
     myVote: item.my_vote ?? 0,
-    imageUrl: null,
+    // The feed does not currently return images; map the field through so the
+    // card renders them automatically if the backend starts sending them.
+    imageUrls: (item.redacted_image_urls ?? []).map(apiAssetUrl),
     risk: null,
     incidentDate: null,
     reviewStatus: item.review_status,
     isMine: item.is_mine ?? false,
   };
+}
+
+/**
+ * Resolve the backend's `redacted_image_urls` into loadable URLs. The paths are
+ * absolute API paths (`/api/v1/community/posts/12/images/0`), so they are
+ * passed through `apiAssetUrl` to work in both dev (proxied) and production.
+ */
+function mapImageUrls(p: ApiPostDetail): string[] {
+  return (p.redacted_image_urls ?? []).map(apiAssetUrl);
 }
 
 function mapPostDetail(p: ApiPostDetail): Post {
@@ -93,7 +104,7 @@ function mapPostDetail(p: ApiPostDetail): Post {
     likeCount: p.reactions?.up ?? 0,
     downCount: p.reactions?.down ?? 0,
     myVote: p.my_vote ?? 0,
-    imageUrl: null,
+    imageUrls: mapImageUrls(p),
     risk: null,
     incidentDate: null,
     reviewStatus: p.review_status,
@@ -167,17 +178,21 @@ export async function createPost(input: NewPostInput): Promise<Post> {
     return Promise.reject(new Error('You must be logged in to report.'));
   }
 
-  // Backend posts require explicit publication confirmation and use slugs for
-  // scam_type / tags. The `tagId` field carries the chosen category slug.
-  const extraTags = (input.tags ?? []).filter((t) => t && t !== input.tagId);
+  // The backend infers the scam category server-side and rejects a
+  // client-supplied `scam_type` on create, so the category is not sent. `tags`
+  // must be known tag slugs; any provided are passed through, filtering out
+  // empties.
+  const extraTags = (input.tags ?? []).filter((t) => !!t);
+  const uploadIds = input.uploadIds ?? [];
 
   const body = {
     title: input.title,
     redacted_text: input.excerpt,
-    scam_type: input.tagId,
     tags: extraTags,
     confirm_publication: true,
     locale: 'en-SG',
+    // The backend copies each upload's redacted image onto the post, in order.
+    ...(uploadIds.length > 0 ? { upload_ids: uploadIds } : {}),
   };
 
   const p = await apiFetch<ApiPostDetail>('/community/posts', {

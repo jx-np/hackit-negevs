@@ -168,6 +168,13 @@ function ResultCard({
       <div className="p-5">
         <p className="text-lg text-ink-600 dark:text-ink-300">{meta.blurb}</p>
 
+        {result.classification && (
+          <p className="mt-3 inline-flex items-center gap-2 border border-ink-200 bg-ink-50 px-3 py-1.5 text-sm text-ink-700 dark:border-ink-700 dark:bg-ink-800/60 dark:text-ink-200">
+            <span className="ia-label text-ink-400">Reported as</span>
+            {result.classification}
+          </p>
+        )}
+
         {/* Stats */}
         <div className="mt-5 grid grid-cols-2 divide-x divide-ink-200 border border-ink-200 dark:divide-ink-800 dark:border-ink-800">
           <Stat

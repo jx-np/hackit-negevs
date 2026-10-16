@@ -4,6 +4,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { AppearanceProvider } from '../context/AppearanceContext';
 import { AuthProvider } from '../context/AuthContext';
+import { SavedFeedsProvider } from '../context/SavedFeedsContext';
 
 /** Create a QueryClient with retries off for deterministic tests. */
 export function makeQueryClient() {
@@ -25,7 +26,9 @@ function AllProviders({ children, route = '/' }: WrapperProps) {
     <QueryClientProvider client={client}>
       <AppearanceProvider>
         <AuthProvider>
-          <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+          <SavedFeedsProvider>
+            <MemoryRouter initialEntries={[route]}>{children}</MemoryRouter>
+          </SavedFeedsProvider>
         </AuthProvider>
       </AppearanceProvider>
     </QueryClientProvider>

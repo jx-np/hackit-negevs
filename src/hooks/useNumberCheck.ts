@@ -6,8 +6,9 @@ import type { NumberCheckResult } from '../types';
 /**
  * Manages a single phone-number trust-score lookup.
  *
- * The backend exposes lookup only (GET trust-score); there is no
- * phone-number report/submit endpoint, so reporting has been removed.
+ * The backend exposes lookup via GET trust-score. Reporting a number is a
+ * mobile-first flow (POST /detection/phone-number/report) that is not surfaced
+ * on the web client, so this hook only performs lookups.
  */
 export function useNumberCheck() {
   const [result, setResult] = useState<NumberCheckResult | null>(null);

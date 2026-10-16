@@ -6,6 +6,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useGuidance, useResources } from '../hooks/useGuidance';
+import { FALLBACK_GUIDANCE, FALLBACK_RESOURCES } from '../data/helpFallback';
 import type { GuidanceItem, GuidanceUrgency, Resource } from '../types';
 
 const URGENCY_META: Record<
@@ -126,11 +127,17 @@ export function HelpContent() {
   const guidance = useGuidance();
   const resources = useResources();
 
-  const guidanceItems = guidance.data ?? [];
+  const liveGuidance = guidance.data ?? [];
+  const guidanceItems =
+    liveGuidance.length > 0 ? liveGuidance : FALLBACK_GUIDANCE;
   const orderedGuidance = [...guidanceItems].sort(
     (a, b) =>
       URGENCY_ORDER.indexOf(a.urgency) - URGENCY_ORDER.indexOf(b.urgency),
   );
+
+  const liveResources = resources.data ?? [];
+  const resourceItems =
+    liveResources.length > 0 ? liveResources : FALLBACK_RESOURCES;
 
   return (
     <>
@@ -165,10 +172,6 @@ export function HelpContent() {
             </div>
           ) : guidance.isError ? (
             <SectionError message={(guidance.error as Error).message} />
-          ) : orderedGuidance.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-scam-line p-8 text-center text-scam-muted">
-              No guidance available right now.
-            </p>
           ) : (
             <div className="flex flex-col gap-4">
               {orderedGuidance.map((item) => (
@@ -188,13 +191,9 @@ export function HelpContent() {
             </div>
           ) : resources.isError ? (
             <SectionError message={(resources.error as Error).message} />
-          ) : (resources.data ?? []).length === 0 ? (
-            <p className="rounded-lg border border-dashed border-scam-line p-8 text-center text-scam-muted">
-              No resources available right now.
-            </p>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {(resources.data ?? []).map((resource) => (
+              {resourceItems.map((resource) => (
                 <ResourceCard key={resource.id} resource={resource} />
               ))}
             </div>

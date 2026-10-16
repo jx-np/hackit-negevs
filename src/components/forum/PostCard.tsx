@@ -24,8 +24,13 @@ import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { formatAbsoluteDate, relativeDate } from '../../lib/date';
 import { useReaction } from '../../hooks/useReaction';
+import { useIsMyPost } from '../../hooks/useIsMyPost';
+import { useAuthorName } from '../../hooks/useAuthorName';
+import { useSavedFeeds } from '../../context/SavedFeedsContext';
 import { CommentBox } from './CommentBox';
 import { CommentList } from './CommentList';
+import { PostImages } from './PostImages';
+import { PostImagePreview } from './PostImagePreview';
 import { ShareMenu } from './ShareMenu';
 
 function initials(name: string): string {
@@ -157,7 +162,7 @@ export function PostMenu({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 top-full z-20 mt-1 min-w-[10rem] rounded-md border border-scam-line bg-scam-850 py-1 shadow-xl"
+            className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-md border border-scam-line bg-scam-850 py-1 shadow-xl"
           >
             {onEdit && (
               <button
@@ -606,11 +611,12 @@ export function PostCard({ post }: { post: Post }) {
   const [showComments, setShowComments] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [following, setFollowing] = useState(false);
-  const [revealed, setRevealed] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { isSaved, toggleSave } = useSavedFeeds();
+  const saved = isSaved(post.id);
   const reaction = useReaction(post);
   const { isLoggedIn } = useAuth();
+  const isMine = useIsMyPost(post.id) || !!post.isMine;
+  const authorName = useAuthorName(post.author.name, isMine);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -642,9 +648,9 @@ export function PostCard({ post }: { post: Post }) {
     }
   }
 
-  const category = post.tags[0]?.name ?? 'Report';
   const risk = RISK_META[riskKey(post.risk)];
   const verified = post.reviewStatus === 'reviewed';
+  const imageCount = post.imageUrls?.length ?? 0;
 
   return (
     <motion.article
@@ -653,7 +659,7 @@ export function PostCard({ post }: { post: Post }) {
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       onClick={handleCardClick}
-      className="group relative mb-5 cursor-pointer overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card transition hover:border-scam-muted/60 hover:bg-scam-750 hover:shadow-card-hover"
+      className="group relative mb-5 cursor-pointer rounded-lg border border-scam-line bg-scam-800 shadow-card transition hover:border-scam-muted/60 hover:bg-scam-750 hover:shadow-card-hover"
     >
       {/* Colored left-border risk strip — triage the feed at a glance. */}
       {post.risk && (
@@ -664,14 +670,13 @@ export function PostCard({ post }: { post: Post }) {
       )}
 
       <div className="relative p-6 pl-7">
-        {/* Header row: icon tile + category + meta + risk flair + follow + menu */}
+        {/* Header row: icon tile + meta + risk flair + follow + menu */}
         <div className="flex items-start gap-3">
           <span className="sr-tile h-9 w-9 shrink-0">
             <ShieldAlert size={18} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="text-sm font-semibold text-scam-text">{category}</span>
               {verified && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full border border-trust-500/40 bg-trust-500/10 px-2 py-0.5 text-[11px] font-semibold text-trust-300"
@@ -681,7 +686,7 @@ export function PostCard({ post }: { post: Post }) {
                 </span>
               )}
               <span className="truncate text-xs text-scam-muted">
-                · posted by u/{post.author.name} · {relativeDate(post.createdAt)}
+                posted by u/{authorName} · {relativeDate(post.createdAt)}
               </span>
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -698,32 +703,32 @@ export function PostCard({ post }: { post: Post }) {
           </div>
 
           {/* Follow + author avatar initials (kept for test) + menu */}
-          <div className="relative z-20 flex shrink-0 items-center gap-2">
+          <div className="relative z-40 flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => setFollowing((f) => !f)}
-              aria-pressed={following}
+              onClick={() => toggleSave(post)}
+              aria-pressed={saved}
               className={`hidden rounded-md px-3 py-1.5 text-xs font-semibold transition sm:inline-flex ${
-                following
+                saved
                   ? 'bg-trust-500 text-white hover:bg-trust-600'
                   : 'border border-scam-line text-scam-muted hover:border-trust-500/60 hover:text-trust-400'
               }`}
             >
-              {following ? 'Following' : 'Follow'}
+              {saved ? 'Following' : 'Follow'}
             </button>
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted">
-              {initials(post.author.name)}
+              {initials(authorName)}
             </span>
             <PostMenu
               onReport={() => setReportOpen(true)}
-              onEdit={isLoggedIn && post.isMine ? () => setEditOpen(true) : undefined}
-              onDelete={isLoggedIn && post.isMine ? handleDelete : undefined}
+              onEdit={isLoggedIn && isMine ? () => setEditOpen(true) : undefined}
+              onDelete={isLoggedIn && isMine ? handleDelete : undefined}
             />
           </div>
         </div>
 
         {/* Author line (plain name kept for test lookup) */}
-        <p className="sr-only">{post.author.name}</p>
+        <p className="sr-only">{authorName}</p>
 
         {/* Title — the clear focal point of the record. */}
         <h3 className="relative z-20 mt-4 inline-block text-xl font-bold leading-snug tracking-tight text-scam-text transition group-hover:text-trust-400">
@@ -732,16 +737,23 @@ export function PostCard({ post }: { post: Post }) {
           </Link>
         </h3>
 
+        {/* First redacted screenshot preview — between title and body. */}
+        <div className="relative z-20 mt-3">
+          <PostImagePreview postId={post.id} alt={`Preview for ${post.title}`} />
+        </div>
+
         {/* Body preview — generous line-height for calm readability. */}
         <p className="mt-2.5 line-clamp-3 text-sm leading-7 text-scam-muted">
           {post.excerpt}
         </p>
 
         {/* Monospace evidence / identifier chips — reads as "data". */}
-        {(post.imageUrl || post.incidentDate) && (
+        {(imageCount > 0 || post.incidentDate) && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {post.imageUrl && (
-              <span className="sr-chip">🔗 evidence attached</span>
+            {imageCount > 0 && (
+              <span className="sr-chip">
+                🔗 {imageCount === 1 ? 'evidence attached' : `${imageCount} screenshots`}
+              </span>
             )}
             {post.incidentDate && (
               <span className="sr-chip">📅 {formatAbsoluteDate(post.incidentDate)}</span>
@@ -749,28 +761,14 @@ export function PostCard({ post }: { post: Post }) {
           </div>
         )}
 
-        {/* Evidence media (optional) with spoiler blur */}
-        {post.imageUrl && (
-          <div className="relative mt-4 overflow-hidden rounded-md border border-scam-line">
-            <Link to={`/forum/${post.id}`} className="block">
-              <img
-                src={post.imageUrl}
-                alt=""
-                loading="lazy"
-                className={`block w-full bg-scam-750 object-cover transition ${
-                  revealed ? '' : 'blur-md'
-                }`}
-              />
-            </Link>
-            {!revealed && (
-              <button
-                type="button"
-                onClick={() => setRevealed(true)}
-                className="absolute inset-0 grid place-items-center bg-scam-950/50 text-xs font-semibold uppercase tracking-wider text-scam-text"
-              >
-                Sensitive evidence · click to reveal
-              </button>
-            )}
+        {/* Evidence media (optional) with spoiler blur + lightbox */}
+        {imageCount > 0 && (
+          <div className="relative z-20 mt-4">
+            <PostImages
+              urls={post.imageUrls ?? []}
+              alt={post.title}
+              concealUntilRevealed
+            />
           </div>
         )}
       </div>
@@ -871,7 +869,7 @@ export function PostCard({ post }: { post: Post }) {
             type="button"
             whileTap={{ scale: 0.8 }}
             transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-            onClick={() => setSaved((s) => !s)}
+            onClick={() => toggleSave(post)}
             aria-label={saved ? 'Remove from saved' : 'Save'}
             aria-pressed={saved}
             className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400 ${

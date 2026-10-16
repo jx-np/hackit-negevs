@@ -32,10 +32,12 @@ import {
   UserX,
   Wallet,
   Wrench,
+  X,
 } from 'lucide-react';
 import { useState, type ComponentType } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTags } from '../../hooks/useTags';
+import { useSavedFeeds } from '../../context/SavedFeedsContext';
 
 /**
  * Inline panels that can replace the forum feed. `null` means the default
@@ -116,6 +118,8 @@ export function ForumSidebar({
   onOpenPanel,
 }: ForumSidebarProps) {
   const { data: tags, isLoading, isError } = useTags();
+  const navigate = useNavigate();
+  const { savedFeeds, removeFeed } = useSavedFeeds();
   const [categoriesOpen, setCategoriesOpen] = useState(true);
 
   return (
@@ -219,17 +223,37 @@ export function ForumSidebar({
       {/* Your feeds */}
       <div className="mt-6 border-t border-scam-line pt-4">
         <span className="block px-3 pb-1 sr-label">Your Feeds</span>
-        <div className="mt-1 flex flex-col gap-0.5">
-          {['Phishing & Fake Emails', 'Crypto & Investment Fraud'].map((label) => (
-            <div
-              key={label}
-              className="flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-scam-muted"
-            >
-              <span className="truncate">{label}</span>
-              <Star size={15} className="shrink-0 text-trust-400" fill="currentColor" />
-            </div>
-          ))}
-        </div>
+        {savedFeeds.length === 0 ? (
+          <p className="px-3 py-2 text-xs text-scam-dim">
+            Save a post with the bookmark icon to pin it here.
+          </p>
+        ) : (
+          <div className="mt-1 flex flex-col gap-0.5">
+            {savedFeeds.map((feed) => (
+              <div
+                key={feed.id}
+                className="group/feed flex items-center gap-2 rounded-md px-3 py-2 text-sm text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
+              >
+                <button
+                  type="button"
+                  onClick={() => navigate(`/forum/${feed.id}`)}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                >
+                  <Star size={15} className="shrink-0 text-trust-400" fill="currentColor" />
+                  <span className="truncate">{feed.title}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeFeed(feed.id)}
+                  aria-label={`Remove ${feed.title} from saved feeds`}
+                  className="shrink-0 rounded p-0.5 text-scam-dim opacity-0 transition hover:text-risk-high focus:opacity-100 group-hover/feed:opacity-100"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Community */}
@@ -277,7 +301,8 @@ export function ForumSidebar({
       </div>
 
       <div className="mt-4 flex items-center gap-2 px-3 text-xs text-scam-dim">
-        <Bell size={13} /> You're following 2 feeds
+        <Bell size={13} /> You're following {savedFeeds.length}{' '}
+        {savedFeeds.length === 1 ? 'feed' : 'feeds'}
       </div>
     </aside>
   );

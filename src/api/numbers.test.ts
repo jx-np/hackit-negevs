@@ -86,6 +86,29 @@ describe('lookupNumber (trust-score API)', () => {
     expect(res.reportCount).toBe(0);
   });
 
+  it('surfaces the backend classification label', async () => {
+    mockFetch([
+      {
+        match: '/trust-score',
+        json: trustScore({
+          trust_score: 18,
+          rating: 'high_risk',
+          report_count: 42,
+          known: true,
+          classification: 'scam',
+        }),
+      },
+    ]);
+    const res = await lookupNumber('+18005551234');
+    expect(res.classification).toBe('scam');
+  });
+
+  it('defaults classification to an empty string when absent', async () => {
+    mockFetch([{ match: '/trust-score', json: trustScore() }]);
+    const res = await lookupNumber('+18005551234');
+    expect(res.classification).toBe('');
+  });
+
   it('sends the same number consistently with or without a leading +', async () => {
     const fetchMock = mockFetch([
       { match: '/trust-score', json: trustScore() },

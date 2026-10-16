@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowBigUp, Check, Flag, MessageCircle, MoreVertical, Pencil, Reply, Send, Trash2, X } from 'lucide-react';
+import { ArrowBigUp, Check, CircleMinus, CirclePlus, CornerDownRight, Flag, MessageCircle, MoreVertical, Pencil, Reply, Send, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useComments } from '../../hooks/useComments';
 import { useCommentLike } from '../../hooks/useCommentLike';
@@ -143,31 +143,59 @@ function CommentMenu({
   );
 }
 
+/** Count a comment plus every descendant reply beneath it. */
+function countThread(
+  commentId: string,
+  childrenByParent: Map<string, Comment[]>,
+): number {
+  const kids = childrenByParent.get(commentId) ?? [];
+  let total = kids.length;
+  for (const k of kids) total += countThread(k.id, childrenByParent);
+  return total;
+}
+
 function CommentItem({
   comment,
   postId,
   depth = 0,
   childrenByParent,
+  defaultOpen = false,
 }: {
   comment: Comment;
   postId: string;
   depth?: number;
   childrenByParent: Map<string, Comment[]>;
+  // When an ancestor's "Continue this thread" was pressed, the whole subtree
+  // opens at once: descendants initialize expanded instead of re-folding
+  // behind their own "Continue this thread" button. Collapsing stays local.
+  defaultOpen?: boolean;
 }) {
   const isReply = depth > 0;
-  // Cap reply nesting at 3 levels so reply-to-reply chains don't grow without
-  // bound and waterfall past the container's right edge. Replies at the max
-  // depth can't be replied to further, and indentation stops shifting right.
-  const MAX_DEPTH = 3;
-  const atMaxDepth = depth >= MAX_DEPTH;
-  const nextDepth = Math.min(depth + 1, MAX_DEPTH);
+  // Reddit-style nesting: replies are visually indented, but the indent is
+  // clamped so deep chains never waterfall off the right edge. Beyond
+  // VISIBLE_DEPTH a node's replies start hidden behind a per-node "Continue
+  // this thread" affordance. Expanding/collapsing is always local to the node
+  // whose control was pressed, so each indent closes exactly where it was
+  // clicked instead of folding the whole thread back to one ancestor.
+  const VISIBLE_DEPTH = 3;
+  const atVisibleLimit = depth >= VISIBLE_DEPTH;
+  const nextDepth = depth + 1;
   const removed = comment.status === 'removed' || comment.status === 'hidden';
-  const hasReplies = (childrenByParent.get(comment.id) ?? []).length > 0;
+  const children = childrenByParent.get(comment.id) ?? [];
+  const hasReplies = children.length > 0;
   const { user, isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
   const isAuthor = !!user && user.id === comment.authorId;
   const like = useCommentLike(comment.id);
 
+  const [collapsed, setCollapsed] = useState(false);
+  // Whether this node's own replies are shown. Deep nodes start folded behind
+  // a "Continue this thread" button; shallower nodes start expanded. This is
+  // always local to this node, so collapsing one indent never disturbs others.
+  const [showReplies, setShowReplies] = useState(defaultOpen || !atVisibleLimit);
+  // Set when this node's own "Continue this thread" button is pressed so the
+  // whole subtree below it opens at once (descendants inherit defaultOpen).
+  const [expandAll, setExpandAll] = useState(defaultOpen);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
   const [flagging, setFlagging] = useState(false);
@@ -177,6 +205,7 @@ function CommentItem({
   const [replying, setReplying] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+  const hiddenReplyCount = countThread(comment.id, childrenByParent);
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['comments', postId] });
@@ -240,18 +269,94 @@ function CommentItem({
     return null;
   }
 
-  return (
-    <div className={isReply ? 'mt-3 border-l border-scam-line pl-4 ml-3 sm:ml-5' : ''}>
-      <div className="flex items-start gap-3 min-w-0">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted">
-          {initials(comment.authorLabel)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2">
-            <span className="text-sm font-semibold text-scam-text">
+  if (collapsed) {
+    return (
+      <div className={isReply ? 'mt-2' : ''}>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            aria-label="Expand thread"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-scam-dim transition hover:text-trust-400"
+          >
+            <CirclePlus size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="flex min-w-0 items-center gap-2 text-xs font-medium text-scam-muted transition hover:text-trust-400"
+          >
+            <span className="truncate font-semibold text-scam-text">
               {comment.authorLabel}
             </span>
-            <span className="text-xs text-scam-dim">{timeAgo(comment.createdAt)}</span>
+            <span className="shrink-0 text-scam-dim">{timeAgo(comment.createdAt)}</span>
+            {hiddenReplyCount > 0 && (
+              <span className="shrink-0 text-scam-dim">
+                · {hiddenReplyCount} {hiddenReplyCount === 1 ? 'more reply' : 'more replies'}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Replies are shown when expanded. The left-rail guide-line spans both this
+  // comment's body and its (indented) replies, so the line visually connects a
+  // parent to each child hanging off it — Reddit-style threading.
+  const showChildren = hasReplies && showReplies;
+
+  return (
+    <div className={isReply ? 'mt-2' : ''}>
+      <div className="flex items-stretch gap-2 min-w-0 sm:gap-3">
+        {/* Left rail: collapse control (⊖) over a continuous thread guide-line
+            that runs the full height of the body AND the nested replies. */}
+        <div className="flex shrink-0 flex-col items-center">
+          <button
+            type="button"
+            onClick={() => {
+              // Collapsing is always local to this node. If its replies are
+              // currently shown, fold just them behind this node's own
+              // "Continue this thread" button. Otherwise (a leaf, or replies
+              // already folded) collapse this node's own body.
+              if (hasReplies && showReplies) {
+                setShowReplies(false);
+              } else {
+                setCollapsed(true);
+              }
+            }}
+            aria-label={hasReplies && showReplies ? 'Collapse replies' : 'Collapse thread'}
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-scam-dim transition hover:text-trust-400"
+          >
+            <CircleMinus size={18} />
+          </button>
+          {showChildren && (
+            <button
+              type="button"
+              aria-label="Collapse replies"
+              onClick={() => setShowReplies(false)}
+              className="group mt-1 flex flex-1 justify-center"
+            >
+              <span
+                aria-hidden="true"
+                className="w-px flex-1 bg-scam-line transition group-hover:bg-trust-500"
+              />
+            </button>
+          )}
+        </div>
+        <div className="min-w-0 flex-1 pb-1">
+          <div className="flex flex-wrap items-center gap-x-2">
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-scam-750 text-[10px] font-semibold text-scam-muted">
+              {initials(comment.authorLabel)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              className="text-sm font-semibold text-scam-text transition hover:text-trust-400"
+            >
+              {comment.authorLabel}
+            </button>
+            <span className="text-xs text-scam-dim">· {timeAgo(comment.createdAt)}</span>
             {comment.updatedAt !== comment.createdAt && !removed && (
               <span className="text-xs text-scam-dim">(edited)</span>
             )}
@@ -408,7 +513,7 @@ function CommentItem({
                 </motion.span>
               </motion.button>
 
-              {isLoggedIn && !atMaxDepth && (
+              {isLoggedIn && (
                 <button
                   type="button"
                   onClick={() => setReplying((r) => !r)}
@@ -459,6 +564,43 @@ function CommentItem({
               {actionError}
             </p>
           )}
+
+          {/* Replies live inside the content column so the parent's left-rail
+              guide-line runs the full height and each child hangs off it with
+              a clear indent, Reddit-style. */}
+          {hasReplies &&
+            (!showReplies ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReplies(true);
+                  setExpandAll(true);
+                }}
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-trust-400 transition hover:text-trust-300"
+              >
+                <CornerDownRight size={13} /> Continue this thread (
+                {hiddenReplyCount} {hiddenReplyCount === 1 ? 'reply' : 'replies'})
+              </button>
+            ) : (
+              <div className="mt-1">
+                {children.map((child) => (
+                  <CommentItem
+                    key={child.id}
+                    comment={child}
+                    postId={postId}
+                    // Normal nested indentation at every level. Each node
+                    // manages its own show/hide state locally so collapsing one
+                    // indent never disturbs its siblings or ancestors.
+                    depth={nextDepth}
+                    // Opening this node via "Continue this thread" (or
+                    // inheriting an ancestor's expand-all) opens the whole
+                    // subtree at once.
+                    defaultOpen={defaultOpen || expandAll}
+                    childrenByParent={childrenByParent}
+                  />
+                ))}
+              </div>
+            ))}
         </div>
 
         {isLoggedIn && !removed && !editing && !flagging && !flagDone && (
@@ -479,16 +621,6 @@ function CommentItem({
           />
         )}
       </div>
-
-      {(childrenByParent.get(comment.id) ?? []).map((child) => (
-        <CommentItem
-          key={child.id}
-          comment={child}
-          postId={postId}
-          depth={nextDepth}
-          childrenByParent={childrenByParent}
-        />
-      ))}
     </div>
   );
 }

@@ -10,6 +10,7 @@ import 'package:scamwatch_mobile_app/api/api_client.dart';
 import 'package:scamwatch_mobile_app/background/background_runner.dart';
 import 'package:scamwatch_mobile_app/screens/calls/call_history_screen.dart';
 import 'package:scamwatch_mobile_app/screens/community/my_posts_screen.dart';
+import 'package:scamwatch_mobile_app/screens/home/home_screen.dart';
 import 'package:scamwatch_mobile_app/screens/community/report_tab_screen.dart';
 import 'package:scamwatch_mobile_app/screens/onboarding/onboarding_screen.dart';
 import 'package:scamwatch_mobile_app/screens/safety/safety_screen.dart';
@@ -19,7 +20,7 @@ import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
 import 'package:scamwatch_mobile_app/state/auth_controller.dart';
 import 'package:scamwatch_mobile_app/state/locale_controller.dart';
 import 'package:scamwatch_mobile_app/state/theme_controller.dart';
-import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
+import 'package:scamwatch_mobile_app/widgets/auth/auth_gate.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/theme/theme.dart';
 import 'package:scamwatch_mobile_app/widgets/tour/coach_mark_overlay.dart';
@@ -258,10 +259,10 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
-  bool _signInBannerDismissed = false;
   static const MethodChannel _deeplink = MethodChannel('report/deeplink');
 
   final List<_NavigationItem> _items = [
+    _NavigationItem(icon: LucideIcons.house, label: (l10n) => l10n.homeTitle),
     _NavigationItem(icon: LucideIcons.phone, label: (l10n) => l10n.callHistoryTitle),
     _NavigationItem(icon: LucideIcons.shield, label: (l10n) => l10n.safetyTitle),
     _NavigationItem(icon: LucideIcons.megaphone, label: (l10n) => l10n.reportTabTitle),
@@ -365,33 +366,20 @@ class _HomePageState extends State<HomePage> {
     final tour = context.read<TourController>();
     final targets = context.read<CoachMarkTargets>();
     final screens = [
+      HomeScreen(onNavigate: _showTab),
       const CallHistoryScreen(),
-      const SafetyScreen(),
-      ReportTabScreen(client: client),
-      MyPostsScreen(client: client),
+      const AuthGate(child: SafetyScreen()),
+      AuthGate(child: ReportTabScreen(client: client)),
+      AuthGate(child: MyPostsScreen(client: client)),
       const SettingsPage(),
     ];
-    final auth = context.watch<AuthController>();
-    final showSignInBanner = !auth.isSignedIn && !_signInBannerDismissed;
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            if (showSignInBanner)
-              _SignInBanner(
-                onSignIn: () => requireLogin(context),
-                onDismiss: () =>
-                    setState(() => _signInBannerDismissed = true),
-              ),
-            Expanded(
-              child: CoachMarkOverlay(
-                controller: tour,
-                targets: targets,
-                child: screens[_currentIndex],
-              ),
-            ),
-          ],
+        child: CoachMarkOverlay(
+          controller: tour,
+          targets: targets,
+          child: screens[_currentIndex],
         ),
       ),
       bottomNavigationBar: _AppNavBar(
@@ -540,68 +528,6 @@ class _NavigationItem {
 
   final IconData icon;
   final String Function(AppLocalizations) label;
-}
-
-/// Dismissible prompt shown at the top of the app while signed out. The app is
-/// fully usable without an account; this is a soft nudge toward the features
-/// that need one. Dismissal lasts for the session (see [_signInBannerDismissed]).
-class _SignInBanner extends StatelessWidget {
-  const _SignInBanner({required this.onSignIn, required this.onDismiss});
-
-  final VoidCallback onSignIn;
-  final VoidCallback onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final colors = context.theme.colors;
-    return Material(
-      color: colors.primary.withValues(alpha: 0.08),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-        child: Row(
-          children: [
-            Icon(LucideIcons.circleUserRound, color: colors.primary, size: 32),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.authBannerTitle,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: colors.foreground,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.authBannerBody,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: colors.mutedForeground,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: onSignIn,
-              child: Text(l10n.authBannerAction),
-            ),
-            IconButton(
-              icon: const Icon(LucideIcons.x, size: 20),
-              tooltip: l10n.authBannerDismiss,
-              onPressed: onDismiss,
-              color: colors.mutedForeground,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class ReportDeepLinkPayload {

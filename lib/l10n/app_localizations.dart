@@ -246,6 +246,180 @@ abstract class AppLocalizations {
   /// **'Each image must be 20 MB or smaller.'**
   String get commonImageTooLarge;
 
+  /// No description provided for @homeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get homeTitle;
+
+  /// No description provided for @homeWelcomePrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome, '**
+  String get homeWelcomePrefix;
+
+  /// No description provided for @homeWelcomeGuestLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'not signed in'**
+  String get homeWelcomeGuestLabel;
+
+  /// No description provided for @myProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Profile'**
+  String get myProfileTitle;
+
+  /// No description provided for @myProfileAccountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account details'**
+  String get myProfileAccountSection;
+
+  /// No description provided for @myProfileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get myProfileName;
+
+  /// No description provided for @myProfileEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get myProfileEmail;
+
+  /// No description provided for @myProfileMemberSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Member since'**
+  String get myProfileMemberSince;
+
+  /// No description provided for @myProfileRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get myProfileRole;
+
+  /// No description provided for @myProfileRoleResident.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get myProfileRoleResident;
+
+  /// No description provided for @myProfileRoleModerator.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderator'**
+  String get myProfileRoleModerator;
+
+  /// No description provided for @myProfileRoleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Administrator'**
+  String get myProfileRoleAdmin;
+
+  /// No description provided for @myProfileSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get myProfileSignOut;
+
+  /// No description provided for @myProfileSignOutHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can sign back in at any time'**
+  String get myProfileSignOutHint;
+
+  /// No description provided for @myProfileNotSignedInTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re not signed in'**
+  String get myProfileNotSignedInTitle;
+
+  /// No description provided for @myProfileNotSignedInBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to see your account details and manage your profile.'**
+  String get myProfileNotSignedInBody;
+
+  /// No description provided for @myProfileSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get myProfileSignIn;
+
+  /// No description provided for @homeNewsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scam alerts & news'**
+  String get homeNewsTitle;
+
+  /// No description provided for @homeNewsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the latest alerts.'**
+  String get homeNewsError;
+
+  /// No description provided for @homeNewsRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get homeNewsRetry;
+
+  /// No description provided for @homeQuickActionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to do?'**
+  String get homeQuickActionsTitle;
+
+  /// No description provided for @homeActionMyPosts.
+  ///
+  /// In en, this message translates to:
+  /// **'My posts'**
+  String get homeActionMyPosts;
+
+  /// No description provided for @homeActionMyPostsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Track the scams you\'ve reported'**
+  String get homeActionMyPostsBody;
+
+  /// No description provided for @homeActionCalls.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent calls'**
+  String get homeActionCalls;
+
+  /// No description provided for @homeActionCallsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Review calls from unknown numbers'**
+  String get homeActionCallsBody;
+
+  /// No description provided for @homeActionReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a scam'**
+  String get homeActionReport;
+
+  /// No description provided for @homeActionReportBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn others in the community'**
+  String get homeActionReportBody;
+
+  /// No description provided for @homeActionSafety.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection'**
+  String get homeActionSafety;
+
+  /// No description provided for @homeActionSafetyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on Scam Shield'**
+  String get homeActionSafetyBody;
+
   /// No description provided for @settingsDetectionModel.
   ///
   /// In en, this message translates to:
@@ -1764,35 +1938,29 @@ abstract class AppLocalizations {
   /// **'New here? Create an account'**
   String get authToggleToRegister;
 
-  /// No description provided for @authBannerTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in to unlock more'**
-  String get authBannerTitle;
-
-  /// No description provided for @authBannerBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Post to the community, sync reports, and more.'**
-  String get authBannerBody;
-
-  /// No description provided for @authBannerAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Sign in'**
-  String get authBannerAction;
-
-  /// No description provided for @authBannerDismiss.
-  ///
-  /// In en, this message translates to:
-  /// **'Dismiss'**
-  String get authBannerDismiss;
-
   /// No description provided for @authGateMessage.
   ///
   /// In en, this message translates to:
   /// **'Sign in to use this feature.'**
   String get authGateMessage;
+
+  /// No description provided for @authGateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to continue'**
+  String get authGateTitle;
+
+  /// No description provided for @authGateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This feature needs an account. Sign in to post to the community, sync your reports, and keep everything in one place.'**
+  String get authGateBody;
+
+  /// No description provided for @authGateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get authGateAction;
 
   /// No description provided for @communityTitle.
   ///
@@ -2105,6 +2273,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick what happened above to see steps you can take.'**
   String get guidanceNoAdviceBody;
+
+  /// No description provided for @tourHomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Home'**
+  String get tourHomeTitle;
+
+  /// No description provided for @tourHomeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your home screen. See the latest scam alerts and quickly get to everything the app can do.'**
+  String get tourHomeBody;
 
   /// No description provided for @tourCallsTitle.
   ///

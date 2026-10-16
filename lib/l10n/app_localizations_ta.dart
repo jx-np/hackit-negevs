@@ -84,6 +84,94 @@ class AppLocalizationsTa extends AppLocalizations {
       'ஒவ்வொரு படமும் 20 MB அல்லது அதற்குக் குறைவாக இருக்க வேண்டும்.';
 
   @override
+  String get homeTitle => 'Home';
+
+  @override
+  String get homeWelcomePrefix => 'Welcome, ';
+
+  @override
+  String get homeWelcomeGuestLabel => 'not signed in';
+
+  @override
+  String get myProfileTitle => 'My Profile';
+
+  @override
+  String get myProfileAccountSection => 'Account details';
+
+  @override
+  String get myProfileName => 'Name';
+
+  @override
+  String get myProfileEmail => 'Email';
+
+  @override
+  String get myProfileMemberSince => 'Member since';
+
+  @override
+  String get myProfileRole => 'Role';
+
+  @override
+  String get myProfileRoleResident => 'Member';
+
+  @override
+  String get myProfileRoleModerator => 'Moderator';
+
+  @override
+  String get myProfileRoleAdmin => 'Administrator';
+
+  @override
+  String get myProfileSignOut => 'Sign out';
+
+  @override
+  String get myProfileSignOutHint => 'You can sign back in at any time';
+
+  @override
+  String get myProfileNotSignedInTitle => 'You\'re not signed in';
+
+  @override
+  String get myProfileNotSignedInBody =>
+      'Sign in to see your account details and manage your profile.';
+
+  @override
+  String get myProfileSignIn => 'Sign in';
+
+  @override
+  String get homeNewsTitle => 'Scam alerts & news';
+
+  @override
+  String get homeNewsError => 'Couldn\'t load the latest alerts.';
+
+  @override
+  String get homeNewsRetry => 'Try again';
+
+  @override
+  String get homeQuickActionsTitle => 'What would you like to do?';
+
+  @override
+  String get homeActionMyPosts => 'My posts';
+
+  @override
+  String get homeActionMyPostsBody => 'Track the scams you\'ve reported';
+
+  @override
+  String get homeActionCalls => 'Recent calls';
+
+  @override
+  String get homeActionCallsBody => 'Review calls from unknown numbers';
+
+  @override
+  String get homeActionReport => 'Report a scam';
+
+  @override
+  String get homeActionReportBody => 'Warn others in the community';
+
+  @override
+  String get homeActionSafety => 'Protection';
+
+  @override
+  String get homeActionSafetyBody => 'Turn on Scam Shield';
+
+  @override
   String get settingsDetectionModel => 'கண்டறிதல் மாதிரி';
 
   @override
@@ -961,19 +1049,17 @@ class AppLocalizationsTa extends AppLocalizations {
   String get authToggleToRegister => 'புதியவரா? கணக்கை உருவாக்கு';
 
   @override
-  String get authBannerTitle => 'Sign in to unlock more';
-
-  @override
-  String get authBannerBody => 'Post to the community, sync reports, and more.';
-
-  @override
-  String get authBannerAction => 'Sign in';
-
-  @override
-  String get authBannerDismiss => 'Dismiss';
-
-  @override
   String get authGateMessage => 'Sign in to use this feature.';
+
+  @override
+  String get authGateTitle => 'Sign in to continue';
+
+  @override
+  String get authGateBody =>
+      'This feature needs an account. Sign in to post to the community, sync your reports, and keep everything in one place.';
+
+  @override
+  String get authGateAction => 'Sign in';
 
   @override
   String get communityTitle => 'சமூகம்';
@@ -1142,6 +1228,13 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get guidanceNoAdviceBody =>
       'நீங்கள் எடுக்கக்கூடிய நடவடிக்கைகளைப் பார்க்க மேலே என்ன நடந்தது என்பதைத் தேர்ந்தெடுக்கவும்.';
+
+  @override
+  String get tourHomeTitle => 'Home';
+
+  @override
+  String get tourHomeBody =>
+      'This is your home screen. See the latest scam alerts and quickly get to everything the app can do.';
 
   @override
   String get tourCallsTitle => 'அழைப்புகள்';

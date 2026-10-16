@@ -238,21 +238,23 @@ class _CoachMarkLayer extends StatelessWidget {
   /// Resolves the localized (title, body) for the step at list index [i].
   ///
   /// The index maps to each step's identity in [kTourSteps]:
-  /// 0=Calls, 1=Safety, 2=Report, 3=My Posts, 4=Settings. Any out-of-range
-  /// index falls back to the first step's copy to stay render-safe.
+  /// 0=Home, 1=Calls, 2=Safety, 3=Report, 4=My Posts, 5=Settings. Any
+  /// out-of-range index falls back to the first step's copy to stay render-safe.
   (String, String) _stepText(AppLocalizations l10n, int i) {
     switch (i) {
       case 1:
-        return (l10n.tourSafetyTitle, l10n.tourSafetyBody);
+        return (l10n.tourCallsTitle, l10n.tourCallsBody);
       case 2:
-        return (l10n.tourReportTitle, l10n.tourReportBody);
+        return (l10n.tourSafetyTitle, l10n.tourSafetyBody);
       case 3:
-        return (l10n.tourMyPostsTitle, l10n.tourMyPostsBody);
+        return (l10n.tourReportTitle, l10n.tourReportBody);
       case 4:
+        return (l10n.tourMyPostsTitle, l10n.tourMyPostsBody);
+      case 5:
         return (l10n.tourSettingsTitle, l10n.tourSettingsBody);
       case 0:
       default:
-        return (l10n.tourCallsTitle, l10n.tourCallsBody);
+        return (l10n.tourHomeTitle, l10n.tourHomeBody);
     }
   }
 }

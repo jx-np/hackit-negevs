@@ -13,8 +13,9 @@ class TourStep {
   /// tab before showing the step so the highlighted element is on screen.
   ///
   /// The step's identity for localized text lookup is its index within
-  /// [kTourSteps] (0=Calls, 1=Safety, 2=Report, 3=My Posts, 4=Settings), which
-  /// the overlay resolves against [AppLocalizations] at display time.
+  /// [kTourSteps] (0=Home, 1=Calls, 2=Safety, 3=Report, 4=My Posts,
+  /// 5=Settings), which the overlay resolves against [AppLocalizations] at
+  /// display time.
   final int tabIndex;
 }
 
@@ -30,6 +31,7 @@ const List<TourStep> kTourSteps = [
   TourStep(tabIndex: 2),
   TourStep(tabIndex: 3),
   TourStep(tabIndex: 4),
+  TourStep(tabIndex: 5),
 ];
 
 /// Holds the [GlobalKey]s for each tab's spotlight target.

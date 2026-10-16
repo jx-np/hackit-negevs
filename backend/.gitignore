@@ -4,3 +4,8 @@
 # Go build output
 /dbsetup
 /api
+/dbsetup.exe
+/api.exe
+
+# Compiled release binaries — rebuilt from source, never committed
+/builds/

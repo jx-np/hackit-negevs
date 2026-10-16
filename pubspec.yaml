@@ -79,12 +79,17 @@ dev_dependencies:
 # force the whole tree onto 13 rather than splitting the native plugin version.
 # font_awesome_flutter 10.12.0 (pulled in transitively by image_editor_plus)
 # declares IconData subclasses that `extend IconData`, which no longer compiles
-# because Flutter 3.44+ marked IconData `final`. 11.0.0 does the official wrapper
-# migration (FaIconData no longer implements IconData). We don't use FA directly;
-# only image_editor_plus consumes it internally for its toolbar icons.
+# because Flutter 3.44+ marked IconData `final`. Upgrading to 11.0.0 breaks
+# image_editor_plus (its FaIconData is no longer an IconData, failing 7 call
+# sites), and image_editor_plus has no newer release. So we vendor a patched
+# copy of 10.12.0 under third_party/ that drops those IconData subclasses and
+# rewrites every icon constant to a plain IconData(...) with the right
+# fontFamily/fontPackage — same rendered icons, keeps the 10.x API that
+# image_editor_plus expects. We don't use font_awesome directly.
 dependency_overrides:
   permission_handler: ^13.0.2
-  font_awesome_flutter: ^11.0.0
+  font_awesome_flutter:
+    path: third_party/font_awesome_flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

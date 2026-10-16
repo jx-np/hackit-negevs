@@ -22,9 +22,12 @@ import {
   ReportModal,
 } from '../components/forum/PostCard';
 import { ShareMenu } from '../components/forum/ShareMenu';
+import { PostImages } from '../components/forum/PostImages';
 import { useAuth } from '../context/AuthContext';
 import { useSavedFeeds } from '../context/SavedFeedsContext';
 import { usePost } from '../hooks/usePost';
+import { useIsMyPost } from '../hooks/useIsMyPost';
+import { useAuthorName } from '../hooks/useAuthorName';
 import { useReaction } from '../hooks/useReaction';
 import type { Post } from '../types';
 
@@ -83,6 +86,10 @@ export function PostDetailPage() {
   const { data: post, isLoading, isError, error } = usePost(id);
   const reaction = useReaction(post);
   const { isLoggedIn } = useAuth();
+  // The detail endpoint omits `is_mine`; resolve ownership from the user's own
+  // posts so the owner-only menu actions match the feed card.
+  const isMine = useIsMyPost(id);
+  const authorName = useAuthorName(post?.author.name ?? '', isMine);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isSaved, toggleSave } = useSavedFeeds();
@@ -91,6 +98,7 @@ export function PostDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const verified = post?.reviewStatus === 'reviewed';
   const risk = post?.risk ? RISK_META[riskKey(post.risk)] : null;
+  const imageCount = post?.imageUrls?.length ?? 0;
 
   const deleteMutation = useMutation({
     mutationFn: () => deletePost(post!.id),
@@ -164,15 +172,15 @@ export function PostDetailPage() {
                 />
               )}
 
-              {post.imageUrl && (
+              {imageCount > 0 && (
                 <div className="relative">
-                  <img
-                    src={post.imageUrl}
-                    alt=""
-                    className="block max-h-96 w-full bg-scam-750 object-cover"
+                  <PostImages
+                    urls={post.imageUrls ?? []}
+                    alt={post.title}
+                    variant="detail"
                   />
                   {post.risk && (
-                    <span className="absolute left-4 top-4">
+                    <span className="absolute left-4 top-4 z-10">
                       <RiskBadge risk={post.risk} />
                     </span>
                   )}
@@ -184,8 +192,8 @@ export function PostDetailPage() {
                 <div className="absolute right-4 top-4 z-10">
                   <PostMenu
                     onReport={() => setReportOpen(true)}
-                    onEdit={isLoggedIn && post.isMine ? () => setEditOpen(true) : undefined}
-                    onDelete={isLoggedIn && post.isMine ? handleDelete : undefined}
+                    onEdit={isLoggedIn && isMine ? () => setEditOpen(true) : undefined}
+                    onDelete={isLoggedIn && isMine ? handleDelete : undefined}
                   />
                 </div>
 
@@ -199,7 +207,7 @@ export function PostDetailPage() {
                       <ShieldCheck size={12} /> Verified
                     </span>
                   )}
-                  {!post.imageUrl && post.risk && <RiskBadge risk={post.risk} />}
+                  {!imageCount && post.risk && <RiskBadge risk={post.risk} />}
                   {post.tags.map((tag) => (
                     <span
                       key={tag.id}
@@ -221,10 +229,10 @@ export function PostDetailPage() {
                   </span>
                   <div>
                     <p className="font-semibold text-scam-text">
-                      {post.author.name}
+                      {authorName}
                     </p>
                     <p className="text-xs text-scam-muted">
-                      {initials(post.author.name)} · {formatDate(post.createdAt)}
+                      {initials(authorName)} · {formatDate(post.createdAt)}
                     </p>
                   </div>
                   <div className="ml-auto flex items-center gap-4 text-sm text-scam-muted">

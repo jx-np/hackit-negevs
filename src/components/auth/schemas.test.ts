@@ -44,6 +44,24 @@ describe('signupSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects a name with punctuation or non-ASCII characters', () => {
+    expect(signupSchema.safeParse({ ...valid, name: 'Ada!' }).success).toBe(
+      false,
+    );
+    expect(signupSchema.safeParse({ ...valid, name: 'Ada Lovelace!' }).success).toBe(
+      false,
+    );
+    expect(signupSchema.safeParse({ ...valid, name: 'Åda' }).success).toBe(false);
+  });
+
+  it('rejects leading, trailing, or multiple interior spaces', () => {
+    expect(signupSchema.safeParse({ ...valid, name: ' Ada' }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...valid, name: 'Ada ' }).success).toBe(false);
+    expect(
+      signupSchema.safeParse({ ...valid, name: 'Ada Mary Lovelace' }).success,
+    ).toBe(false);
+  });
+
   it('rejects a password without a number', () => {
     const result = signupSchema.safeParse({
       ...valid,

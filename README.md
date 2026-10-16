@@ -20,33 +20,34 @@ font and wide layout tuned for readability (including users with low vision).
   - Filter posts by a single tag via a **draggable tag panel** you can snap to
     the left or right side of the screen (position persists in `localStorage`)
   - **Sort** by newest / most comments / most likes
-  - Posts can include an **image** (screenshot/evidence) with a risk badge
+  - Posts can include **redacted screenshots** (evidence) with a risk badge and
+    a click-to-reveal blur, plus a full-size lightbox viewer
   - Infinite scroll (loads more posts as you scroll)
   - Expandable comments per post — **you must be logged in to comment**
   - Scroll-reveal animations and skeleton loading states
 - **Post detail / thread** (`/forum/:id`)
-  - Full report view (image, tags, risk, author, body) with the comment thread
+  - Full report view (screenshots, tags, risk, author, body) with the comment thread
   - Reached by clicking a post's title or image in the forum
 - **Report a scam** (`/report`) — **login-gated**
   - Fleshed-out form: title, **incident date** (date picker, no future dates),
-    description, single **category** picker, **risk** level, and an image
-    **media picker** (click or drag-and-drop, with preview)
+    description, single **category** picker, **risk** level, and a screenshot
+    **media picker** (click or drag-and-drop, any number of images)
+  - Screenshots are uploaded to `POST /uploads`, which schedules OCR + PII
+    redaction; the picker polls until the **redacted** copy is ready and only
+    previews that copy. Submit is held until redaction finishes, then the upload
+    ids are attached to the post
   - Validation throughout; redirects to the new post on submit
   - Logged-out users see a prompt to sign in — or use **"Continue as demo
     user"** on the auth page to try reporting without an account
-  - Media uploads are **scaffolded** (`src/api/media.ts`): the picked image
-    previews via a local object URL but isn't persisted; a real upload endpoint
-    is stubbed for later
 - **Number check** (`/check`)
   - Look up a phone number to see how many times it's been reported
   - **Validates** the input and treats `+prefix` and non-`+` forms of the same
     number as identical (canonical digits-only key)
   - Shows a status verdict — **trusted / scam / unknown** — with a scam vs.
-    trusted report-count breakdown
-  - **Report** the number as scam or trusted — **requires a logged-in account**
-    (enforced in the data layer, not just the UI), and **each account can
-    report a given number only once** (a second attempt is rejected and the
-    UI shows an "already reported" confirmation)
+    trusted report-count breakdown, plus the backend's classification label when
+    one applies
+  - The report action is a mobile-first flow (`POST /detection/phone-number/report`)
+    and is not surfaced on the web client
 - **Auth** (`/auth`)
   - Toggle between login and signup with client-side validation
   - On submit, the (scaffolded) auth state flips to logged-in and redirects to the forum
@@ -149,8 +150,8 @@ The scroll timing lives in `src/routes/LandingPage.tsx` (the `useTransform` call
 
 ## Connecting a Real API
 
-The app ships with **mock data** so it runs out of the box. When your real backend is
-ready, point the app at it with an environment variable:
+The app talks to the ScamWatch backend (`API.docs.md`) through a Vite dev-server
+proxy. Point the app at the backend with an environment variable:
 
 1. Create a `.env` file in the project root:
 
@@ -158,35 +159,34 @@ ready, point the app at it with an environment variable:
    VITE_API_BASE_URL=https://your-api.example.com
    ```
 
-2. Restart the dev server. Setting `VITE_API_BASE_URL` automatically switches the app
-   from mock data to live requests.
+2. Restart the dev server. Requests go to `/api/v1/...` on the same origin and Vite
+   forwards them to `VITE_API_BASE_URL` (set `VITE_API_PROXY_TARGET` to override the
+   proxy target). This avoids CORS and injects the `ngrok-skip-browser-warning`
+   header the tunnel needs.
 
 The API layer lives in `src/api/`:
 
-- `client.ts` — base URL, `USE_MOCK` flag, and the shared fetch helper
-- `posts.ts` — `getPosts({ query, tagId, page, pageSize })`
-- `tags.ts` — `getTags()`
-
-Each of these has a real-API branch already stubbed out. Adjust the request paths and
-query-parameter names to match your backend, and update the response types in
-`src/types/index.ts` to match your API's shapes. Auth is scaffolded in
-`src/context/AuthContext.tsx` — replace `login`/`logout` with real calls.
+- `client.ts` — base URL, the shared JSON/multipart/blob fetch helpers, token refresh
+- `posts.ts` — feed, search, post detail, create/edit/delete, reactions, flags
+- `media.ts` — screenshot upload (`POST /uploads`), redaction polling, redacted images
+- `tags.ts`, `comments.ts`, `numbers.ts`, `auth.ts`, `guidance.ts`
 
 ## Project Structure
 
 ```
 src/
-├── api/           # API client + mock data (posts, tags)
+├── api/           # HTTP client + per-resource API modules
 ├── components/
 │   ├── auth/      # Login/signup forms + validation schemas
-│   ├── forum/     # SearchBar, TagFilter, PostCard, PostList, CommentBox
+│   ├── forum/     # PostCard, PostList, PostImages (lightbox), CommentList, ...
 │   ├── landing/   # DeviceMockup (landing hero animation)
+│   ├── report/    # MediaPicker (upload + redaction preview)
 │   └── layout/    # Navbar, Footer, SettingsPanel
-├── context/       # AppearanceContext (theme/font) + AuthContext (scaffolded)
-├── hooks/         # usePosts, useTags, useDebounce
-├── routes/        # LandingPage, ForumPage, AuthPage
+├── context/       # Appearance, Auth, SavedFeeds contexts
+├── hooks/         # usePosts, usePost, useComments, useReaction, ...
+├── routes/        # LandingPage, ForumPage, PostDetailPage, ReportPage, ...
 ├── test/          # Vitest setup + render helpers
-├── types/         # Shared TypeScript types
+├── types/         # Shared TypeScript types (UI + backend wire shapes)
 ├── App.tsx        # Router + providers
 └── main.tsx       # Entry point
 ```

@@ -5,18 +5,11 @@ const base = {
   title: 'Fake bank SMS asking to verify',
   incidentDate: todayISO(),
   excerpt: 'A detailed description of what happened here, well over twenty chars.',
-  tagId: 't-phishing',
-  risk: 'high' as const,
 };
 
 describe('reportSchema', () => {
   it('accepts a valid report', () => {
     expect(reportSchema.safeParse(base).success).toBe(true);
-  });
-
-  it('requires a category', () => {
-    const r = reportSchema.safeParse({ ...base, tagId: '' });
-    expect(r.success).toBe(false);
   });
 
   it('rejects a short title', () => {

@@ -7,7 +7,15 @@ export const loginSchema = z.object({
 
 export const signupSchema = z
   .object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
+    // The backend accepts letters, digits and at most one interior space.
+    name: z
+      .string()
+      .min(2, 'Name must be at least 2 characters')
+      .max(50, 'Name must be 50 characters or fewer')
+      .regex(
+        /^[A-Za-z0-9]+(?: [A-Za-z0-9]+)?$/,
+        'Use letters and numbers only, with at most one space between words',
+      ),
     email: z.string().min(1, 'Email is required').email('Enter a valid email'),
     password: z
       .string()

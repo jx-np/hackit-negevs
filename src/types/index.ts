@@ -40,7 +40,8 @@ export interface Post {
   downCount?: number;
   /** The caller's current vote: 1 (up), -1 (down), or 0 (none/anonymous). */
   myVote?: number;
-  imageUrl?: string | null;
+  /** Absolute URLs of the post's redacted screenshots, in display order. */
+  imageUrls?: string[];
   risk?: RiskLevel;
   incidentDate?: string | null;
   /** Backend moderation label, surfaced in the UI. */
@@ -70,19 +71,31 @@ export interface NewPostInput {
   /** Maps to the backend's redacted_text. */
   excerpt: string;
   body?: string;
-  /** Category slug (backend scam_type). */
-  tagId: string;
   /** Additional tag slugs. */
   tags?: string[];
-  imageUrl?: string | null;
+  /**
+   * Ids of the caller's own uploads to attach as the post's images, in
+   * display order (backend `upload_ids`). Each must have finished redaction.
+   */
+  uploadIds?: string[];
   risk?: RiskLevel;
   authorName: string;
   authorId: string;
   incidentDate?: string | null;
 }
 
+/**
+ * Result of `POST /uploads`. Uploading schedules a screenshot detection check
+ * automatically, so the upload is only publishable once the check reaches
+ * `ready` (redaction produces the image that is actually attached).
+ */
 export interface UploadedMedia {
-  url: string;
+  uploadId: string;
+  /** The image's media type, e.g. "image/png". */
+  mediaType: string;
+  /** The detection check scheduled for this upload. */
+  checkId: string;
+  /** Local file name, kept for display only. */
   name: string;
 }
 
@@ -213,6 +226,11 @@ export interface NumberCheckResult {
   rating: 'high_risk' | 'unknown' | 'trusted';
   reportCount: number;
   known: boolean;
+  /**
+   * Free-form classification label assigned by the backend. Empty until the
+   * classification system applies one, so render it only when non-empty.
+   */
+  classification: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -242,6 +260,11 @@ export interface ApiFeedItem {
   reactions?: { up: number; down: number };
   my_vote?: number;
   is_mine?: boolean;
+  /**
+   * Not currently returned by the feed, but part of the post shape — mapped
+   * through so feed cards render screenshots if the backend adds them.
+   */
+  redacted_image_urls?: string[];
 }
 
 export interface ApiPostDetail {
@@ -257,6 +280,8 @@ export interface ApiPostDetail {
   reactions: { up: number; down: number };
   my_vote: number;
   is_mine?: boolean;
+  /** Relative API paths for the post's redacted images; omitted when none. */
+  redacted_image_urls?: string[];
 }
 
 /** Response body from PUT/DELETE /community/posts/{id}/reaction. */
@@ -337,6 +362,23 @@ export interface ApiTrustScore {
   rating: 'high_risk' | 'unknown' | 'trusted';
   report_count: number;
   known: boolean;
+  /** Free-form classification label; "" when no active classification applies. */
+  classification?: string;
+}
+
+/** Response body from POST /uploads. */
+export interface ApiUploadResponse {
+  upload_id: string;
+  media_type: string;
+  check_id: string;
+  status: string;
+}
+
+/** Response body from GET /detection/{id} (screenshot checks). */
+export interface ApiDetection {
+  check_id: string;
+  status: 'processing' | 'ready' | 'failed';
+  verdict?: 'suspicious' | 'unclear' | 'likely_safe';
 }
 
 /** Standard backend error body. */

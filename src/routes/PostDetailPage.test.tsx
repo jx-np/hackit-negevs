@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppearanceProvider } from '../context/AppearanceContext';
 import { AuthProvider } from '../context/AuthContext';
+import { SavedFeedsProvider } from '../context/SavedFeedsContext';
 import { makeQueryClient } from '../test/utils';
 import { mockFetch } from '../test/mockFetch';
 import { PostDetailPage } from './PostDetailPage';
@@ -33,11 +34,13 @@ function renderAt(path: string) {
     <QueryClientProvider client={client}>
       <AppearanceProvider>
         <AuthProvider>
-          <MemoryRouter initialEntries={[path]}>
-            <Routes>
-              <Route path="/forum/:id" element={<PostDetailPage />} />
-            </Routes>
-          </MemoryRouter>
+          <SavedFeedsProvider>
+            <MemoryRouter initialEntries={[path]}>
+              <Routes>
+                <Route path="/forum/:id" element={<PostDetailPage />} />
+              </Routes>
+            </MemoryRouter>
+          </SavedFeedsProvider>
         </AuthProvider>
       </AppearanceProvider>
     </QueryClientProvider>,

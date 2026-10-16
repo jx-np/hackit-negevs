@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { renderWithProviders } from '../../test/utils';
 import type { Post } from '../../types';
@@ -41,5 +41,69 @@ describe('PostCard', () => {
     renderWithProviders(<PostCard post={post} />);
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.getByText('88')).toBeInTheDocument();
+  });
+
+  it('renders redacted screenshots with a click-to-reveal blur', () => {
+    renderWithProviders(
+      <PostCard
+        post={{
+          ...post,
+          imageUrls: ['/api/v1/community/posts/post-1/images/0'],
+        }}
+      />,
+    );
+    const img = screen.getByAltText(
+      'A test post title — redacted screenshot 1',
+    );
+    expect(img).toHaveAttribute(
+      'src',
+      '/api/v1/community/posts/post-1/images/0',
+    );
+    expect(img.className).toMatch(/blur-md/);
+    expect(
+      screen.getByText(/sensitive evidence · click to reveal/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a screenshot count chip when several images are attached', () => {
+    renderWithProviders(
+      <PostCard
+        post={{
+          ...post,
+          imageUrls: [
+            '/api/v1/community/posts/post-1/images/0',
+            '/api/v1/community/posts/post-1/images/1',
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText(/2 screenshots/i)).toBeInTheDocument();
+  });
+
+  it('shows the first-image preview between the title and body', () => {
+    renderWithProviders(<PostCard post={post} />);
+    const preview = screen.getByAltText('Preview for A test post title');
+    expect(preview).toHaveAttribute(
+      'src',
+      '/api/v1/community/posts/post-1/images/0',
+    );
+  });
+
+  it('hides the preview when the first image fails to load', () => {
+    renderWithProviders(<PostCard post={post} />);
+    const preview = screen.getByAltText('Preview for A test post title');
+    fireEvent.error(preview);
+    expect(
+      screen.queryByAltText('Preview for A test post title'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('opens a zoom lightbox when the preview is clicked', () => {
+    renderWithProviders(<PostCard post={post} />);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Zoom Preview for A test post title' }),
+    );
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

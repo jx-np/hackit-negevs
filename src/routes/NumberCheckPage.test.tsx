@@ -86,4 +86,38 @@ describe('NumberCheckPage', () => {
       screen.getByText(/in the database yet/i),
     ).toBeInTheDocument();
   });
+
+  it('shows the classification label only when the backend provides one', async () => {
+    mockFetch([
+      {
+        match: '/trust-score',
+        json: trustScore({
+          trust_score: 18,
+          rating: 'high_risk',
+          report_count: 42,
+          known: true,
+          classification: 'impersonation',
+        }),
+      },
+    ]);
+    await lookup('+18005551234');
+    await waitFor(() =>
+      expect(screen.getByText('impersonation')).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/reported as/i)).toBeInTheDocument();
+  });
+
+  it('omits the classification row when the label is empty', async () => {
+    mockFetch([
+      {
+        match: '/trust-score',
+        json: trustScore({ trust_score: 18, rating: 'high_risk', known: true }),
+      },
+    ]);
+    await lookup('+18005551234');
+    await waitFor(() =>
+      expect(screen.getByText(/high risk/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/reported as/i)).not.toBeInTheDocument();
+  });
 });

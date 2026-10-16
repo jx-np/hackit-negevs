@@ -106,6 +106,31 @@ describe('getPost (detail API)', () => {
     expect(post.tags.length).toBeGreaterThan(0);
     expect(post.excerpt).toBe('Your account is suspended ...');
   });
+
+  it('maps redacted_image_urls to loadable image URLs', async () => {
+    mockFetch([
+      {
+        match: '/community/posts/',
+        json: postDetail({
+          redacted_image_urls: [
+            '/api/v1/community/posts/12/images/0',
+            '/api/v1/community/posts/12/images/1',
+          ],
+        }),
+      },
+    ]);
+    const post = await getPost('12');
+    expect(post.imageUrls).toEqual([
+      '/api/v1/community/posts/12/images/0',
+      '/api/v1/community/posts/12/images/1',
+    ]);
+  });
+
+  it('defaults to no images when the field is omitted', async () => {
+    mockFetch([{ match: '/community/posts/', json: postDetail() }]);
+    const post = await getPost('12');
+    expect(post.imageUrls).toEqual([]);
+  });
 });
 
 describe('createPost', () => {
@@ -114,7 +139,6 @@ describe('createPost', () => {
       createPost({
         title: 'Test',
         excerpt: 'Description of the scam report.',
-        tagId: 'phishing',
         authorName: 'Alice',
         authorId: '',
       }),
@@ -134,7 +158,6 @@ describe('createPost', () => {
     const post = await createPost({
       title: 'New scam',
       excerpt: 'Details here.',
-      tagId: 'phishing',
       authorName: 'Alice',
       authorId: 'user-1',
     });
@@ -146,5 +169,29 @@ describe('createPost', () => {
     expect(body.scam_type).toBeUndefined();
     expect(body.confirm_publication).toBe(true);
     expect(body.redacted_text).toBe('Details here.');
+    // No uploads selected → no upload_ids key at all.
+    expect(body.upload_ids).toBeUndefined();
+  });
+
+  it('sends upload_ids when screenshots are attached', async () => {
+    const fetchMock = mockFetch([
+      {
+        match: '/community/posts',
+        method: 'POST',
+        status: 201,
+        json: postDetail({ post_id: '99' }),
+      },
+    ]);
+
+    await createPost({
+      title: 'New scam',
+      excerpt: 'Details here.',
+      uploadIds: ['12', '13'],
+      authorName: 'Alice',
+      authorId: 'user-1',
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+    expect(body.upload_ids).toEqual(['12', '13']);
   });
 });

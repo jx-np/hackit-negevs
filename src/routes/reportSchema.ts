@@ -20,8 +20,6 @@ export const reportSchema = z.object({
     .string()
     .min(20, 'Describe what happened (at least 20 characters)')
     .max(600, 'Keep the summary under 600 characters'),
-  tagId: z.string().min(1, 'Choose a category'),
-  risk: z.enum(['high', 'medium', 'none']),
 });
 
 export type ReportValues = z.infer<typeof reportSchema>;

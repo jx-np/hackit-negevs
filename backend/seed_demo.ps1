@@ -22,16 +22,17 @@ $ha = @{ Authorization = "Bearer $alice" }
 $hb = @{ Authorization = "Bearer $bob" }
 $hc = @{ Authorization = "Bearer $carol" }
 
-function Post($h, $title, $text, $scam, $tags) {
-    $body = @{ title=$title; redacted_text=$text; scam_type=$scam; tags=$tags; confirm_publication=$true } | ConvertTo-Json
+function Post($h, $title, $text, $tags) {
+    # scam_type is not client-supplied: the backend classifier assigns the category.
+    $body = @{ title=$title; redacted_text=$text; tags=$tags; confirm_publication=$true } | ConvertTo-Json
     return (Invoke-RestMethod "$base/community/posts" -Method POST -Headers $h -ContentType application/json -Body $body).post_id
 }
 
-$p1 = Post $ha "Fake DBS 'account locked' SMS" "Your DBS account has been locked due to suspicious activity. Verify now at http://dbs-secure-login.xyz or call 91234567." "scam_text" @("bank-impersonation","suspicious-link")
-$p2 = Post $hb "WhatsApp job offer, too good to be true" "Earn `$300/day working from home! Just pay a `$50 registration fee to start. Transfer to this PayNow." "job_scam" @("money-request")
-$p3 = Post $hc "Fake parcel delivery (SingPost)" "Your parcel is held at customs. Pay a small fee to release it: http://singpost-redelivery.top" "phishing" @("delivery-scam","suspicious-link")
-$p4 = Post $ha "Investment group promising 20% weekly" "Join our exclusive crypto group. Guaranteed 20% returns weekly. Limited slots!" "investment" @("money-request")
-$p5 = Post $hb "Lucky draw prize call" "Congratulations! You have won `$5000 in the national lucky draw. Provide your bank details to claim." "scam_call" @("prize-scam")
+$p1 = Post $ha "Fake DBS 'account locked' SMS" "Your DBS account has been locked due to suspicious activity. Verify now at http://dbs-secure-login.xyz or call 91234567." @("bank-impersonation","suspicious-link")
+$p2 = Post $hb "WhatsApp job offer, too good to be true" "Earn `$300/day working from home! Just pay a `$50 registration fee to start. Transfer to this PayNow." @("money-request")
+$p3 = Post $hc "Fake parcel delivery (SingPost)" "Your parcel is held at customs. Pay a small fee to release it: http://singpost-redelivery.top" @("delivery-scam","suspicious-link")
+$p4 = Post $ha "Investment group promising 20% weekly" "Join our exclusive crypto group. Guaranteed 20% returns weekly. Limited slots!" @("money-request")
+$p5 = Post $hb "Lucky draw prize call" "Congratulations! You have won `$5000 in the national lucky draw. Provide your bank details to claim." @("prize-scam")
 
 # Reactions
 Invoke-RestMethod "$base/community/posts/$p1/reaction" -Method PUT -Headers $hb -ContentType application/json -Body (@{vote=1}|ConvertTo-Json) | Out-Null

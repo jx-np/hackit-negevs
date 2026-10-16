@@ -58,18 +58,18 @@ $myChecks = Invoke-RestMethod "$base/me/detection" -Headers $h
 Check "GET /me/detection history" ($myChecks.items.Count -ge 2) "count=$($myChecks.items.Count)"
 
 Write-Host "`n== Publish posts ==" -ForegroundColor Cyan
-$slug = $cats.items[0].slug
-$body = @{ title="Fake DBS SMS"; redacted_text="Your DBS account is locked. Call 91234567 or verify at http://dbs-verify.xyz"; scam_type=$slug; tags=@($tags.items[0].slug); confirm_publication=$true } | ConvertTo-Json
+$body = @{ title="Fake DBS SMS"; redacted_text="Your DBS account is locked. Call 91234567 or verify at http://dbs-verify.xyz"; tags=@($tags.items[0].slug); confirm_publication=$true } | ConvertTo-Json
 $post = Invoke-RestMethod "$base/community/posts" -Method POST -Headers $h -ContentType application/json -Body $body
 Check "create post" ($post.post_id -ne $null) 
 Check "server re-scrubbed PII" ($post.redacted_text -notmatch "91234567") "text=$($post.redacted_text)"
+Check "category assigned by classifier" ($post.category -ne $null -and $post.category.slug -eq "phishing") "category=$($post.category.slug)"
 $postId = $post.post_id
 
 # a second post for the feed
-$body2 = @{ title="Prize scam call"; redacted_text="Congratulations you won a prize! Send a fee to claim."; scam_type=$slug; confirm_publication=$true } | ConvertTo-Json
+$body2 = @{ title="Prize scam call"; redacted_text="Congratulations you won a prize! Send a fee to claim."; confirm_publication=$true } | ConvertTo-Json
 $post2 = Invoke-RestMethod "$base/community/posts" -Method POST -Headers $h -ContentType application/json -Body $body2
 
-try { Invoke-RestMethod "$base/community/posts" -Method POST -Headers $h -ContentType application/json -Body (@{title="x";redacted_text="y";scam_type=$slug;confirm_publication=$false}|ConvertTo-Json); Bad "post without confirmation rejected" "accepted" }
+try { Invoke-RestMethod "$base/community/posts" -Method POST -Headers $h -ContentType application/json -Body (@{title="x";redacted_text="y";confirm_publication=$false}|ConvertTo-Json); Bad "post without confirmation rejected" "accepted" }
 catch { Check "post w/o confirm -> 422" ($_.Exception.Response.StatusCode.value__ -eq 422) }
 
 Write-Host "`n== Feed & detail ==" -ForegroundColor Cyan

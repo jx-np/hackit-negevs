@@ -24,6 +24,7 @@ import { ApiError } from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import { formatAbsoluteDate, relativeDate } from '../../lib/date';
 import { useReaction } from '../../hooks/useReaction';
+import { useSavedFeeds } from '../../context/SavedFeedsContext';
 import { CommentBox } from './CommentBox';
 import { CommentList } from './CommentList';
 import { ShareMenu } from './ShareMenu';
@@ -157,7 +158,7 @@ export function PostMenu({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 top-full z-20 mt-1 min-w-[10rem] rounded-md border border-scam-line bg-scam-850 py-1 shadow-xl"
+            className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-md border border-scam-line bg-scam-850 py-1 shadow-xl"
           >
             {onEdit && (
               <button
@@ -606,9 +607,9 @@ export function PostCard({ post }: { post: Post }) {
   const [showComments, setShowComments] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [following, setFollowing] = useState(false);
   const [revealed, setRevealed] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { isSaved, toggleSave } = useSavedFeeds();
+  const saved = isSaved(post.id);
   const reaction = useReaction(post);
   const { isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
@@ -653,7 +654,7 @@ export function PostCard({ post }: { post: Post }) {
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       onClick={handleCardClick}
-      className="group relative mb-5 cursor-pointer overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card transition hover:border-scam-muted/60 hover:bg-scam-750 hover:shadow-card-hover"
+      className="group relative mb-5 cursor-pointer rounded-lg border border-scam-line bg-scam-800 shadow-card transition hover:border-scam-muted/60 hover:bg-scam-750 hover:shadow-card-hover"
     >
       {/* Colored left-border risk strip — triage the feed at a glance. */}
       {post.risk && (
@@ -698,18 +699,18 @@ export function PostCard({ post }: { post: Post }) {
           </div>
 
           {/* Follow + author avatar initials (kept for test) + menu */}
-          <div className="relative z-20 flex shrink-0 items-center gap-2">
+          <div className="relative z-40 flex shrink-0 items-center gap-2">
             <button
               type="button"
-              onClick={() => setFollowing((f) => !f)}
-              aria-pressed={following}
+              onClick={() => toggleSave(post)}
+              aria-pressed={saved}
               className={`hidden rounded-md px-3 py-1.5 text-xs font-semibold transition sm:inline-flex ${
-                following
+                saved
                   ? 'bg-trust-500 text-white hover:bg-trust-600'
                   : 'border border-scam-line text-scam-muted hover:border-trust-500/60 hover:text-trust-400'
               }`}
             >
-              {following ? 'Following' : 'Follow'}
+              {saved ? 'Following' : 'Follow'}
             </button>
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted">
               {initials(post.author.name)}
@@ -871,7 +872,7 @@ export function PostCard({ post }: { post: Post }) {
             type="button"
             whileTap={{ scale: 0.8 }}
             transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-            onClick={() => setSaved((s) => !s)}
+            onClick={() => toggleSave(post)}
             aria-label={saved ? 'Remove from saved' : 'Save'}
             aria-pressed={saved}
             className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400 ${

@@ -10,6 +10,7 @@ import { Footer } from './components/layout/Footer';
 import { Navbar } from './components/layout/Navbar';
 import { AppearanceProvider } from './context/AppearanceContext';
 import { AuthProvider } from './context/AuthContext';
+import { SavedFeedsProvider } from './context/SavedFeedsContext';
 import { AuthPage } from './routes/AuthPage';
 import { ForumPage } from './routes/ForumPage';
 import { HelpPage } from './routes/HelpPage';
@@ -68,17 +69,19 @@ export default function App() {
   return (
     <AppearanceProvider>
       <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <div className="flex min-h-screen flex-col">
-              <Navbar />
-              <div className="flex-1">
-                <AnimatedRoutes />
+        <SavedFeedsProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
+              <div className="flex min-h-screen flex-col">
+                <Navbar />
+                <div className="flex-1">
+                  <AnimatedRoutes />
+                </div>
+                <Footer />
               </div>
-              <Footer />
-            </div>
-          </BrowserRouter>
-        </QueryClientProvider>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </SavedFeedsProvider>
       </AuthProvider>
     </AppearanceProvider>
   );

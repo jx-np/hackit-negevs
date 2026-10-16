@@ -11,7 +11,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { deletePost } from '../api/posts';
 import { CommentBox } from '../components/forum/CommentBox';
@@ -23,6 +23,7 @@ import {
 } from '../components/forum/PostCard';
 import { ShareMenu } from '../components/forum/ShareMenu';
 import { useAuth } from '../context/AuthContext';
+import { useSavedFeeds } from '../context/SavedFeedsContext';
 import { usePost } from '../hooks/usePost';
 import { useReaction } from '../hooks/useReaction';
 import type { Post } from '../types';
@@ -84,22 +85,10 @@ export function PostDetailPage() {
   const { isLoggedIn } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [saved, setSaved] = useState(false);
+  const { isSaved, toggleSave } = useSavedFeeds();
+  const saved = post ? isSaved(post.id) : false;
   const [reportOpen, setReportOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  // Scroll-driven layout: start side-by-side (article left, comments right),
-  // then expand to a stacked full-width layout once the reader scrolls into
-  // the thread. framer-motion `layout` animates the reflow smoothly.
-  const [expanded, setExpanded] = useState(false);
-  useEffect(() => {
-    const THRESHOLD = 160;
-    function onScroll() {
-      setExpanded(window.scrollY > THRESHOLD);
-    }
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
   const verified = post?.reviewStatus === 'reviewed';
   const risk = post?.risk ? RISK_META[riskKey(post.risk)] : null;
 
@@ -160,13 +149,7 @@ export function PostDetailPage() {
         )}
 
         {post && (
-          <div
-            className={`grid items-start gap-6 ${
-              expanded
-                ? 'lg:grid-cols-1'
-                : 'lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]'
-            }`}
-          >
+          <div className="flex flex-col gap-6">
             <motion.article
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -345,7 +328,7 @@ export function PostDetailPage() {
                       type="button"
                       whileTap={{ scale: 0.8 }}
                       transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                      onClick={() => setSaved((s) => !s)}
+                      onClick={() => toggleSave(post)}
                       aria-label={saved ? 'Remove from saved' : 'Save'}
                       aria-pressed={saved}
                       className={`grid h-8 w-8 place-items-center rounded-md transition hover:bg-scam-800 hover:text-trust-400 ${
@@ -390,15 +373,12 @@ export function PostDetailPage() {
               </div>
             </motion.article>
 
-            {/* Comment thread — side column initially, full-width below once expanded */}
+            {/* Comment thread — full-width section below the post */}
             <motion.aside
-              key={expanded ? 'stacked' : 'side'}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className={`rounded-lg border border-scam-line bg-scam-800 p-6 shadow-card ${
-                expanded ? '' : 'lg:sticky lg:top-24'
-              }`}
+              className="rounded-lg border border-scam-line bg-scam-800 p-6 shadow-card"
             >
               <h2 className="mb-4 border-b border-scam-line pb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-scam-muted">
                 Discussion · {post.replyCount} {post.replyCount === 1 ? 'comment' : 'comments'}

@@ -179,16 +179,12 @@ export async function createPost(input: NewPostInput): Promise<Post> {
   }
 
   // The backend infers the scam category server-side and rejects a
-  // client-supplied `scam_type` on create, so the category is not sent. `tags`
-  // must be known tag slugs; any provided are passed through, filtering out
-  // empties.
-  const extraTags = (input.tags ?? []).filter((t) => !!t);
+  // client-supplied `scam_type` on create, so the category is not sent.
   const uploadIds = input.uploadIds ?? [];
 
   const body = {
     title: input.title,
     redacted_text: input.excerpt,
-    tags: extraTags,
     confirm_publication: true,
     locale: 'en-SG',
     // The backend copies each upload's redacted image onto the post, in order.

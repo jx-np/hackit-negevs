@@ -703,7 +703,7 @@ export function PostCard({ post }: { post: Post }) {
           </div>
 
           {/* Follow + author avatar initials (kept for test) + menu */}
-          <div className="relative z-40 flex shrink-0 items-center gap-2">
+          <div className="relative z-[25] flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={() => toggleSave(post)}

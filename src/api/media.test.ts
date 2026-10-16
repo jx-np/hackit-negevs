@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  deleteDetection,
   MAX_MEDIA_BYTES,
   uploadMedia,
   validateMediaFile,
@@ -22,6 +23,19 @@ function jsonResponse(body: unknown, status = 200): Response {
     headers: { get: () => '' },
     json: async () => body,
     text: async () => JSON.stringify(body),
+    blob: async () => new Blob(),
+  } as unknown as Response;
+}
+
+function noContentResponse(): Response {
+  return {
+    ok: true,
+    status: 204,
+    headers: { get: () => '' },
+    json: async () => {
+      throw new Error('no body');
+    },
+    text: async () => '',
     blob: async () => new Blob(),
   } as unknown as Response;
 }
@@ -117,5 +131,44 @@ describe('waitForRedaction', () => {
     await expect(waitForRedaction('56', { intervalMs: 1 })).rejects.toThrow(
       /could not redact/i,
     );
+  });
+});
+
+describe('deleteDetection', () => {
+  it('sends DELETE /detection/{id} and resolves on 204', async () => {
+    const fetchMock = vi.fn(async () => noContentResponse());
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(deleteDetection('56')).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(url).toContain('/detection/56');
+    expect(init.method).toBe('DELETE');
+  });
+
+  it('treats a 404 as success (already gone or not ours)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse({ error: { code: 'not_found', message: 'nope' } }, 404),
+      ),
+    );
+    await expect(deleteDetection('does-not-exist')).resolves.toBeUndefined();
+  });
+
+  it('rethrows other errors (e.g. 401 unauthenticated)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse(
+          { error: { code: 'unauthorized', message: 'login required' } },
+          401,
+        ),
+      ),
+    );
+    await expect(deleteDetection('56')).rejects.toThrow();
   });
 });

@@ -13,7 +13,7 @@
  * copies the redacted derivatives into post-owned objects.
  */
 import type { ApiDetection, ApiUploadResponse, UploadedMedia } from '../types';
-import { apiAssetUrl, apiFetch, apiFetchBlob } from './client';
+import { ApiError, apiAssetUrl, apiFetch, apiFetchBlob } from './client';
 
 /** Media types accepted by `POST /uploads`. */
 export const ALLOWED_MEDIA_TYPES = [
@@ -54,6 +54,26 @@ export async function uploadMedia(
 /** Fetch the current state of a detection check. */
 export async function getDetection(checkId: string): Promise<ApiDetection> {
   return apiFetch<ApiDetection>(`/detection/${encodeURIComponent(checkId)}`);
+}
+
+/**
+ * Cancel and permanently delete a detection check and its uploads.
+ *
+ * `DELETE /detection/{id}` is owner-only and irreversible. If the check is
+ * still `queued` or `processing`, this cancels the in-flight (or not-yet-started)
+ * OCR + PII-removal job, so no further compute is spent on a screenshot the
+ * author has removed. A `404` means the check is already gone or was never
+ * ours — harmless for a removal, so it is treated as success.
+ */
+export async function deleteDetection(checkId: string): Promise<void> {
+  try {
+    await apiFetch<void>(`/detection/${encodeURIComponent(checkId)}`, {
+      method: 'DELETE',
+    });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return;
+    throw err;
+  }
 }
 
 export interface RedactionOptions {

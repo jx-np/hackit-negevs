@@ -188,7 +188,6 @@ export async function createPost(input: NewPostInput): Promise<Post> {
   const body = {
     title: input.title,
     redacted_text: input.excerpt,
-    tags: extraTags,
     confirm_publication: true,
     locale: 'en-SG',
     // The backend copies each upload's redacted image onto the post, in order.

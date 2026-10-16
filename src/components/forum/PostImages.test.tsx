@@ -48,6 +48,39 @@ describe('PostImages', () => {
     expect(screen.queryByLabelText('Next image')).not.toBeInTheDocument();
   });
 
+  it('renders carousel controls for multiple images', () => {
+    render(<PostImages urls={URLS} alt="Fake bank SMS" />);
+    expect(screen.getByRole('group')).toHaveAttribute(
+      'aria-roledescription',
+      'carousel',
+    );
+    expect(screen.getByLabelText('Next image in carousel')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Previous image in carousel'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+  });
+
+  it('advances the carousel with the next control', () => {
+    render(<PostImages urls={URLS} alt="Fake bank SMS" />);
+    fireEvent.click(screen.getByLabelText('Next image in carousel'));
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+  });
+
+  it('jumps to a slide with the dot indicator', () => {
+    render(<PostImages urls={URLS} alt="Fake bank SMS" />);
+    fireEvent.click(screen.getByLabelText('Go to image 2'));
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+  });
+
+  it('shows no carousel controls for a single image', () => {
+    render(<PostImages urls={[URLS[0]]} alt="Fake bank SMS" />);
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Next image in carousel'),
+    ).not.toBeInTheDocument();
+  });
+
   it('blurs concealed evidence until it is revealed', () => {
     render(
       <PostImages urls={[URLS[0]]} alt="Fake bank SMS" concealUntilRevealed />,

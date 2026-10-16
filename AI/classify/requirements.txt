@@ -1,0 +1,14 @@
+# Scam classification concern — intentionally dependency-light (no heavy ML).
+# This concern only needs an HTTP client to clef-flash plus pydantic models,
+# so it can be split into its own process later without pulling in PaddleOCR.
+# Pinned for reproducibility.
+httpx==0.28.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# Dev / test / lint
+pytest==8.3.4
+pytest-asyncio==0.25.0
+ruff==0.8.4
+black==24.10.0

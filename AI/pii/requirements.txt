@@ -1,0 +1,31 @@
+# PII removal concern — CPU-only OCR + image censoring.
+# Pinned for reproducibility. Model weights are fetched at runtime into the
+# Hugging Face / PaddleOCR cache and must stay out of git.
+paddleocr==2.9.1
+paddlepaddle==2.6.2
+pillow==10.4.0
+numpy==1.26.4
+# PaddlePaddle imports setuptools at runtime (paddle.utils.cpp_extension);
+# Python 3.12 venvs no longer bundle it, so pin it explicitly.
+setuptools==75.6.0
+
+# Shared runtime deps (the server runs on this venv; see README).
+fastapi==0.115.6
+# FastAPI needs python-multipart to parse multipart/form-data (the Go pii.Client
+# posts the screenshot as a file part to POST /v1/redact; see CONTRACT.md).
+python-multipart==0.0.20
+uvicorn==0.34.0
+httpx==0.28.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# Dev / test / lint
+pytest==8.3.4
+pytest-asyncio==0.25.0
+ruff==0.8.4
+black==24.10.0
+
+# Dev-only: ocr_document.py draws the detected boxes in a window. Not used by
+# the server or tests.
+matplotlib==3.11.2

@@ -1,0 +1,23 @@
+[tool.pytest.ini_options]
+# Tests mock clef_client.system_one, so no live clef server or GPU is needed.
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# classify.py holds user-facing copy ported verbatim from the Go analyzer
+# (backend/internal/checks/analyzer.go). The strings must stay on single lines
+# so they remain exact and greppable against the Go source; do not wrap them.
+"classify/classify.py" = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]

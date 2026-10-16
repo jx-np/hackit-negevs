@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Virtualenvs (one per concern: pii, classify; plus any local test venv)
+.venv/
+.venv-*/
+venv/
+pii/.venv/
+classify/.venv/
+
+# Environment / secrets
+.env
+
+# Model weights — fetched into the HF cache, never committed (PLAN §4/§8)
+*.onnx
+*.pdparams
+*.pdiparams
+*.pdmodel
+models/
+weights/

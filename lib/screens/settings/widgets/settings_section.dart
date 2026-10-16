@@ -48,6 +48,14 @@ class SettingsSection extends StatelessWidget {
         ),
         Card(
           clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.24)
+                  : Colors.black.withValues(alpha: 0.38),
+            ),
+          ),
           child: Column(children: children),
         ),
       ],
@@ -86,7 +94,7 @@ class SettingsRow extends StatelessWidget {
     return ListTile(
       enabled: enabled,
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      contentPadding: const EdgeInsets.fromLTRB(24, 8, 16, 8),
       minVerticalPadding: 12,
       minLeadingWidth: 40,
       leading: leading,

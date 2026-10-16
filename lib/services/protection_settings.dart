@@ -40,9 +40,13 @@ const int kMaxCustomModelContext = 131072;
 /// Hardware backend the on-device model runs on. CPU works on every device;
 /// GPU is faster on phones with a supported GPU but can fail to initialise on
 /// some hardware, in which case the engine falls back automatically.
-enum ModelBackend { cpu, gpu, npu, npuTest }
+///
+/// [npu] is the "Automatic" choice: the runtime picks NPU when the installed
+/// model is an SoC-specific bundle, otherwise GPU. [forceNpu] pins the NPU in
+/// every build; [npuTest] is a debug-only forced-NPU shortcut.
+enum ModelBackend { cpu, gpu, npu, forceNpu, npuTest }
 
-/// Ask LiteRT-LM to try NPU, then GPU, then CPU when available.
+/// Default to "Automatic": try NPU for matching models, then GPU, then CPU.
 const ModelBackend kDefaultModelBackend = ModelBackend.npu;
 
 class ProtectionSettings {

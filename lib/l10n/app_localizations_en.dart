@@ -107,6 +107,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myProfileMemberSince => 'Member since';
 
   @override
+  String get myProfilePosts => 'Posts';
+
+  @override
   String get myProfileRole => 'Role';
 
   @override
@@ -153,6 +156,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeActionMyPostsBody => 'Track the scams you\'ve reported';
 
   @override
+  String get homeActionProfile => 'My profile';
+
+  @override
+  String get homeActionProfileBody => 'See your details and your posts';
+
+  @override
   String get homeActionCalls => 'Recent calls';
 
   @override
@@ -169,6 +178,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeActionSafetyBody => 'Turn on Scam Shield';
+
+  @override
+  String get homeStatusOnBody => 'We are checking your messages for scams.';
+
+  @override
+  String get homeStatusOffBody =>
+      'Turn it on so we can warn you about scam messages.';
+
+  @override
+  String get homeStatusProblemTitle => 'Protection needs attention';
+
+  @override
+  String get homeStatusProblemBody =>
+      'Something went wrong. Tap below to fix it.';
+
+  @override
+  String get homeStatusStartingTitle => 'Getting ready';
+
+  @override
+  String get homeStatusStartingBody =>
+      'Protection is starting up. This can take a minute.';
+
+  @override
+  String get homeStatusOpen => 'See details';
+
+  @override
+  String get homeStatusFix => 'Fix it now';
+
+  @override
+  String get homeNewsReadMore => 'Read more';
+
+  @override
+  String get homeNewsClose => 'Close';
+
+  @override
+  String homeNewsCount(Object current, Object total) {
+    return '$current of $total';
+  }
+
+  @override
+  String get homeNewsPrevious => 'Previous alert';
+
+  @override
+  String get homeNewsNext => 'Next alert';
 
   @override
   String get settingsDetectionModel => 'Detection model';
@@ -1077,7 +1130,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportTabTrackIt =>
-      'Shared with the community. Check My posts to track it.';
+      'Shared with the community. Check My Profile to track it.';
+
+  @override
+  String get reportTabHeroTitle => 'Warn others about a scam';
+
+  @override
+  String get reportTabNumberHeroTitle => 'Report a phone number';
+
+  @override
+  String get reportTabNumberHeroBody =>
+      'Tell us why this number is suspicious. Your report helps protect others.';
+
+  @override
+  String get reportTabPaste => 'Paste';
+
+  @override
+  String get reportTabPasteEmpty => 'Nothing to paste. Copy the message first.';
+
+  @override
+  String get reportTabNumberLabel => 'Phone number';
+
+  @override
+  String get reportTabNumberHint => 'e.g. +65 9123 4567';
+
+  @override
+  String get reportTabNumberRequired => 'Please enter the phone number.';
+
+  @override
+  String get reportTabReasonLabel => 'What happened?';
+
+  @override
+  String get reportTabReasonSpamBody => 'Unwanted calls or adverts';
+
+  @override
+  String get reportTabReasonScamBody =>
+      'They tried to trick me or take my money';
+
+  @override
+  String get reportTabReasonOtherBody => 'Something else felt wrong';
+
+  @override
+  String get reportTabSuccessTitle => 'Thank you for helping';
+
+  @override
+  String get reportTabReportAnother => 'Report another';
+
+  @override
+  String get reportTabDone => 'Done';
 
   @override
   String get myPostsTitle => 'My posts';
@@ -1248,6 +1348,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get tourMyPostsBody =>
       'Everything you report lands here. Track the discussion and see when a moderator has reviewed your post.';
+
+  @override
+  String get tourProfileTitle => 'Your Profile';
+
+  @override
+  String get tourProfileBody =>
+      'See your account details and all your posts in one place. Open settings or sign out from the buttons at the top.';
 
   @override
   String get tourSettingsTitle => 'Settings';

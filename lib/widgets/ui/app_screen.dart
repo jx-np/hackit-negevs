@@ -12,6 +12,7 @@ class AppScreen extends StatelessWidget {
     super.key,
     required this.title,
     required this.body,
+    this.titleWidget,
     this.actions,
     this.leading,
     this.scrollable = true,
@@ -21,6 +22,12 @@ class AppScreen extends StatelessWidget {
   });
 
   final String title;
+
+  /// Optional custom widget rendered in place of the plain [title] text in the
+  /// app bar. Use this when a page needs a tappable or styled header (e.g. the
+  /// home greeting) while keeping the standard app-bar size and placement.
+  /// The [title] is still required and used as the semantic/fallback label.
+  final Widget? titleWidget;
   final Widget body;
   final List<Widget>? actions;
   final Widget? leading;
@@ -65,7 +72,7 @@ class AppScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: titleWidget ?? Text(title),
         titleTextStyle: Theme.of(context).textTheme.titleLarge,
         centerTitle: false,
         actions: actions,

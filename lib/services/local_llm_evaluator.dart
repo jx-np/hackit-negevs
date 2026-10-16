@@ -125,6 +125,8 @@ class LocalLlmEvaluator implements ScamEvaluator {
     if (backend == ModelBackend.npuTest) {
       return kDebugMode ? PreferredBackend.npu : PreferredBackend.gpu;
     }
+    // Pinned NPU: honour the choice in every build.
+    if (backend == ModelBackend.forceNpu) return PreferredBackend.npu;
     if (backend != ModelBackend.npu) {
       return backend == ModelBackend.gpu
           ? PreferredBackend.gpu

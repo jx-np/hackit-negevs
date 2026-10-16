@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
@@ -12,10 +11,9 @@ import '../../services/protection_settings.dart';
 /// Debug-only developer menu.
 ///
 /// Everything technical that would confuse an everyday user lives here:
-/// loading a model file off the device, the hardware backend, the confidence
-/// threshold, and the raw cloud-review endpoint. This page is only reachable
-/// from [SettingsPage] when the app is built in debug mode, so none of it ships
-/// to end users in a release build.
+/// loading a model file off the device. This page is only reachable from
+/// [SettingsPage] when the app is built in debug mode, so none of it ships to
+/// end users in a release build.
 class DevMenuPage extends StatefulWidget {
   const DevMenuPage({
     super.key,
@@ -28,8 +26,7 @@ class DevMenuPage extends StatefulWidget {
   final ProtectionSettings settings;
 
   /// Called after any change that the background service needs to pick up
-  /// (model switch, endpoint edit, threshold, backend). The parent syncs the
-  /// native side and refreshes.
+  /// (model switch). The parent syncs the native side and refreshes.
   final Future<void> Function() onChanged;
 
   @override
@@ -41,14 +38,9 @@ class _DevMenuPageState extends State<DevMenuPage> {
   final TextEditingController _contextController = TextEditingController(
     text: kDefaultCustomModelContext.toString(),
   );
-  final TextEditingController _endpointController = TextEditingController();
-  final TextEditingController _remoteModelController = TextEditingController();
 
-  double _threshold = 0.6;
-  bool _forceCloud = false;
   bool _thinking = false;
   bool _scanning = false;
-  ModelBackend _backend = kDefaultModelBackend;
 
   @override
   void initState() {
@@ -62,8 +54,6 @@ class _DevMenuPageState extends State<DevMenuPage> {
     widget.model.removeListener(_onModelChanged);
     _pathController.dispose();
     _contextController.dispose();
-    _endpointController.dispose();
-    _remoteModelController.dispose();
     super.dispose();
   }
 
@@ -76,21 +66,11 @@ class _DevMenuPageState extends State<DevMenuPage> {
     final path = await s.customModelPath();
     final context = await s.customModelContext();
     final thinking = await s.customModelThinking();
-    final threshold = await s.confidenceThreshold();
-    final endpoint = await s.remoteEndpoint();
-    final remoteModel = await s.remoteModel();
-    final forceCloud = await s.forceCloud();
-    final backend = await s.modelBackend();
     if (!mounted) return;
     setState(() {
       _pathController.text = path;
       _contextController.text = context.toString();
       _thinking = thinking;
-      _threshold = threshold;
-      _endpointController.text = endpoint;
-      _remoteModelController.text = remoteModel;
-      _forceCloud = forceCloud;
-      _backend = backend;
     });
   }
 
@@ -111,43 +91,6 @@ class _DevMenuPageState extends State<DevMenuPage> {
         children: [
           _banner(theme),
           const SizedBox(height: 16),
-          _sectionTitle('Hardware backend', theme),
-          Card(
-            child: RadioGroup<ModelBackend>(
-              groupValue: _backend,
-              onChanged: _setBackend,
-              child: Column(
-                children: [
-                  RadioListTile<ModelBackend>(
-                    value: ModelBackend.cpu,
-                    title: const Text('CPU'),
-                    subtitle: const Text('Most compatible'),
-                  ),
-                  RadioListTile<ModelBackend>(
-                    value: ModelBackend.gpu,
-                    title: const Text('GPU'),
-                    subtitle: const Text('Faster on supported devices'),
-                  ),
-                  RadioListTile<ModelBackend>(
-                    value: ModelBackend.npu,
-                    title: const Text('Automatic'),
-                    subtitle: const Text(
-                      'NPU for matching models, then GPU or CPU',
-                    ),
-                  ),
-                  if (kDebugMode)
-                    RadioListTile<ModelBackend>(
-                      value: ModelBackend.npuTest,
-                      title: const Text('NPU test (force)'),
-                      subtitle: const Text(
-                        'Send the current model directly to the NPU',
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
           _sectionTitle('Load a model file from this device', theme),
           Card(
             child: Column(
@@ -218,72 +161,6 @@ class _DevMenuPageState extends State<DevMenuPage> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          _sectionTitle(
-            'Cloud review threshold (${(_threshold * 100).round()}%)',
-            theme,
-          ),
-          Slider(
-            value: _threshold,
-            min: 0,
-            max: 1,
-            divisions: 20,
-            label: '${(_threshold * 100).round()}%',
-            onChanged: (value) => setState(() => _threshold = value),
-            onChangeEnd: (value) async {
-              await widget.settings.setConfidenceThreshold(value);
-              await widget.onChanged();
-            },
-          ),
-          const SizedBox(height: 16),
-          _sectionTitle('Cloud review', theme),
-          Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  title: const Text('Always use cloud review'),
-                  subtitle: const Text(
-                    'Send every message to the cloud model first',
-                  ),
-                  value: _forceCloud,
-                  onChanged: (value) async {
-                    setState(() => _forceCloud = value);
-                    await widget.settings.setForceCloud(value);
-                    await widget.onChanged();
-                  },
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: TextField(
-                    controller: _endpointController,
-                    keyboardType: TextInputType.url,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Endpoint',
-                    ),
-                    onSubmitted: (value) async {
-                      await widget.settings.setRemoteEndpoint(value.trim());
-                      await widget.onChanged();
-                    },
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  child: TextField(
-                    controller: _remoteModelController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Model name',
-                    ),
-                    onSubmitted: (value) async {
-                      await widget.settings.setRemoteModel(value.trim());
-                      await widget.onChanged();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
@@ -337,13 +214,6 @@ class _DevMenuPageState extends State<DevMenuPage> {
               child: const Text('Forget'),
             ),
     );
-  }
-
-  Future<void> _setBackend(ModelBackend? backend) async {
-    if (backend == null) return;
-    setState(() => _backend = backend);
-    await widget.settings.setModelBackend(backend);
-    await widget.onChanged();
   }
 
   Future<void> _scanForModels() async {

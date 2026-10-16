@@ -294,6 +294,12 @@ abstract class AppLocalizations {
   /// **'Member since'**
   String get myProfileMemberSince;
 
+  /// No description provided for @myProfilePosts.
+  ///
+  /// In en, this message translates to:
+  /// **'Posts'**
+  String get myProfilePosts;
+
   /// No description provided for @myProfileRole.
   ///
   /// In en, this message translates to:
@@ -384,6 +390,18 @@ abstract class AppLocalizations {
   /// **'Track the scams you\'ve reported'**
   String get homeActionMyPostsBody;
 
+  /// No description provided for @homeActionProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'My profile'**
+  String get homeActionProfile;
+
+  /// No description provided for @homeActionProfileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'See your details and your posts'**
+  String get homeActionProfileBody;
+
   /// No description provided for @homeActionCalls.
   ///
   /// In en, this message translates to:
@@ -419,6 +437,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Turn on Scam Shield'**
   String get homeActionSafetyBody;
+
+  /// No description provided for @homeStatusOnBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We are checking your messages for scams.'**
+  String get homeStatusOnBody;
+
+  /// No description provided for @homeStatusOffBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn it on so we can warn you about scam messages.'**
+  String get homeStatusOffBody;
+
+  /// No description provided for @homeStatusProblemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection needs attention'**
+  String get homeStatusProblemTitle;
+
+  /// No description provided for @homeStatusProblemBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Tap below to fix it.'**
+  String get homeStatusProblemBody;
+
+  /// No description provided for @homeStatusStartingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Getting ready'**
+  String get homeStatusStartingTitle;
+
+  /// No description provided for @homeStatusStartingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection is starting up. This can take a minute.'**
+  String get homeStatusStartingBody;
+
+  /// No description provided for @homeStatusOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'See details'**
+  String get homeStatusOpen;
+
+  /// No description provided for @homeStatusFix.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix it now'**
+  String get homeStatusFix;
+
+  /// No description provided for @homeNewsReadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Read more'**
+  String get homeNewsReadMore;
+
+  /// No description provided for @homeNewsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get homeNewsClose;
+
+  /// No description provided for @homeNewsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} of {total}'**
+  String homeNewsCount(Object current, Object total);
+
+  /// No description provided for @homeNewsPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous alert'**
+  String get homeNewsPrevious;
+
+  /// No description provided for @homeNewsNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next alert'**
+  String get homeNewsNext;
 
   /// No description provided for @settingsDetectionModel.
   ///
@@ -2019,8 +2115,98 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabTrackIt.
   ///
   /// In en, this message translates to:
-  /// **'Shared with the community. Check My posts to track it.'**
+  /// **'Shared with the community. Check My Profile to track it.'**
   String get reportTabTrackIt;
+
+  /// No description provided for @reportTabHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn others about a scam'**
+  String get reportTabHeroTitle;
+
+  /// No description provided for @reportTabNumberHeroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report a phone number'**
+  String get reportTabNumberHeroTitle;
+
+  /// No description provided for @reportTabNumberHeroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us why this number is suspicious. Your report helps protect others.'**
+  String get reportTabNumberHeroBody;
+
+  /// No description provided for @reportTabPaste.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste'**
+  String get reportTabPaste;
+
+  /// No description provided for @reportTabPasteEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to paste. Copy the message first.'**
+  String get reportTabPasteEmpty;
+
+  /// No description provided for @reportTabNumberLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get reportTabNumberLabel;
+
+  /// No description provided for @reportTabNumberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. +65 9123 4567'**
+  String get reportTabNumberHint;
+
+  /// No description provided for @reportTabNumberRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the phone number.'**
+  String get reportTabNumberRequired;
+
+  /// No description provided for @reportTabReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'What happened?'**
+  String get reportTabReasonLabel;
+
+  /// No description provided for @reportTabReasonSpamBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Unwanted calls or adverts'**
+  String get reportTabReasonSpamBody;
+
+  /// No description provided for @reportTabReasonScamBody.
+  ///
+  /// In en, this message translates to:
+  /// **'They tried to trick me or take my money'**
+  String get reportTabReasonScamBody;
+
+  /// No description provided for @reportTabReasonOtherBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else felt wrong'**
+  String get reportTabReasonOtherBody;
+
+  /// No description provided for @reportTabSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for helping'**
+  String get reportTabSuccessTitle;
+
+  /// No description provided for @reportTabReportAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Report another'**
+  String get reportTabReportAnother;
+
+  /// No description provided for @reportTabDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get reportTabDone;
 
   /// No description provided for @myPostsTitle.
   ///
@@ -2333,6 +2519,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Everything you report lands here. Track the discussion and see when a moderator has reviewed your post.'**
   String get tourMyPostsBody;
+
+  /// No description provided for @tourProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Profile'**
+  String get tourProfileTitle;
+
+  /// No description provided for @tourProfileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'See your account details and all your posts in one place. Open settings or sign out from the buttons at the top.'**
+  String get tourProfileBody;
 
   /// No description provided for @tourSettingsTitle.
   ///

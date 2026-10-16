@@ -249,9 +249,7 @@ class _CoachMarkLayer extends StatelessWidget {
       case 3:
         return (l10n.tourReportTitle, l10n.tourReportBody);
       case 4:
-        return (l10n.tourMyPostsTitle, l10n.tourMyPostsBody);
-      case 5:
-        return (l10n.tourSettingsTitle, l10n.tourSettingsBody);
+        return (l10n.tourProfileTitle, l10n.tourProfileBody);
       case 0:
       default:
         return (l10n.tourHomeTitle, l10n.tourHomeBody);

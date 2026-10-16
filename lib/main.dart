@@ -9,12 +9,11 @@ import 'package:provider/provider.dart';
 import 'package:scamwatch_mobile_app/api/api_client.dart';
 import 'package:scamwatch_mobile_app/background/background_runner.dart';
 import 'package:scamwatch_mobile_app/screens/calls/call_history_screen.dart';
-import 'package:scamwatch_mobile_app/screens/community/my_posts_screen.dart';
 import 'package:scamwatch_mobile_app/screens/home/home_screen.dart';
 import 'package:scamwatch_mobile_app/screens/community/report_tab_screen.dart';
 import 'package:scamwatch_mobile_app/screens/onboarding/onboarding_screen.dart';
+import 'package:scamwatch_mobile_app/screens/profile/my_profile_screen.dart';
 import 'package:scamwatch_mobile_app/screens/safety/safety_screen.dart';
-import 'package:scamwatch_mobile_app/screens/settings/settings_page.dart';
 import 'package:scamwatch_mobile_app/services/protection_settings.dart';
 import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
 import 'package:scamwatch_mobile_app/state/auth_controller.dart';
@@ -259,6 +258,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  final PageController _pageController = PageController();
   static const MethodChannel _deeplink = MethodChannel('report/deeplink');
 
   final List<_NavigationItem> _items = [
@@ -266,10 +266,9 @@ class _HomePageState extends State<HomePage> {
     _NavigationItem(icon: LucideIcons.phone, label: (l10n) => l10n.callHistoryTitle),
     _NavigationItem(icon: LucideIcons.shield, label: (l10n) => l10n.safetyTitle),
     _NavigationItem(icon: LucideIcons.megaphone, label: (l10n) => l10n.reportTabTitle),
-    _NavigationItem(icon: LucideIcons.fileText, label: (l10n) => l10n.myPostsTitle),
     _NavigationItem(
-      icon: LucideIcons.settings,
-      label: (l10n) => l10n.settingsScreenTitle,
+      icon: LucideIcons.circleUserRound,
+      label: (l10n) => l10n.myProfileTitle,
     ),
   ];
 
@@ -297,6 +296,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     if (_tour?.onShowTab == _showTab) _tour?.onShowTab = null;
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -304,6 +304,15 @@ class _HomePageState extends State<HomePage> {
     if (!mounted) return;
     if (tabIndex < 0 || tabIndex >= _items.length) return;
     setState(() => _currentIndex = tabIndex);
+    // Keep the swipeable page view in step with programmatic tab changes
+    // (bottom-nav taps, quick actions, the feature tour, deeplinks).
+    if (_pageController.hasClients) {
+      _pageController.animateToPage(
+        tabIndex,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   Future<void> _maybeStartTour() async {
@@ -370,8 +379,7 @@ class _HomePageState extends State<HomePage> {
       const CallHistoryScreen(),
       const AuthGate(child: SafetyScreen()),
       AuthGate(child: ReportTabScreen(client: client)),
-      AuthGate(child: MyPostsScreen(client: client)),
-      const SettingsPage(),
+      MyProfileScreen(client: client),
     ];
     return Scaffold(
       body: SafeArea(
@@ -379,14 +387,19 @@ class _HomePageState extends State<HomePage> {
         child: CoachMarkOverlay(
           controller: tour,
           targets: targets,
-          child: screens[_currentIndex],
+          child: PageView(
+            controller: _pageController,
+            physics: const ClampingScrollPhysics(),
+            onPageChanged: (index) => setState(() => _currentIndex = index),
+            children: screens,
+          ),
         ),
       ),
       bottomNavigationBar: _AppNavBar(
         items: _items,
         currentIndex: _currentIndex,
         targets: targets,
-        onSelected: (index) => setState(() => _currentIndex = index),
+        onSelected: _showTab,
       ),
     );
   }

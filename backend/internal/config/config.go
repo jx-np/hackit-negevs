@@ -20,6 +20,19 @@ type Config struct {
 	RefreshTokenTTL time.Duration
 	BcryptCost      int
 	Environment     string
+	// Production enables machine-readable (JSON) logging. When false the
+	// service logs in the human-readable console format. Driven by the
+	// PRODUCTION environment variable.
+	Production bool
+	// StorageDir is the root directory for the local blob store that holds
+	// uploaded screenshots and their redacted derivatives. Driven by
+	// STORAGE_DIR.
+	StorageDir string
+	// PIIServiceURL is the base URL of the Python PII-removal service used to
+	// redact screenshot uploads. When empty the service falls back to a stub
+	// redactor that fails screenshot checks cleanly (text detection is
+	// unaffected). Driven by PII_SERVICE_URL.
+	PIIServiceURL string
 }
 
 // IsDevelopment reports whether the service is running in the development
@@ -38,6 +51,10 @@ func Load() (Config, error) {
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/scamshield?sslmode=disable"),
 		JWTSecret:   getEnv("JWT_SECRET", "dev-insecure-secret-change-me"),
 		Environment: getEnv("APP_ENV", "development"),
+		Production:  getEnvBool("PRODUCTION", false),
+
+		StorageDir:    getEnv("STORAGE_DIR", "./data/uploads"),
+		PIIServiceURL: getEnv("PII_SERVICE_URL", ""),
 	}
 
 	accessTTL, err := getEnvDuration("ACCESS_TOKEN_TTL", 15*time.Minute)
@@ -89,6 +106,18 @@ func getEnvDuration(key string, fallback time.Duration) (time.Duration, error) {
 		return 0, fmt.Errorf("config: invalid duration for %s: %w", key, err)
 	}
 	return d, nil
+}
+
+func getEnvBool(key string, fallback bool) bool {
+	v, ok := os.LookupEnv(key)
+	if !ok || v == "" {
+		return fallback
+	}
+	b, err := strconv.ParseBool(strings.TrimSpace(v))
+	if err != nil {
+		return fallback
+	}
+	return b
 }
 
 func getEnvInt(key string, fallback int) (int, error) {

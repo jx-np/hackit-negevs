@@ -13,12 +13,17 @@ import (
 
 	"scamshield/internal/auth"
 	"scamshield/internal/checks"
+	"scamshield/internal/classifier"
 	"scamshield/internal/config"
 	"scamshield/internal/httpx"
+	"scamshield/internal/logging"
 	"scamshield/internal/moderation"
+	"scamshield/internal/pii"
 	"scamshield/internal/platform/db"
 	"scamshield/internal/reports"
 	"scamshield/internal/resources"
+	"scamshield/internal/storage"
+	"scamshield/migrations"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -32,23 +37,30 @@ var (
 )
 
 func main() {
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	// Configuration is loaded first so the log format can follow PRODUCTION.
+	// A failure here happens before the service exists, so it is reported with a
+	// best-effort logger and the process exits.
+	cfg, err := config.Load()
+	if err != nil {
+		logging.New(os.Stdout, logging.Production()).Error("invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
+	logger := logging.New(os.Stdout, cfg.Production)
 	slog.SetDefault(logger)
 
-	logger.Info("starting scamshield api", "version", version, "commit", commit, "build_time", buildTime)
+	logger.Info("starting scamshield api",
+		"version", version, "commit", commit, "build_time", buildTime,
+		"env", cfg.Environment, "addr", cfg.HTTPAddr,
+	)
 
-	if err := run(logger); err != nil {
+	if err := run(cfg, logger); err != nil {
 		logger.Error("service exited with error", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run(logger *slog.Logger) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
-
+func run(cfg config.Config, logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
@@ -59,6 +71,20 @@ func run(logger *slog.Logger) error {
 	defer pool.Close()
 	logger.Info("connected to database")
 
+	// Apply any pending schema migrations before serving. The runner is a no-op
+	// when the database is already at the latest embedded version, so this is
+	// safe to run on every startup. A failure here means the schema is stale or
+	// broken, so the service refuses to start rather than serve against it.
+	applied, err := migrations.Up(ctx, pool)
+	if err != nil {
+		return err
+	}
+	if applied > 0 {
+		logger.Info("applied database migrations", "count", applied)
+	} else {
+		logger.Info("database schema up to date")
+	}
+
 	tokens := auth.NewTokenService(cfg.JWTSecret, cfg.AccessTokenTTL)
 	authRepo := auth.NewPostgresRepository(pool)
 	authSvc := auth.NewService(authRepo, tokens, auth.Config{
@@ -67,10 +93,34 @@ func run(logger *slog.Logger) error {
 	})
 	authHandler := auth.NewHandler(authSvc, tokens)
 
+	// Local blob store for uploaded screenshots and their redacted
+	// derivatives. Shared by the checks (private detection) and reports
+	// (community posts) domains so a post can carry its own copy of a check's
+	// redacted image.
+	store, err := storage.NewLocalStore(cfg.StorageDir)
+	if err != nil {
+		return err
+	}
+	logger.Info("blob storage ready", "dir", cfg.StorageDir)
+
+	// PII-removal redactor for screenshot uploads. When PII_SERVICE_URL is set
+	// the Python service is called over HTTP; otherwise a stub is used that
+	// fails screenshot checks cleanly (text detection is unaffected).
+	var redactor pii.Redactor = pii.NewStub()
+	if cfg.PIIServiceURL != "" {
+		redactor = pii.NewClient(cfg.PIIServiceURL)
+		logger.Info("pii redaction service configured", "url", cfg.PIIServiceURL)
+	} else {
+		logger.Warn("pii redaction service not configured; screenshot checks will fail until PII_SERVICE_URL is set")
+	}
+
 	// Domain services and handlers.
 	checksRepo := checks.NewPostgresRepository(pool)
-	checksHandler := checks.NewHandler(checks.NewService(checksRepo, checksRepo))
-	reportsHandler := reports.NewHandler(reports.NewService(reports.NewPostgresRepository(pool)))
+	checksHandler := checks.NewHandler(checks.NewService(checksRepo, checksRepo, store, redactor))
+	// The scam classifier assigns each post's category on publish. Swap the
+	// stub for the decision-model client once that service exists.
+	postClassifier := classifier.NewStub()
+	reportsHandler := reports.NewHandler(reports.NewService(reports.NewPostgresRepository(pool), postClassifier, store))
 	moderationHandler := moderation.NewHandler(moderation.NewService(moderation.NewPostgresRepository(pool)))
 	resourcesHandler := resources.NewHandler(resources.NewService(resources.NewPostgresRepository(pool)))
 
@@ -102,14 +152,17 @@ func run(logger *slog.Logger) error {
 		Addr:              cfg.HTTPAddr,
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      15 * time.Second,
-		IdleTimeout:       60 * time.Second,
+		// Generous read/write windows so multipart screenshot uploads (up to
+		// ~10 MiB) have time to stream in and the redacted image to stream out
+		// over slower mobile connections.
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	serverErr := make(chan error, 1)
 	go func() {
-		logger.Info("http server listening", "addr", cfg.HTTPAddr, "env", cfg.Environment)
+		logger.Info("http server listening", "addr", cfg.HTTPAddr, "env", cfg.Environment, "log_format", logFormat(cfg))
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErr <- err
 		}
@@ -129,6 +182,15 @@ func run(logger *slog.Logger) error {
 	}
 	logger.Info("server stopped cleanly")
 	return nil
+}
+
+// logFormat names the active log format, so startup output makes it obvious
+// which one is in use.
+func logFormat(cfg config.Config) string {
+	if cfg.Production {
+		return "json"
+	}
+	return "console"
 }
 
 func registerHealthRoutes(mux *http.ServeMux, mw httpx.Middleware, pool *pgxpool.Pool) {

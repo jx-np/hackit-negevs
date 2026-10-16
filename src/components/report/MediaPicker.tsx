@@ -1,6 +1,7 @@
 import { ImagePlus, Loader2, ShieldCheck, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  deleteDetection,
   fetchRedactedImageUrl,
   MAX_MEDIA_BYTES,
   uploadMedia,
@@ -46,6 +47,10 @@ export function MediaPicker({ value, onChange, max }: MediaPickerProps) {
   // Latest list, so async uploads don't clobber each other's results. It is
   // written only from event handlers and async callbacks (never during render).
   const valueRef = useRef(value);
+  // Row ids removed while their upload was still in flight. If the upload (and
+  // its check) lands after removal, the check is deleted on arrival so a
+  // queued/not-yet-started redaction job is still cancelled.
+  const removedRef = useRef<Set<string>>(new Set());
   // Redacted preview opened full-screen so the user can inspect the detail.
   const [zoom, setZoom] = useState<{ url: string; name: string } | null>(null);
 
@@ -135,6 +140,14 @@ export function MediaPicker({ value, onChange, max }: MediaPickerProps) {
           let currentId = placeholder.uploadId;
           try {
             const media = await uploadMedia(file);
+            // Removed while uploading: the row is gone, so there is nothing to
+            // update. Cancel the freshly-created check to free its blobs and
+            // stop a queued/in-flight redaction job from running.
+            if (removedRef.current.has(placeholder.uploadId)) {
+              removedRef.current.delete(placeholder.uploadId);
+              void deleteDetection(media.checkId).catch(() => {});
+              return;
+            }
             // Swap the placeholder id for the real upload id.
             apply(
               valueRef.current.map((img) =>
@@ -170,6 +183,20 @@ export function MediaPicker({ value, onChange, max }: MediaPickerProps) {
     const img = valueRef.current.find((i) => i.uploadId === uploadId);
     if (img?.previewUrl) URL.revokeObjectURL(img.previewUrl);
     apply(valueRef.current.filter((i) => i.uploadId !== uploadId));
+
+    // Delete the check server-side so its stored blobs are removed and any
+    // still-queued or in-flight redaction job is cancelled (saving compute).
+    // Fire-and-forget: the image is already gone from the report, and a 404
+    // (never existed / already gone) is treated as success by deleteDetection.
+    if (img?.checkId) {
+      void deleteDetection(img.checkId).catch(() => {
+        /* best-effort cleanup; nothing actionable for the user */
+      });
+    } else {
+      // Removed before the upload resolved: remember it so the in-flight
+      // upload cancels its check as soon as one is created.
+      removedRef.current.add(uploadId);
+    }
   };
 
   const onDrop = (e: React.DragEvent) => {

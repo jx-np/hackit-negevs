@@ -8,7 +8,6 @@ import {
   Building2,
   ChevronDown,
   CreditCard,
-  Flame,
   Gift,
   Globe,
   GraduationCap,
@@ -44,6 +43,7 @@ import { useSavedFeeds } from '../../context/SavedFeedsContext';
  * feed (post list) is shown.
  */
 export type ForumPanel =
+  | 'newest'
   | 'stay-safe'
   | 'rules'
   | 'verified'
@@ -65,8 +65,7 @@ type IconType = ComponentType<{ size?: number | string; className?: string }>;
 /** Primary navigation group at the top of the sidebar. */
 const NAV_ITEMS: { icon: IconType; label: string; panel?: ForumPanel }[] = [
   { icon: Home, label: 'Home' },
-  { icon: Flame, label: 'Trending Scams' },
-  { icon: Sparkles, label: 'Newest Reports' },
+  { icon: Sparkles, label: 'Newest Reports', panel: 'newest' },
   { icon: BookOpen, label: 'How to Stay Safe', panel: 'stay-safe' },
 ];
 
@@ -140,7 +139,7 @@ export function ForumSidebar({
               onClick={() => {
                 if (panel) {
                   onOpenPanel(panel);
-                } else if (i === 0) {
+                } else {
                   onOpenPanel(null);
                   onSelect(null);
                 }

@@ -77,7 +77,7 @@ export function SignupForm() {
       />
 
       {errors.root && (
-        <p className="border border-risk-500 bg-risk-50 px-3 py-2 text-xs text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
+        <p className="rounded-md border border-risk-500 bg-risk-50 px-3 py-2 text-xs text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
           {errors.root.message}
         </p>
       )}

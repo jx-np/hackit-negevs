@@ -661,7 +661,7 @@ export function PostCard({ post }: { post: Post }) {
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       onClick={handleCardClick}
-      className="group relative mb-5 cursor-pointer overflow-hidden rounded-2xl border border-scam-line bg-scam-800 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-trust-500/35 hover:shadow-card-hover"
+      className="group relative isolate mb-5 cursor-pointer overflow-hidden rounded-2xl border border-scam-line bg-scam-800 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-trust-500/35 hover:shadow-card-hover"
     >
       {/* Colored left-border risk strip — triage the feed at a glance. */}
       {post.risk && (
@@ -859,6 +859,12 @@ export function PostCard({ post }: { post: Post }) {
         <span className="ml-1 mr-1 hidden items-center gap-1.5 text-xs font-medium text-risk-low sm:inline-flex">
           <ShieldCheck size={14} /> {reaction.upCount} confirmed
         </span>
+
+        {reaction.error && (
+          <span role="alert" className="ml-1 mr-1 text-xs font-medium text-risk-high">
+            {reaction.error}
+          </span>
+        )}
 
         <button
           type="button"

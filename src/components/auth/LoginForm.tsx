@@ -19,7 +19,7 @@ export function LoginForm() {
   const onSubmit = async (values: LoginValues) => {
     try {
       await login(values.email, values.password);
-      navigate('/forum');
+      navigate('/');
     } catch (err) {
       if (err instanceof ApiError) {
         // 401 → generic invalid credentials; 422 → field errors.
@@ -60,7 +60,7 @@ export function LoginForm() {
       />
 
       {errors.root && (
-        <p className="border border-risk-500 bg-risk-50 px-3 py-2 text-xs text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
+        <p className="rounded-md border border-risk-500 bg-risk-50 px-3 py-2 text-xs text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
           {errors.root.message}
         </p>
       )}

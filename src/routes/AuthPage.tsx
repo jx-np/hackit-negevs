@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LoginForm } from '../components/auth/LoginForm';
 import { SignupForm } from '../components/auth/SignupForm';
+import { BrandMark } from '../components/layout/Navbar';
 import { useAuth } from '../context/AuthContext';
 
 type Mode = 'login' | 'signup';
@@ -26,7 +27,7 @@ export function AuthPage() {
     setDemoError(null);
     try {
       await login('demo@gmail.com', 'xSFJ@2KyMQEKYa8');
-      navigate('/report');
+      navigate('/');
     } catch {
       setDemoError('Demo login failed. Please try again.');
     } finally {
@@ -42,32 +43,30 @@ export function AuthPage() {
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative hidden overflow-hidden bg-ink-900 p-10 text-white lg:block dark:border dark:border-ink-800"
+          className="relative hidden overflow-hidden rounded-2xl border border-ink-200 bg-white p-10 text-ink-900 lg:block dark:border-ink-800 dark:bg-ink-900 dark:text-white"
         >
           <div className="pointer-events-none absolute inset-0 ia-grid opacity-30" />
 
           <div className="relative">
-            <span className="grid h-12 w-12 place-items-center border border-white/30 text-white">
-              <ShieldCheck size={24} />
-            </span>
-            <span className="ia-label mt-8 block text-safe-400">
+            <BrandMark />
+            <span className="ia-label mt-8 block text-safe-700 dark:text-safe-400">
               Secure access
             </span>
             <h2 className="mt-3 font-display text-3xl font-bold leading-tight">
               Report scams. Protect the community.
             </h2>
-            <p className="mt-3 text-ink-300">
+            <p className="mt-3 text-ink-600 dark:text-ink-300">
               Sign in to file reports, comment on records, and keep up with the
               scams other members have flagged.
             </p>
 
-            <ul className="mt-10 space-y-4 border-t border-white/10 pt-8">
+            <ul className="mt-10 space-y-4 border-t border-ink-200 pt-8 dark:border-white/10">
               {PERKS.map(({ icon: Icon, text }) => (
                 <li key={text} className="flex items-center gap-3">
-                  <span className="grid h-9 w-9 place-items-center border border-white/20 text-safe-400">
+                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-trust-500/10 text-trust-600 ring-1 ring-inset ring-trust-500/20 dark:text-trust-400">
                     <Icon size={18} />
                   </span>
-                  <span className="text-sm font-medium text-white/90">{text}</span>
+                  <span className="text-sm font-medium text-ink-700 dark:text-white/90">{text}</span>
                 </li>
               ))}
             </ul>
@@ -96,7 +95,7 @@ export function AuthPage() {
           </div>
 
           {/* Mode toggle */}
-          <div className="mb-6 flex border border-ink-200 dark:border-ink-800">
+          <div className="mb-6 flex overflow-hidden rounded-xl border border-ink-200 dark:border-ink-800">
             {(['login', 'signup'] as Mode[]).map((m) => (
               <button
                 key={m}
@@ -131,7 +130,7 @@ export function AuthPage() {
               type="button"
               onClick={continueAsDemo}
               disabled={demoLoading}
-              className="flex w-full items-center justify-center gap-2 border border-ink-300 py-3 text-base font-semibold text-ink-800 transition hover:border-safe-500 hover:text-safe-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-ink-700 dark:text-ink-100 dark:hover:text-safe-400"
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-ink-300 py-3 text-base font-semibold text-ink-800 transition hover:border-safe-500 hover:text-safe-700 disabled:cursor-not-allowed disabled:opacity-60 dark:border-ink-700 dark:text-ink-100 dark:hover:text-safe-400"
             >
               <UserRound size={18} />
               {demoLoading ? 'Signing in…' : 'Continue as demo user'}

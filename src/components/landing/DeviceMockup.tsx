@@ -158,9 +158,7 @@ function AppScreen() {
       </div>
 
       {/* Scan sweep */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 animate-scan bg-gradient-to-b from-transparent via-trust-500/10 to-transparent">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-trust-500/50" />
-      </div>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 animate-scan bg-gradient-to-b from-transparent via-trust-500/10 to-transparent" />
     </div>
   );
 }

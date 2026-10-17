@@ -67,11 +67,15 @@ NOT scam (very common, do not flag these)
 - Advertising, promotions, newsletters, discount offers and marketing with no request for money, credentials or an install.
 - Gibberish, word salad or random text with no ask.
 - Informative notices: receipts, balance alerts, parcel tracking, appointment or application status, school or work updates.
+- BANK AND PAYMENT NOTICES that only REPORT a transaction: "account credited/debited rs 25500", "payment successful", "bill rs 485 due", "upi transaction done". Reporting that money moved, or stating a bill is due, is NOT asking you to pay. Only flag if it tells YOU to send money, pay a fee, or share credentials.
+- A phone number or a "call <number>" in an otherwise ordinary notice is NOT by itself a scam. A bank or company listing its contact number is normal.
+- WORK AND CORPORATE EMAIL: meeting invites, earnings-call reminders, dial-in details, name lists / CC lists, contract and project chatter, research questions, internal updates. Mentioning a company or named people is NOT impersonation.
 - A message that DELIVERS a code ("your code is 482913, do not share"). Delivering a code is not asking for one.
 - "discount code", "promo code", "referral code".
 - Friends chatting, joking, planning, or asking each other for small amounts of money.
 - Introducing yourself ("this is Marcus from X").
 - Usernames, handles and app names are never evidence.
+- The Sender field is a display name from the user's phone (e.g. "Sister", "Mom", "John"), NOT a claim the message makes. A sender=name or sender=saved_contact is never by itself evidence of impersonation. Impersonation requires the message BODY to claim an identity AND make an ask.
 - A link by itself, or an odd domain by itself, is not enough.
 
 Labels. Pick the FIRST that fits.
@@ -79,9 +83,9 @@ asks_credentials: asks for OTP/PIN/password/bank login.
 asks_app_install: asks to install an app/APK/remote tool.
 urgent_threat: threat of arrest, fine, blocking, virus, or account closure plus an action to take (call, click, pay).
 prize_lottery: prize, win or refund plus a claim step or fee.
-payment_request: asks for a fee, payment, transfer or gift cards.
-impersonation: ONLY when it claims to be a trusted person or organisation AND asks for something. A claim alone is not impersonation.
-other_scam: ONLY for a clear deception with an ask that fits none of the above (task jobs, trading groups, romance with a request). Never use it for vague, odd or promotional messages; use not_scam instead.
+payment_request: asks YOU to send a fee, payment, transfer or gift cards. A notice that money was credited/debited, a payment confirmation, or a bill-due reminder is NOT a payment_request - that is not_scam.
+impersonation: ONLY when it claims to be a trusted person or organisation AND asks for money, credentials or an install. A claim alone, a work email, or a message that merely names a company or person is NOT impersonation.
+other_scam: ONLY for a clear deception with an ask that fits none of the above (task jobs, trading groups, romance with a request). Never use it for ads, pill/casino/stock spam, corporate email, or vague/odd/promotional messages; those are not_scam.
 not_scam: ordinary or promotional communication.
 unsure: ONLY for a message visibly cut off mid-sentence.
 
@@ -125,7 +129,25 @@ Sender: Unknown | Hints: sender=name, apk_or_remote_app=yes, asks_for_code=yes, 
 {"label":"asks_app_install","confidence":0.95,"reason":"Remote-control app plus access code."}
 
 Sender: +65 6000 0000 | Hints: sender=unsaved_local, legal_threat=yes, urgency=yes, callback_request=yes, signals=3 | "Police notice: a case is filed against you. Call 6123 4567 now or a warrant is issued."
-{"label":"urgent_threat","confidence":0.95,"reason":"Fake police warrant demanding a call."}''';
+{"label":"urgent_threat","confidence":0.95,"reason":"Fake police warrant demanding a call."}
+
+Sender: HDFC | Hints: sender=name, money_ask=yes, callback_request=yes, signals=2 | "rs 8000 debited account xxxx1234 upi transaction done call 1800123456 for queries"
+{"label":"not_scam","confidence":0.8,"reason":"Bank reports a transaction, asks nothing."}
+
+Sender: Paytm | Hints: sender=name, money_ask=yes, signals=1 | "payment rs 10500 to ashley successful. ref 99212."
+{"label":"not_scam","confidence":0.95,"reason":"Payment confirmation, nothing requested."}
+
+Sender: Airtel | Hints: sender=name, money_ask=yes, signals=1 | "your airtel mobile bill rs 485 is due on 27 sep. pay to avoid interruption."
+{"label":"not_scam","confidence":0.8,"reason":"Ordinary bill-due reminder."}
+
+Sender: work | Hints: sender=name, signals=0 | "reminder: q3 earnings call thursday 10am. dial-in 800-555-0100 pin 4412. agenda attached."
+{"label":"not_scam","confidence":0.95,"reason":"Internal meeting reminder, no ask."}
+
+Sender: Unknown | Hints: sender=name, link=shortened, urgency=yes, signals=2 | "jio free 5g upgrade, tap bit.ly/xyz to activate before midnight"
+{"label":"prize_lottery","confidence":0.8,"reason":"Free-upgrade bait via short link with deadline."}
+
+Sender: Unknown | Hints: sender=name, link=shortened, signals=1 | "fedex package rg38in waiting, confirm your address at tinyurl.com/abc"
+{"label":"payment_request","confidence":0.8,"reason":"Fake parcel asking address via short link."}''';
 
 const String _scamExamplesCompact = '''
 
@@ -143,7 +165,13 @@ Sender: 8841 | Hints: sender=short_code, link=odd_tld, asks_for_code=yes, urgenc
 {"label":"asks_credentials","confidence":0.95,"reason":"Wants the OTP through a lookalike site."}
 
 Sender: Raj | Hints: sender=saved_contact, money_ask=yes, signals=1 | "can you PayNow me 15 for lunch? forgot my wallet"
-{"label":"not_scam","confidence":0.95,"reason":"Friend borrowing a small amount."}''';
+{"label":"not_scam","confidence":0.95,"reason":"Friend borrowing a small amount."}
+
+Sender: HDFC | Hints: sender=name, money_ask=yes, callback_request=yes, signals=2 | "rs 8000 debited account xxxx1234 upi transaction done call 1800123456 for queries"
+{"label":"not_scam","confidence":0.8,"reason":"Bank reports a transaction, asks nothing."}
+
+Sender: Unknown | Hints: sender=name, link=shortened, signals=1 | "fedex package rg38in waiting, confirm your address at tinyurl.com/abc"
+{"label":"payment_request","confidence":0.8,"reason":"Fake parcel asking address via short link."}''';
 
 /// Escapes the angle brackets that delimit the `<message>` block so a message
 /// containing literal `<message>`/`</message>` text cannot break out of the

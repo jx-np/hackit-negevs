@@ -222,6 +222,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     final List<XFile> accepted = <XFile>[];
     bool rejected = false;
     for (final XFile file in picked) {
+      // TODO: Compress/downscale the picked image before this size check to
+      // reduce upload size (e.g. re-encode to JPEG at a capped resolution and
+      // quality). Compressing first would also let oversized screenshots fit
+      // under [_maxImageBytes] instead of being rejected outright below.
       final int length = await file.length();
       if (length > _maxImageBytes) {
         rejected = true;

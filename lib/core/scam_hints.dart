@@ -143,7 +143,7 @@ class ScamHintBuilder {
   const ScamHintBuilder._();
 
   static final RegExp _shortener = RegExp(
-    r'\b(bit\.ly|tinyurl\.com|t\.co|cutt\.ly|is\.gd|rb\.gy|shorturl\.at)/\S+',
+    r'\b(bit\.ly|tinyurl\.com|t\.co|cutt\.ly|is\.gd|rb\.gy|shorturl\.at|ow\.ly|rebrandly\.com)/\S+',
     caseSensitive: false,
   );
   static final RegExp _oddTld = RegExp(

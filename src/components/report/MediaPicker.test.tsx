@@ -42,10 +42,11 @@ function pngFile(name = 'evidence.png') {
 }
 
 /**
- * Stub fetch for the upload flow: POST /uploads schedules a check, the poll
- * returns `checkStatus`, and the redacted image endpoint returns bytes.
+ * Stub fetch for the upload flow: POST /uploads schedules redaction, the poll
+ * of GET /uploads/{id} returns `uploadStatus`, and the redacted image endpoint
+ * returns bytes.
  */
-function stubUploadFlow(checkStatus: 'processing' | 'ready' | 'failed') {
+function stubUploadFlow(uploadStatus: 'processing' | 'ready' | 'failed') {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString();
     const method = (init?.method ?? 'GET').toUpperCase();
@@ -58,12 +59,11 @@ function stubUploadFlow(checkStatus: 'processing' | 'ready' | 'failed') {
         json: async () => ({
           upload_id: '12',
           media_type: 'image/png',
-          check_id: '56',
           status: 'processing',
         }),
       } as unknown as Response;
     }
-    if (url.includes('/detection/56/redacted-image')) {
+    if (url.includes('/uploads/12/redacted-image')) {
       return {
         ok: true,
         status: 200,
@@ -71,12 +71,16 @@ function stubUploadFlow(checkStatus: 'processing' | 'ready' | 'failed') {
         blob: async () => new Blob(['redacted'], { type: 'image/png' }),
       } as unknown as Response;
     }
-    if (url.includes('/detection/56')) {
+    if (url.includes('/uploads/12')) {
       return {
         ok: true,
         status: 200,
         headers: { get: () => '' },
-        json: async () => ({ check_id: '56', status: checkStatus }),
+        json: async () => ({
+          upload_id: '12',
+          media_type: 'image/png',
+          status: uploadStatus,
+        }),
       } as unknown as Response;
     }
     return {
@@ -118,7 +122,8 @@ describe('MediaPicker', () => {
 
     const urls = fetchMock.mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.includes('/uploads'))).toBe(true);
-    expect(urls.some((u) => u.includes('/detection/56/redacted-image'))).toBe(
+    expect(urls.some((u) => u.includes('/uploads/12'))).toBe(true);
+    expect(urls.some((u) => u.includes('/uploads/12/redacted-image'))).toBe(
       true,
     );
   });

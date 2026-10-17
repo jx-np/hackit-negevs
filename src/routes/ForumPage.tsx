@@ -120,7 +120,7 @@ export function ForumPage() {
               </motion.div>
 
               {/* Search + sort bar */}
-              <div className="sticky top-[4.75rem] z-20 -mx-2 mb-6 flex flex-col gap-3 rounded-2xl bg-scam-950/85 px-2 py-2 backdrop-blur-md sm:flex-row sm:items-center">
+              <div className="sticky top-[4.75rem] z-30 -mx-2 mb-6 flex flex-col gap-3 rounded-2xl bg-scam-950 px-2 py-2 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.9)] sm:flex-row sm:items-center">
                 <div className="flex-1">
                   <SearchBar value={search} onChange={setSearch} />
                 </div>

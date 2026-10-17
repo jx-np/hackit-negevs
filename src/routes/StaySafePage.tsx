@@ -67,7 +67,7 @@ function TipCard({ tip }: { tip: Tip }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="rounded-lg border border-scam-line bg-scam-800 p-5"
+      className="rounded-2xl border border-scam-line bg-scam-800 shadow-card p-5"
     >
       <span className="sr-tile h-10 w-10">
         <Icon size={20} />
@@ -142,7 +142,6 @@ export function StaySafePage() {
   return (
     <div
       className="min-h-screen bg-scam-950 text-scam-text"
-      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
     >
       <div className="mx-auto w-full max-w-[900px] px-5 py-10 lg:px-8">
         <StaySafeContent />

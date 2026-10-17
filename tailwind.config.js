@@ -137,8 +137,12 @@ export default {
         // IA: crisp, low, structural — not floaty
         ia: '0 1px 0 0 rgba(18,22,27,0.04), 0 1px 3px 0 rgba(18,22,27,0.08)',
         // Soft lift for report cards (flat-modern, not heavy)
-        card: '0 1px 2px 0 rgba(0,0,0,0.3)',
-        'card-hover': '0 4px 16px -4px rgba(0,0,0,0.45)',
+        card: '0 1px 2px 0 rgba(15,23,42,0.06), 0 1px 1px 0 rgba(15,23,42,0.04)',
+        'card-hover': '0 12px 32px -12px rgba(15,23,42,0.28), 0 2px 6px -2px rgba(15,23,42,0.08)',
+        // Primary button depth (inner highlight + soft drop)
+        button: 'inset 0 1px 0 0 rgba(255,255,255,0.18), 0 1px 2px 0 rgba(15,23,42,0.2)',
+        // Hero device / floating graphic
+        device: '0 40px 80px -24px rgba(15,23,42,0.45), 0 12px 24px -12px rgba(15,23,42,0.3)',
       },
       backgroundImage: {
         'brand-gradient':
@@ -165,8 +169,20 @@ export default {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
           '50%': { opacity: '0.4', transform: 'scale(0.85)' },
         },
+        // On-device "scan" sweep across the phone screen
+        scan: {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '15%': { opacity: '1' },
+          '85%': { opacity: '1' },
+          '100%': { transform: 'translateY(420%)', opacity: '0' },
+        },
+        ping: {
+          '75%, 100%': { transform: 'scale(2.2)', opacity: '0' },
+        },
       },
       animation: {
+        scan: 'scan 3.2s ease-in-out infinite',
+        'ping-slow': 'ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite',
         'fade-up': 'fade-up 0.5s ease-out both',
         float: 'float 6s ease-in-out infinite',
         'gradient-x': 'gradient-x 6s ease infinite',

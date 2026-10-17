@@ -15,11 +15,11 @@ const OPTIONS: { value: SortKey; label: string }[] = [
 export function SortControl({ value, onChange }: SortControlProps) {
   return (
     <div
-      className="inline-flex overflow-hidden rounded-md border border-scam-line"
+      className="inline-flex gap-1 rounded-xl border border-scam-line bg-scam-800 p-1 shadow-card"
       role="group"
       aria-label="Sort posts"
     >
-      {OPTIONS.map((opt, i) => {
+      {OPTIONS.map((opt) => {
         const active = opt.value === value;
         return (
           <button
@@ -27,12 +27,10 @@ export function SortControl({ value, onChange }: SortControlProps) {
             type="button"
             onClick={() => onChange(opt.value)}
             aria-pressed={active}
-            className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider transition ${
-              i > 0 ? 'border-l border-scam-line' : ''
-            } ${
+            className={`sr-focus rounded-lg px-3.5 py-2 text-sm font-semibold transition ${
               active
-                ? 'bg-trust-500 text-white'
-                : 'bg-scam-800 text-scam-muted hover:text-scam-text'
+                ? 'bg-trust-600 text-white shadow-button'
+                : 'text-scam-muted hover:bg-scam-750 hover:text-scam-text'
             }`}
           >
             {opt.label}

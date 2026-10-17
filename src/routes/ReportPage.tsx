@@ -52,60 +52,64 @@ export function ReportPage() {
   // if someone hits /report directly without signing in (incl. demo user).
   if (!isLoggedIn) {
     return (
-      <div className="min-h-screen bg-paper dark:bg-ink-950">
-        <div className="mx-auto w-full max-w-2xl px-6 py-16 text-center">
-          <span className="mx-auto grid h-16 w-16 place-items-center bg-ink-900 text-white dark:bg-white dark:text-ink-900">
-            <ShieldPlus size={30} />
-          </span>
-          <h1 className="mt-6 font-display text-3xl font-bold text-ink-900 dark:text-white">
-            Log in to report a scam
-          </h1>
-          <p className="mx-auto mt-3 max-w-md text-lg text-ink-600 dark:text-ink-400">
-            You need an account to add a report to the community registry — or
-            continue as a demo user.
-          </p>
-          <Link
-            to="/auth"
-            className="mt-8 inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600"
-          >
-            <LogIn size={18} /> Log in to continue
-          </Link>
+      <div className="min-h-screen bg-scam-950 text-scam-text">
+        <div className="mx-auto w-full max-w-2xl px-5 py-16 lg:px-8">
+          <div className="sr-surface px-6 py-12 text-center sm:px-10">
+            <span className="sr-tile mx-auto h-16 w-16">
+              <ShieldPlus size={30} />
+            </span>
+            <h1 className="mt-6 text-2xl font-bold tracking-tight text-scam-text sm:text-3xl">
+              Log in to report a scam
+            </h1>
+            <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-scam-muted">
+              You need an account to add a report to the community registry — or
+              continue as a demo user.
+            </p>
+            <Link
+              to="/auth"
+              className="sr-btn-primary sr-focus mt-8 px-6 py-3 text-base"
+            >
+              <LogIn size={18} /> Log in to continue
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   const inputCls =
-    'w-full rounded-md border bg-white px-4 py-3 text-base text-ink-900 outline-none transition placeholder:text-ink-400 focus:ring-2 dark:bg-ink-900 dark:text-white';
+    'w-full rounded-lg border bg-scam-750 px-4 py-3 text-base text-scam-text outline-none transition placeholder:text-scam-muted focus:ring-2 [color-scheme:light] dark:[color-scheme:dark]';
   const okBorder =
-    'border-ink-300 focus:border-safe-500 focus:ring-safe-500/30 dark:border-ink-700';
-  const errBorder = 'border-risk-500 focus:border-risk-500 focus:ring-risk-500/30';
+    'border-scam-line focus:border-trust-500 focus:ring-trust-500/30';
+  const errBorder =
+    'border-risk-high focus:border-risk-high focus:ring-risk-high/30';
 
   return (
-    <div className="min-h-screen bg-paper dark:bg-ink-950">
-      <div className="mx-auto w-full max-w-2xl px-6 py-12">
+    <div className="min-h-screen bg-scam-950 text-scam-text">
+      <div className="mx-auto w-full max-w-2xl px-5 py-10 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8 flex items-center gap-4 border-b border-ink-200 pb-6 dark:border-ink-800"
+          className="mb-8 flex items-center gap-3 border-b border-scam-line pb-6"
         >
-          <span className="grid h-14 w-14 place-items-center bg-ink-900 text-white dark:bg-white dark:text-ink-900">
-            <ShieldPlus size={26} />
+          <span className="sr-tile h-12 w-12">
+            <ShieldPlus size={24} />
           </span>
           <div>
-            <span className="ia-label text-safe-700 dark:text-safe-400">
-              Contribute
-            </span>
-            <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink-900 dark:text-white sm:text-4xl">
+            <span className="sr-eyebrow">Contribute</span>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-scam-text sm:text-3xl">
               Report a scam
             </h1>
+            <p className="mt-1 text-sm text-scam-muted">
+              Share what happened so the community can recognize it too.
+            </p>
           </div>
         </motion.div>
 
         <form
           onSubmit={handleSubmit((v) => create.mutate(v))}
-          className="space-y-6"
+          className="sr-surface space-y-6 p-6 sm:p-7"
           noValidate
         >
           {/* Title */}
@@ -145,26 +149,26 @@ export function ReportPage() {
           <Field label="Evidence (optional)">
             <MediaPicker value={images} onChange={setImages} />
             {imagesProcessing && (
-              <p className="mt-2 text-xs text-ink-400">
+              <p className="mt-2 text-xs text-scam-muted">
                 Waiting for screenshots to finish redaction before publishing.
               </p>
             )}
           </Field>
 
           {create.isError && (
-            <p className="border border-risk-500 bg-risk-50 px-4 py-3 text-sm text-risk-700 dark:bg-risk-500/10 dark:text-risk-500">
+            <p className="rounded-lg border border-risk-high/40 bg-risk-high/10 px-4 py-3 text-sm text-risk-high">
               {(create.error as Error).message}
             </p>
           )}
 
-          <div className="flex items-center justify-between border-t border-ink-200 pt-6 dark:border-ink-800">
-            <span className="text-xs text-ink-400">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-scam-line pt-6">
+            <span className="text-xs text-scam-muted">
               Posting as {user?.name}
             </span>
             <button
               type="submit"
               disabled={isSubmitting || create.isPending || imagesProcessing}
-              className="inline-flex items-center gap-2 rounded-md border border-safe-600 bg-safe-500 px-7 py-3.5 text-base font-semibold text-white shadow-soft transition hover:bg-safe-600 disabled:opacity-50"
+              className="sr-btn-primary sr-focus px-6 py-3 text-base disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ShieldPlus size={18} />
               {create.isPending
@@ -191,14 +195,10 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block font-display text-xs font-medium uppercase tracking-wider text-ink-600 dark:text-ink-400">
-        {label}
-      </label>
+      <label className="sr-label mb-1.5 block">{label}</label>
       {children}
       {error && (
-        <p className="mt-1 text-xs text-risk-600 dark:text-risk-500">
-          {error}
-        </p>
+        <p className="mt-1.5 text-xs font-medium text-risk-high">{error}</p>
       )}
     </div>
   );

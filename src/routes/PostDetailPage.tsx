@@ -118,7 +118,6 @@ export function PostDetailPage() {
   return (
     <div
       className="min-h-screen bg-scam-950 text-scam-text"
-      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
     >
       <div className="mx-auto w-full max-w-6xl px-5 py-10 lg:px-8">
         <Link
@@ -129,7 +128,7 @@ export function PostDetailPage() {
         </Link>
 
         {isLoading && (
-          <div className="overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card">
+          <div className="overflow-hidden rounded-2xl border border-scam-line bg-scam-800 shadow-card">
             <div className="aspect-[16/9] w-full animate-pulse bg-scam-750" />
             <div className="space-y-3 p-6">
               <div className="h-8 w-3/4 animate-pulse rounded bg-scam-750" />
@@ -162,7 +161,7 @@ export function PostDetailPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ opacity: { duration: 0.35, ease: 'easeOut' } }}
-              className="relative min-w-0 overflow-hidden rounded-lg border border-scam-line bg-scam-800 shadow-card"
+              className="relative min-w-0 overflow-hidden rounded-2xl border border-scam-line bg-scam-800 shadow-card"
             >
               {/* Colored left-border risk strip */}
               {post.risk && risk && (
@@ -386,7 +385,7 @@ export function PostDetailPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-lg border border-scam-line bg-scam-800 p-6 shadow-card"
+              className="rounded-2xl border border-scam-line bg-scam-800 p-6 shadow-card sm:p-8"
             >
               <h2 className="mb-4 border-b border-scam-line pb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-scam-muted">
                 Discussion · {post.replyCount} {post.replyCount === 1 ? 'comment' : 'comments'}

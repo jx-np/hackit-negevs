@@ -39,7 +39,7 @@ function RecentRow({ post }: { post: Post }) {
   return (
     <Link
       to={`/forum/${post.id}`}
-      className="block rounded-md px-2 py-2.5 transition hover:bg-scam-800"
+      className="sr-focus block rounded-xl px-2 py-2.5 transition hover:bg-scam-750"
     >
       <div className="flex items-center gap-2">
         <span className="sr-tile h-5 w-5">
@@ -113,7 +113,7 @@ export function RecentReports({ onSeeAll }: RecentReportsProps) {
       </div>
 
       {/* Active threat alerts — urgent, time-sensitive scams. */}
-      <div className="mt-4 overflow-hidden rounded-lg border border-risk-high/40 bg-risk-high/5 shadow-card">
+      <div className="mt-4 overflow-hidden rounded-2xl border border-risk-high/30 bg-risk-high/[0.05] shadow-card">
         {/* Thin red top border strip for urgency */}
         <div className="h-1 w-full bg-gradient-to-r from-risk-high to-risk-med" />
         <div className="p-4">

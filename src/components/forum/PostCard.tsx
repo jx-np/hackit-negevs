@@ -3,11 +3,13 @@ import {
   ArrowBigDown,
   ArrowBigUp,
   Bookmark,
+  CalendarDays,
   CheckCircle2,
   Flag,
   Megaphone,
   MessageCircle,
   MoreVertical,
+  Paperclip,
   Pencil,
   ShieldAlert,
   ShieldCheck,
@@ -659,7 +661,7 @@ export function PostCard({ post }: { post: Post }) {
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       onClick={handleCardClick}
-      className="group relative mb-5 cursor-pointer rounded-lg border border-scam-line bg-scam-800 shadow-card transition hover:border-scam-muted/60 hover:bg-scam-750 hover:shadow-card-hover"
+      className="group relative mb-5 cursor-pointer overflow-hidden rounded-2xl border border-scam-line bg-scam-800 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-trust-500/35 hover:shadow-card-hover"
     >
       {/* Colored left-border risk strip — triage the feed at a glance. */}
       {post.risk && (
@@ -716,7 +718,7 @@ export function PostCard({ post }: { post: Post }) {
             >
               {saved ? 'Following' : 'Follow'}
             </button>
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md border border-scam-line bg-scam-750 text-xs font-semibold text-scam-muted">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-trust-500/10 text-xs font-semibold text-trust-700 ring-1 ring-inset ring-trust-500/20 dark:text-trust-300">
               {initials(authorName)}
             </span>
             <PostMenu
@@ -731,8 +733,8 @@ export function PostCard({ post }: { post: Post }) {
         <p className="sr-only">{authorName}</p>
 
         {/* Title — the clear focal point of the record. */}
-        <h3 className="relative z-20 mt-4 inline-block text-xl font-bold leading-snug tracking-tight text-scam-text transition group-hover:text-trust-400">
-          <Link to={`/forum/${post.id}`} className="hover:underline">
+        <h3 className="relative z-20 mt-4 inline-block text-pretty font-display text-xl font-bold leading-snug tracking-tight text-scam-text transition group-hover:text-trust-600 dark:group-hover:text-trust-400">
+          <Link to={`/forum/${post.id}`} className="sr-focus rounded hover:underline">
             {post.title}
           </Link>
         </h3>
@@ -752,11 +754,15 @@ export function PostCard({ post }: { post: Post }) {
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {imageCount > 0 && (
               <span className="sr-chip">
-                🔗 {imageCount === 1 ? 'evidence attached' : `${imageCount} screenshots`}
+                <Paperclip size={12} aria-hidden />
+                {imageCount === 1 ? 'evidence attached' : `${imageCount} screenshots`}
               </span>
             )}
             {post.incidentDate && (
-              <span className="sr-chip">📅 {formatAbsoluteDate(post.incidentDate)}</span>
+              <span className="sr-chip">
+                <CalendarDays size={12} aria-hidden />
+                {formatAbsoluteDate(post.incidentDate)}
+              </span>
             )}
           </div>
         )}
@@ -774,7 +780,7 @@ export function PostCard({ post }: { post: Post }) {
       </div>
 
       {/* Action bar */}
-      <div className="relative z-20 flex flex-wrap items-center gap-1 border-t border-scam-line px-4 py-2.5 pl-7 text-sm text-scam-muted">
+      <div className="relative z-20 flex flex-wrap items-center gap-1 border-t border-scam-line bg-scam-750/40 px-4 py-2.5 pl-7 text-sm text-scam-muted">
         {/* Vote control — "did this happen to you too?" (social proof) */}
         <div className="flex items-center gap-2 rounded-md border border-scam-line bg-scam-800/60 px-1 py-0.5">
           {/* Up group: arrow + count form one button */}

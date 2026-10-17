@@ -145,10 +145,10 @@ export function ForumSidebar({
                 }
               }}
               aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-3 rounded-md border-l-2 px-3 py-2 text-sm font-medium transition ${
+              className={`sr-focus flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
                 active
-                  ? 'border-trust-400 bg-trust-400/10 text-trust-400'
-                  : 'border-transparent text-scam-muted hover:bg-scam-800 hover:text-scam-text'
+                  ? 'bg-trust-500/10 text-trust-700 ring-1 ring-inset ring-trust-500/20 dark:text-trust-300'
+                  : 'text-scam-muted hover:bg-scam-800 hover:text-scam-text'
               }`}
             >
               <Icon size={18} />
@@ -160,7 +160,7 @@ export function ForumSidebar({
         {/* Highlighted call-to-action — primary filled CTA */}
         <Link
           to="/report"
-          className="mt-1 flex items-center gap-3 rounded-md bg-trust-500 px-3 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-trust-600"
+          className="sr-focus mt-2 flex items-center gap-3 rounded-lg bg-trust-600 px-3 py-2.5 text-sm font-semibold text-white shadow-button transition hover:bg-trust-700"
         >
           <PlusCircle size={18} />
           Report a Scam
@@ -283,7 +283,7 @@ export function ForumSidebar({
 
       {/* Featured active-scam alert card */}
       <div className="mt-6">
-        <div className="rounded-lg border border-risk-high/40 bg-risk-high/10 p-3">
+        <div className="rounded-2xl border border-risk-high/30 bg-risk-high/[0.07] p-4">
           <div className="flex items-center gap-2">
             <Siren size={15} className="text-risk-high" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-risk-high">
@@ -325,16 +325,20 @@ function CategoryRow({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`flex w-full items-center gap-3 rounded-md border-l-2 px-3 py-2 text-left text-sm font-medium transition ${
+      className={`sr-focus flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
         active
-          ? 'border-trust-400 bg-trust-400/10 text-trust-400'
-          : 'border-transparent text-scam-muted hover:bg-scam-800 hover:text-scam-text'
+          ? 'bg-trust-500/10 text-trust-700 ring-1 ring-inset ring-trust-500/20 dark:text-trust-300'
+          : 'text-scam-muted hover:bg-scam-800 hover:text-scam-text'
       }`}
     >
       <Icon size={16} className="shrink-0" />
       <span className="flex-1 truncate">{label}</span>
       {typeof count === 'number' && (
-        <span className={`text-xs ${active ? 'text-trust-400' : 'text-scam-dim'}`}>
+        <span
+          className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+            active ? 'bg-trust-500/15 text-trust-700 dark:text-trust-300' : 'bg-scam-750 text-scam-dim'
+          }`}
+        >
           {count}
         </span>
       )}

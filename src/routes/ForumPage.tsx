@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, PlusCircle, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { ForumSidebar, type ForumPanel } from '../components/forum/ForumSidebar';
 import { NewestReportsContent } from '../components/forum/NewestReports';
 import { PostList } from '../components/forum/PostList';
@@ -43,13 +44,14 @@ export function ForumPage() {
   const debouncedSearch = useDebounce(search, 350);
 
   return (
-    // The forum adopts the ScamWatch dark theme regardless of the global mode.
-    // Inter is used here for a trustworthy, contemporary feel.
-    <div
-      className="min-h-screen bg-scam-950 text-scam-text"
-      style={{ fontFamily: "'Inter', system-ui, -apple-system, sans-serif" }}
-    >
-      <div className="mx-auto grid w-full max-w-[1500px] grid-cols-1 gap-8 px-5 py-8 lg:grid-cols-[15rem_minmax(0,1fr)_310px] lg:px-8">
+    // The forum follows the global theme and the user's chosen reading font
+    // (AppearanceContext), so accessibility settings apply here too.
+    <div className="relative min-h-screen bg-scam-950 text-scam-text">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 sw-dots opacity-60 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      />
+      <div className="relative mx-auto grid w-full max-w-[1500px] grid-cols-1 gap-8 px-5 py-8 lg:grid-cols-[15rem_minmax(0,1fr)_310px] lg:px-8">
         {/* Left sidebar — navigation & scam categories (tag filter) */}
         <ForumSidebar
           selected={tagId}
@@ -62,13 +64,13 @@ export function ForumPage() {
         />
 
         {/* Center feed */}
-        <main className="min-w-0">
+        <section className="min-w-0" aria-label="Forum feed">
           {panel ? (
             <>
               <button
                 type="button"
                 onClick={() => setPanel(null)}
-                className="mb-6 inline-flex items-center gap-2 rounded-md border border-scam-line px-3 py-2 text-sm font-medium text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
+                className="sr-btn-ghost sr-focus mb-6 bg-scam-800 text-scam-muted"
               >
                 <ArrowLeft size={16} /> Back to the forum
               </button>
@@ -81,21 +83,44 @@ export function ForumPage() {
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="mb-6 flex items-center gap-3 border-b border-scam-line pb-6"
+                className="sr-surface relative mb-6 overflow-hidden p-6 sm:p-7"
               >
-                <span className="sr-tile h-12 w-12">
-                  <ShieldCheck size={24} />
-                </span>
-                <div>
-                  <span className="sr-eyebrow">Community registry</span>
-                  <h1 className="mt-1 text-2xl font-bold tracking-tight text-scam-text sm:text-3xl">
-                    Scam Forum
-                  </h1>
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 sw-halo"
+                />
+                <ShieldCheck
+                  aria-hidden
+                  strokeWidth={1}
+                  className="pointer-events-none absolute -bottom-10 right-4 h-40 w-40 text-trust-500/[0.07]"
+                />
+                <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-b from-trust-500 to-trust-700 text-white shadow-button">
+                      <ShieldCheck size={26} aria-hidden />
+                    </span>
+                    <div>
+                      <span className="sr-eyebrow">Community registry</span>
+                      <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-scam-text sm:text-3xl">
+                        Scam Forum
+                      </h1>
+                      <p className="mt-1 max-w-md text-pretty text-sm leading-relaxed text-scam-muted">
+                        Share what you&rsquo;ve seen, confirm what others report,
+                        and help warn people before they get caught out.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/report"
+                    className="sr-btn-primary sr-focus shrink-0 self-start px-5 py-2.5 sm:self-center"
+                  >
+                    <PlusCircle size={17} aria-hidden /> Share a report
+                  </Link>
                 </div>
               </motion.div>
 
               {/* Search + sort bar */}
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="sticky top-[4.75rem] z-20 -mx-2 mb-6 flex flex-col gap-3 rounded-2xl bg-scam-950/85 px-2 py-2 backdrop-blur-md sm:flex-row sm:items-center">
                 <div className="flex-1">
                   <SearchBar value={search} onChange={setSearch} />
                 </div>
@@ -105,7 +130,7 @@ export function ForumPage() {
               <PostList query={debouncedSearch} tagId={tagId} sort={sort} />
             </>
           )}
-        </main>
+        </section>
 
         {/* Right sidebar — recently reported scams + active threat alerts */}
         <RecentReports

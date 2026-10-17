@@ -65,14 +65,13 @@ class CommunityService {
 
   /// Creates a community post. Attach analyzed screenshots by passing their
   /// [uploadIds] (from `POST /uploads`); each is sent in the `upload_ids`
-  /// array. Poll `GET /detection/{check_id}` before posting to ensure each
-  /// upload has finished processing (OCR + redaction).
+  /// array. Poll the owner-only `GET /uploads/{upload_id}` before posting to
+  /// ensure each upload has finished processing (OCR + redaction).
   Future<PostDetail> createPost({
     List<String> uploadIds = const [],
     required String title,
     required String redactedText,
     String? scamType,
-    List<String> tags = const [],
     String locale = 'en-SG',
   }) async {
     final response = await _client.post(
@@ -82,7 +81,6 @@ class CommunityService {
         'title': title,
         'redacted_text': redactedText,
         'scam_type': ?scamType,
-        'tags': tags,
         'confirm_publication': true,
         'locale': locale,
       },
@@ -94,14 +92,12 @@ class CommunityService {
     required String postId,
     String? title,
     String? redactedText,
-    List<String>? tags,
   }) async {
     final response = await _client.patch(
       '/community/posts/$postId',
       body: {
         'title': ?title,
         'redacted_text': ?redactedText,
-        'tags': ?tags,
       },
     );
     return PostDetail.fromJson(response.json);

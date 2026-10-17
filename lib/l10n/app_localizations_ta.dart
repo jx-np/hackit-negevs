@@ -45,10 +45,6 @@ class AppLocalizationsTa extends AppLocalizations {
   String get commonSharing => 'பகிரப்படுகிறது...';
 
   @override
-  String get commonDownloadModelFirst =>
-      'முதலில் அமைப்புகள் தாவலில் ஒரு மாதிரியைப் பதிவிறக்கவும்';
-
-  @override
   String get commonTitle => 'தலைப்பு';
 
   @override
@@ -62,9 +58,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get commonWhatKindOfScam => 'எந்த வகையான மோசடி?';
-
-  @override
-  String get commonTagsOptional => 'குறிச்சொற்கள் (விருப்பத்திற்குரியது)';
 
   @override
   String get commonShareIntro =>
@@ -87,14 +80,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get reportTabPhotoProcessing => 'பகுப்பாய்வு செய்கிறது...';
 
   @override
-  String get reportTabPhotoReady => 'தயார்';
-
-  @override
   String get reportTabPhotoFailed => 'பகுப்பாய்வு செய்ய முடியவில்லை';
-
-  @override
-  String get reportTabPhotoDropped =>
-      'சில படங்களைப் பகுப்பாய்வு செய்ய முடியவில்லை, அவை அகற்றப்பட்டன.';
 
   @override
   String get reportTabProcessingTitle =>
@@ -127,30 +113,32 @@ class AppLocalizationsTa extends AppLocalizations {
   String get reportTabFailedPostWithout => 'படங்கள் இல்லாமல் இடுகையிடு';
 
   @override
-  String get reportTabWaitForImages => 'Wait for images to be processed';
+  String get reportTabWaitForImages =>
+      'படங்கள் செயலாக்கப்படும் வரை காத்திருக்கவும்';
 
   @override
-  String get reportTabCheckImages => 'Check images';
+  String get reportTabCheckImages => 'படங்களைச் சரிபார்';
 
   @override
   String get reportTabReviewCheckbox =>
-      'I\'ve reviewed the images and the personal details are hidden correctly';
+      'படங்களை மதிப்பாய்வு செய்தேன், தனிப்பட்ட விவரங்கள் சரியாக மறைக்கப்பட்டுள்ளன';
 
   @override
-  String get reportTabEditImage => 'Edit image';
+  String get reportTabEditImage => 'படத்தைத் திருத்து';
 
   @override
-  String get reportTabReuploading => 'Re-uploading edited image...';
+  String get reportTabReuploading =>
+      'திருத்தப்பட்ட படம் மீண்டும் பதிவேற்றப்படுகிறது...';
 
   @override
-  String get reportTabPosting => 'Posting...';
+  String get reportTabPosting => 'இடுகையிடப்படுகிறது...';
 
   @override
   String get reportTabEditorSaveFailed =>
-      'Couldn\'t re-upload the edited image. Try again.';
+      'திருத்தப்பட்ட படத்தை மீண்டும் பதிவேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.';
 
   @override
-  String get reportTabViewPost => 'View your post';
+  String get reportTabViewPost => 'உங்கள் இடுகையைப் பார்';
 
   @override
   String get homeTitle => 'முகப்பு';
@@ -159,40 +147,16 @@ class AppLocalizationsTa extends AppLocalizations {
   String get homeWelcomePrefix => 'வரவேற்கிறோம், ';
 
   @override
-  String get homeWelcomeGuestLabel => 'உள்நுழையவில்லை';
-
-  @override
   String get homeWelcomeGuest => 'Welcome';
 
   @override
   String get myProfileTitle => 'எனது சுயவிவரம்';
 
   @override
-  String get myProfileAccountSection => 'கணக்கு விவரங்கள்';
-
-  @override
-  String get myProfileName => 'பெயர்';
-
-  @override
-  String get myProfileEmail => 'மின்னஞ்சல்';
-
-  @override
   String get myProfileMemberSince => 'இணைந்த நாள்';
 
   @override
   String get myProfilePosts => 'பதிவுகள்';
-
-  @override
-  String get myProfileRole => 'பங்கு';
-
-  @override
-  String get myProfileRoleResident => 'உறுப்பினர்';
-
-  @override
-  String get myProfileRoleModerator => 'இணை நிர்வாகி';
-
-  @override
-  String get myProfileRoleAdmin => 'நிர்வாகி';
 
   @override
   String get myProfileSignOut => 'வெளியேறு';
@@ -224,13 +188,6 @@ class AppLocalizationsTa extends AppLocalizations {
   String get homeQuickActionsTitle => 'நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?';
 
   @override
-  String get homeActionMyPosts => 'எனது பதிவுகள்';
-
-  @override
-  String get homeActionMyPostsBody =>
-      'நீங்கள் புகாரளித்த மோசடிகளைப் பின்தொடரவும்';
-
-  @override
   String get homeActionProfile => 'எனது சுயவிவரம்';
 
   @override
@@ -250,12 +207,6 @@ class AppLocalizationsTa extends AppLocalizations {
   @override
   String get homeActionReportBody =>
       'சமூகத்தில் உள்ள மற்றவர்களுக்கு எச்சரிக்கவும்';
-
-  @override
-  String get homeActionSafety => 'பாதுகாப்பு';
-
-  @override
-  String get homeActionSafetyBody => 'Scam Shield-ஐ இயக்கவும்';
 
   @override
   String get homeStatusOnBody =>
@@ -303,13 +254,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get homeNewsNext => 'அடுத்த எச்சரிக்கை';
 
   @override
-  String get settingsDetectionModel => 'கண்டறிதல் மாதிரி';
-
-  @override
   String get settingsProtection => 'பாதுகாப்பு';
-
-  @override
-  String get settingsClearNotifications => 'பிடிக்கப்பட்ட அறிவிப்புகளை அழி';
 
   @override
   String get settingsStopProtection => 'பின்னணி பாதுகாப்பை நிறுத்து';
@@ -321,128 +266,10 @@ class AppLocalizationsTa extends AppLocalizations {
   String get settingsServiceStopped => 'சேவை நிறுத்தப்பட்டது';
 
   @override
-  String get settingsAccount => 'கணக்கு';
-
-  @override
   String get settingsShowTutorial => 'பயிற்சியை மீண்டும் காட்டு';
 
   @override
   String get settingsReplayTour => 'செயலி அம்ச மேலோட்டத்தை மீண்டும் இயக்கு';
-
-  @override
-  String get settingsLogOut => 'வெளியேறு';
-
-  @override
-  String get settingsSignOutSubtitle => 'உங்கள் கணக்கிலிருந்து வெளியேறு';
-
-  @override
-  String get settingsAdvanced => 'மேம்பட்டவை';
-
-  @override
-  String get settingsAdvancedSubtitle =>
-      'டெவலப்பர் மற்றும் மாதிரி-சரிசெய்தல் விருப்பங்கள்';
-
-  @override
-  String get settingsModelFromDevice => 'இந்த சாதனத்திலிருந்து மாதிரி (சோதனை)';
-
-  @override
-  String get settingsScanForModels => 'மாதிரி கோப்புகளை ஸ்கேன் செய்';
-
-  @override
-  String get settingsScanningStorage => 'சேமிப்பகத்தை ஸ்கேன் செய்கிறது…';
-
-  @override
-  String get settingsScanSubtitle =>
-      'ஆப் ஏற்கெனவே பதிவிறக்கிய .litertlm மற்றும் .task கோப்புகளைக் கண்டறியும்';
-
-  @override
-  String get settingsModelFilePath => 'மாதிரி கோப்பு பாதை';
-
-  @override
-  String get settingsModelFilePathHelper =>
-      'தட்டச்சு செய்த பாதைகளும் வேலை செய்யும். கோப்பு அப்படியே பயன்படுத்தப்படுகிறது — அது ஒருபோதும் நகலெடுக்கப்படாது.';
-
-  @override
-  String get settingsContextWindow => 'சூழல் சாளரம் (டோக்கன்கள்)';
-
-  @override
-  String settingsContextWindowHelper(int max) {
-    return 'ஏற்றும்போது கோரும் சூழல். உங்கள் மாற்றம் kv_cache_max_len ஆக அமைத்ததை மீறக்கூடாது (MiniCPM5-2B $max வரை ஆதரிக்கிறது). பெரிய சாளரங்கள் ஒரு டோக்கனுக்கு சுமார் 40 KB RAM செலவாகும்.';
-  }
-
-  @override
-  String settingsContextRange(int max) {
-    return '1024 மற்றும் $max இடையே உள்ளிடவும்';
-  }
-
-  @override
-  String get settingsThinking => 'சிந்தனை (பகுத்தறிவு)';
-
-  @override
-  String get settingsThinkingHelper =>
-      'பதிலளிப்பதற்கு முன் மாதிரி பகுத்தறிய அனுமதிக்கிறது. அதிக டோக்கன்களைப் பயன்படுத்துகிறது மற்றும் மெதுவாக உள்ளது; பயனுள்ளதாக இருக்க 3000+ டோக்கன் சூழல் தேவை.';
-
-  @override
-  String get settingsLoadModelFromFile => 'கோப்பிலிருந்து மாதிரியை ஏற்று';
-
-  @override
-  String settingsCloudThreshold(int pct) {
-    return 'கிளவுட் அதிகரிப்பு வரம்பு — $pct% க்கு கீழே அதிகரிக்கவும்';
-  }
-
-  @override
-  String get settingsCloudReview => 'கிளவுட் மதிப்பாய்வு';
-
-  @override
-  String get settingsForceCloud => 'கிளவுட்டை கட்டாயப்படுத்து';
-
-  @override
-  String get settingsForceCloudHelper =>
-      'ஒவ்வொரு செய்தியையும் கிளவுட் மாதிரிக்கு அனுப்பி சாதனத்தில் உள்ள மாதிரியைத் தவிர்க்கவும். கிளவுட் அணுக முடியாவிட்டால் மட்டுமே சாதனத்தில் உள்ள மாதிரிக்கு மாறும்.';
-
-  @override
-  String get settingsEndpoint => 'இறுதிப்புள்ளி';
-
-  @override
-  String get settingsEndpointHint =>
-      'https://.../v1/chat/completions (காலியானது = முடக்கப்பட்டது)';
-
-  @override
-  String get settingsModelName => 'மாதிரியின் பெயர்';
-
-  @override
-  String settingsOnDeviceModel(String name) {
-    return 'சாதனத்தில் உள்ள மாதிரி — $name';
-  }
-
-  @override
-  String settingsReadyKept(int mb) {
-    return 'தயார் · $mb MB · ஆப்பில் சேமிக்கப்பட்டுள்ளது (நிறுவல் நீக்கும்போது அகற்றப்படும்)';
-  }
-
-  @override
-  String settingsReadyOffline(int mb) {
-    return 'தயார் · $mb MB · ஆஃப்லைனில் இயங்கும்';
-  }
-
-  @override
-  String settingsInstallingBundled(int pct) {
-    return 'தொகுக்கப்பட்ட மாதிரியை நிறுவுகிறது $pct%';
-  }
-
-  @override
-  String settingsDownloadingPct(int pct) {
-    return 'பதிவிறக்குகிறது $pct%';
-  }
-
-  @override
-  String get settingsBundledPreparing =>
-      'செயலியுடன் தொகுக்கப்பட்டது · தயாராகிறது';
-
-  @override
-  String settingsNotDownloaded(int mb) {
-    return 'பதிவிறக்கப்படவில்லை ($mb MB)';
-  }
 
   @override
   String get settingsRemove => 'அகற்று';
@@ -453,80 +280,122 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get settingsInstall => 'நிறுவு';
-
-  @override
   String get settingsDownload => 'பதிவிறக்கு';
-
-  @override
-  String get settingsNoFilePicked => 'இன்னும் கோப்பு தேர்ந்தெடுக்கப்படவில்லை';
-
-  @override
-  String get settingsScanHint =>
-      'இந்த தொலைபேசியில் ஏற்கனவே உள்ள மாதிரி கோப்பை ஸ்கேன் செய்யவும்.';
-
-  @override
-  String settingsCustomModelMeta(String path, int mb, int tokens) {
-    return '$path · $mb MB · $tokens டோக்கன்கள்';
-  }
-
-  @override
-  String get settingsForget => 'மற';
-
-  @override
-  String get settingsAllFilesAccess =>
-      'Android அமைப்புகளில் Scam Shield க்கு \"அனைத்து கோப்புகளுக்கான அணுகல்\" அனுமதிக்கவும், பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.';
-
-  @override
-  String get settingsNoModelFiles =>
-      '.litertlm அல்லது .task கோப்புகள் எதுவும் இல்லை.\n\nமேலே ஒரு மாதிரியைப் பதிவிறக்கவும் (அல்லது கீழே கோப்புப் பாதையைத் தட்டச்சு செய்யவும்) பின்னர் மீண்டும் ஸ்கேன் செய்யவும்.';
-
-  @override
-  String settingsFileSizeMb(int mb) {
-    return '$mb MB';
-  }
-
-  @override
-  String get settingsEnterPathFirst =>
-      'முதலில் ஒரு மாதிரி கோப்பு பாதையை உள்ளிடவும்';
-
-  @override
-  String settingsModelLoaded(String name) {
-    return '$name ஏற்றப்பட்டது';
-  }
-
-  @override
-  String get settingsModelForgotten =>
-      'தேர்ந்தெடுத்த மாதிரி மறக்கப்பட்டது — கோப்பு சாதனத்தில் வைக்கப்பட்டுள்ளது';
-
-  @override
-  String settingsSizeFromDevice(int mb) {
-    return '~$mb MB · இந்த சாதனத்திலிருந்து';
-  }
-
-  @override
-  String settingsSizeBundled(int mb) {
-    return '~$mb MB · தொகுக்கப்பட்டது';
-  }
-
-  @override
-  String settingsSizeDownload(int mb) {
-    return '~$mb MB · பதிவிறக்கம்';
-  }
-
-  @override
-  String settingsFieldSaved(String label) {
-    return '$label சேமிக்கப்பட்டது';
-  }
-
-  @override
-  String get settingsSave => 'சேமி';
 
   @override
   String get settingsLanguage => 'மொழி';
 
   @override
   String get settingsLanguageSystem => 'கணினி இயல்புநிலை';
+
+  @override
+  String get settingsStatusTitle => 'நிலை';
+
+  @override
+  String get settingsGettingReady => 'தயாராகிறது…';
+
+  @override
+  String get settingsNeedsDownload => 'பாதுகாப்பிற்கு ஒரு பதிவிறக்கம் தேவை';
+
+  @override
+  String settingsModelReady(String name) {
+    return '$name தயார்';
+  }
+
+  @override
+  String settingsModelNotDownloaded(String name) {
+    return '$name இன்னும் பதிவிறக்கப்படவில்லை';
+  }
+
+  @override
+  String settingsSettingUpPct(int pct) {
+    return 'அமைக்கிறது… $pct%';
+  }
+
+  @override
+  String settingsSettingUpMb(int mb) {
+    return 'அமைக்கிறது… $mb MB';
+  }
+
+  @override
+  String get settingsCheckerTitle => 'மோசடி சரிபார்ப்பான்';
+
+  @override
+  String get settingsCheckerCaption =>
+      'உங்கள் தொலைபேசியிலேயே செய்திகளைச் சரிபார்க்கிறது. எதுவும் வெளியே அனுப்பப்படாது.';
+
+  @override
+  String get settingsCheckingSupport => 'உங்கள் தொலைபேசி சரிபார்க்கப்படுகிறது…';
+
+  @override
+  String get settingsNotAvailable => 'இந்த தொலைபேசியில் கிடைக்கவில்லை';
+
+  @override
+  String get settingsReadyShort => 'தயார்';
+
+  @override
+  String get settingsBuiltInSubtitle =>
+      'உங்கள் தொலைபேசியில் உள்ளமைந்தது. பதிவிறக்கம் தேவையில்லை.';
+
+  @override
+  String settingsAboutMb(int mb) {
+    return 'சுமார் $mb MB';
+  }
+
+  @override
+  String get settingsPrepare => 'அமை';
+
+  @override
+  String get settingsSpeedTitle => 'வேகம்';
+
+  @override
+  String get settingsSpeedCaption =>
+      'சரிபார்ப்பானில் சிக்கல் இல்லாத வரை இதை தானியங்கியில் விடவும்.';
+
+  @override
+  String get settingsSpeedAuto => 'தானியங்கி';
+
+  @override
+  String get settingsSpeedAutoBody => 'பெரும்பாலான தொலைபேசிகளுக்கு சிறந்தது';
+
+  @override
+  String get settingsSpeedCpu => 'அதிக இணக்கத்தன்மை';
+
+  @override
+  String get settingsSpeedCpuBody =>
+      'எல்லா தொலைபேசிகளிலும் வேலை செய்யும். மிக மெதுவானது.';
+
+  @override
+  String get settingsSpeedGpu => 'வேகமானது';
+
+  @override
+  String get settingsSpeedGpuBody =>
+      'உங்கள் தொலைபேசியின் கிராபிக்ஸ் சிப்பைப் பயன்படுத்துகிறது';
+
+  @override
+  String get settingsSpeedNpu => 'மிக வேகமானது';
+
+  @override
+  String get settingsSpeedNpuBody => 'சில புதிய தொலைபேசிகளில் மட்டும்';
+
+  @override
+  String get settingsAppSection => 'செயலி';
+
+  @override
+  String get settingsAppearance => 'தோற்றம்';
+
+  @override
+  String get settingsThemeLight => 'ஒளி';
+
+  @override
+  String get settingsThemeDark => 'இருள்';
+
+  @override
+  String get settingsPermissionsSubtitle =>
+      'செயலி என்ன செய்ய அனுமதிக்கப்படுகிறது என்பதைப் பார்க்கவும்';
+
+  @override
+  String get settingsSignInSubtitle => 'சமூகத்தில் இடுகையிட தேவை';
 
   @override
   String callIncoming(String who) {
@@ -564,6 +433,21 @@ class AppLocalizationsTa extends AppLocalizations {
   String get callBlockedLabel => 'தடுக்கப்பட்டது';
 
   @override
+  String get navHome => 'முகப்பு';
+
+  @override
+  String get navCalls => 'அழைப்புகள்';
+
+  @override
+  String get navSafety => 'பாதுகாப்பு';
+
+  @override
+  String get navReport => 'புகாரளி';
+
+  @override
+  String get navProfile => 'சுயவிவரம்';
+
+  @override
   String get callHistoryTitle => 'அழைப்பு வரலாறு';
 
   @override
@@ -594,13 +478,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get callReportedSuffix => ' • புகாரளிக்கப்பட்டது';
 
   @override
-  String get callBlock => 'தடு';
-
-  @override
   String get callUnblock => 'தடை நீக்கு';
-
-  @override
-  String get callBlockAndReport => 'தடுத்து புகாரளி';
 
   @override
   String get callBlockNeedsScreening =>
@@ -627,28 +505,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get callHighRiskDismiss => 'நிராகரி';
 
   @override
-  String get callCheckNumber => 'இந்த எண்ணைச் சரிபார்';
-
-  @override
   String get callChecking => 'எண் சரிபார்க்கப்படுகிறது...';
-
-  @override
-  String callCheckSafe(String number) {
-    return '$number பாதுகாப்பாகத் தெரிகிறது';
-  }
-
-  @override
-  String callCheckUnknown(String number) {
-    return '$number க்கு புகார்கள் இல்லை';
-  }
-
-  @override
-  String callCheckHighRisk(String number) {
-    return '$number அதிக ஆபத்து உடையது';
-  }
-
-  @override
-  String get callCheckFailed => 'இந்த எண்ணைச் சரிபார்க்க முடியவில்லை';
 
   @override
   String get callCheckTitle => 'எண் சரிபார்ப்பு';
@@ -694,63 +551,8 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
-  String get reportPhone => 'தொலைபேசி';
-
-  @override
-  String get reportUnknownApp => 'தெரியாத செயலி';
-
-  @override
-  String get reportSent => 'புகார் அனுப்பப்பட்டது';
-
-  @override
   String get reportNotSent =>
       'புகார் அனுப்பப்படவில்லை — புகார் இறுதிப்புள்ளி இன்னும் கட்டமைக்கப்படவில்லை';
-
-  @override
-  String get reportAddAppFirst => 'முதலில் ஒரு செயலியைச் சேர்க்கவும்.';
-
-  @override
-  String get reportAsScam => 'இந்த செய்தியை மோசடி என புகாரளிக்கவா?';
-
-  @override
-  String get reportSuspiciousMessages => 'சந்தேகத்திற்குரிய செய்திகள்';
-
-  @override
-  String get reportTapHint =>
-      'மோசடி போல் தோன்றும் எதையும் “இதைப் புகாரளி” என்பதைத் தட்டவும்.';
-
-  @override
-  String get reportNothingSuspicious =>
-      'இப்போது சந்தேகத்திற்குரியது எதுவும் இல்லை';
-
-  @override
-  String reportVerdictSummary(String label, int pct) {
-    return '$label · $pct% உறுதி';
-  }
-
-  @override
-  String get reportRecentCalls => 'சமீபத்திய அழைப்புகள்';
-
-  @override
-  String get reportNoCalls => 'இன்னும் அழைப்புகள் பதிவு செய்யப்படவில்லை';
-
-  @override
-  String get reportSomethingElse => 'வேறு ஏதாவது புகாரளி';
-
-  @override
-  String get reportWriteOwn => 'உங்கள் சொந்த புகாரை எழுதுங்கள்';
-
-  @override
-  String get reportNumberOptional => 'எண் (விருப்பத்திற்குரியது)';
-
-  @override
-  String get reportAppRequired => 'செயலி (தேவை)';
-
-  @override
-  String get reportAppHint => 'WhatsApp, Telegram, தொலைபேசி…';
-
-  @override
-  String get reportMarkAs => 'இப்படி குறி';
 
   @override
   String get reportSpam => 'ஸ்பேம்';
@@ -763,53 +565,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get reportReason => 'காரணம்';
-
-  @override
-  String get reportReasonHint => 'அவர்கள் என்ன செய்தார்கள் அல்லது சொன்னார்கள்?';
-
-  @override
-  String get reportOtherComments => 'பிற கருத்துகள்';
-
-  @override
-  String get reportOtherCommentsHint =>
-      'நாங்கள் தெரிந்து கொள்ள வேண்டிய வேறு ஏதாவது (விருப்பத்திற்குரியது)';
-
-  @override
-  String get reportSubmit => 'புகாரைச் சமர்ப்பி';
-
-  @override
-  String reportSubjectTitle(String subject) {
-    return '$subject புகாரளிக்கவா?';
-  }
-
-  @override
-  String get reportReasonOptional => 'காரணம் (விருப்பத்திற்குரியது)';
-
-  @override
-  String get shieldTurnOnToRun => 'மாதிரியை இயக்க பாதுகாப்பை இயக்கவும்';
-
-  @override
-  String get shieldCheckingMessage => 'செய்தியைச் சரிபார்க்கிறது...';
-
-  @override
-  String get shieldScamAi => 'மோசடி AI';
-
-  @override
-  String get shieldModelReady => 'சாதனத்தில் உள்ள மாதிரி தயார்';
-
-  @override
-  String get shieldNoModel => 'சாதனத்தில் மாதிரி எதுவும் நிறுவப்படவில்லை';
-
-  @override
-  String shieldStats(int evaluated, int alerts) {
-    return '$evaluated செய்திகள் சரிபார்க்கப்பட்டன, $alerts எச்சரிக்கைகள் எழுப்பப்பட்டன';
-  }
-
-  @override
-  String get shieldTryMessage => 'ஒரு செய்தியை முயற்சிக்கவும்';
-
-  @override
-  String get shieldPasteHint => 'சந்தேகத்திற்குரிய செய்தியை ஒட்டவும்...';
 
   @override
   String get shieldCheck => 'சரிபார்';
@@ -937,15 +692,7 @@ class AppLocalizationsTa extends AppLocalizations {
   String get contactsPermRequired => 'தொடர்புகளைப் பார்க்க தொடர்பு அனுமதி தேவை';
 
   @override
-  String contactsLoadFailed(String error) {
-    return 'தொடர்புகளை ஏற்ற முடியவில்லை: $error';
-  }
-
-  @override
   String get contactsTitle => 'தொடர்புகள்';
-
-  @override
-  String get contactsOpenMenu => 'மெனுவைத் திற';
 
   @override
   String get contactsSearchHint => 'தொடர்புகளைத் தேடு...';
@@ -963,11 +710,6 @@ class AppLocalizationsTa extends AppLocalizations {
   String get contactsCouldNotCall => 'அழைப்பைத் தொடங்க முடியவில்லை';
 
   @override
-  String contactsCouldNotCallError(String error) {
-    return 'அழைப்பைத் தொடங்க முடியவில்லை: $error';
-  }
-
-  @override
   String get safetyTitle => 'பாதுகாப்பு';
 
   @override
@@ -978,10 +720,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get safetyProtectedOff => 'பாதுகாப்பு அணைக்கப்பட்டுள்ளது';
-
-  @override
-  String get safetyDownloadFirstPeriod =>
-      'முதலில் அமைப்புகள் தாவலில் ஒரு மாதிரியைப் பதிவிறக்கவும்.';
 
   @override
   String get safetyWeCheck =>
@@ -1013,6 +751,46 @@ class AppLocalizationsTa extends AppLocalizations {
   String get safetyNoScamsBody => 'சந்தேகத்திற்குரிய செய்திகள் இங்கே தோன்றும்.';
 
   @override
+  String get safetyMeteredTitle => 'மொபைல் தரவைப் பயன்படுத்தவா?';
+
+  @override
+  String safetyMeteredBody(int mb) {
+    return 'இந்த பதிவிறக்கம் சுமார் $mb MB. Wi-Fi சிறந்தது.';
+  }
+
+  @override
+  String get safetyNotNow => 'இப்போது வேண்டாம்';
+
+  @override
+  String get safetyDownload => 'பதிவிறக்கு';
+
+  @override
+  String get safetyCouldNotStart =>
+      'பாதுகாப்பைத் தொடங்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get safetyShowMore => 'மேலும் காட்டு';
+
+  @override
+  String get safetyShowLess => 'குறைவாகக் காட்டு';
+
+  @override
+  String get safetyPillOn => 'பாதுகாக்கப்படுகிறது';
+
+  @override
+  String get safetyPillOff => 'அணைக்கப்பட்டது';
+
+  @override
+  String get safetyPillError => 'கவனம் தேவை';
+
+  @override
+  String get safetyPillChecking => 'சரிபார்க்கிறது';
+
+  @override
+  String get safetyHeroOnBody =>
+      'உங்கள் தொலைபேசியில் தனிப்பட்ட முறையில் சரிபார்க்கப்படுகிறது.';
+
+  @override
   String get protectionChecked => 'சரிபார்க்கப்பட்டது';
 
   @override
@@ -1023,10 +801,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get protectionOff => 'பாதுகாப்பு அணைக்கப்பட்டுள்ளது';
-
-  @override
-  String get protectionReadsNotifications =>
-      'செய்தியிடல் செயலிகளிலிருந்து அறிவிப்புகளைப் படிக்கிறது';
 
   @override
   String activityAll(int count) {
@@ -1090,48 +864,26 @@ class AppLocalizationsTa extends AppLocalizations {
   String get notificationsTitle => 'அறிவிப்புகள்';
 
   @override
-  String get notificationsTestTitle => 'Test the on-device AI';
+  String get notificationsTestTitle => 'ஒரு செய்தியைச் சோதி';
 
   @override
-  String get notificationsTestHint => 'Paste or type a message to check';
+  String get notificationsTestHint =>
+      'ஒரு செய்தியை ஒட்டவும் அல்லது தட்டச்சு செய்யவும்';
 
   @override
-  String get notificationsTestRun => 'Check message';
+  String get notificationsTestRun => 'செய்தியைச் சரிபார்';
 
   @override
-  String get notificationsTestServiceOff =>
-      'Turn protection on first so the model can run the check.';
+  String get notificationsTestServiceOff => 'முதலில் பாதுகாப்பை இயக்கவும்.';
 
   @override
-  String get notificationsTestSent =>
-      'Checking… the result will appear below once the model finishes.';
-
-  @override
-  String settingsScreenModelInstalled(String name) {
-    return '$name நிறுவப்பட்டது';
-  }
+  String get notificationsTestSent => 'சரிபார்க்கிறது. முடிவு கீழே தோன்றும்.';
 
   @override
   String get settingsScreenTitle => 'அமைப்புகள்';
 
   @override
-  String get settingsScreenModelTab => 'மாதிரி';
-
-  @override
   String get settingsScreenPermissionsTab => 'அனுமதிகள்';
-
-  @override
-  String get loginAppName => 'Call Manager';
-
-  @override
-  String get loginTagline =>
-      'மோசடி அழைப்புகள் மற்றும் செய்திகளிலிருந்து உங்களைப் பாதுகாக்கிறது.';
-
-  @override
-  String get loginGetStarted => 'தொடங்கு';
-
-  @override
-  String get onboardingTitle => 'அனுமதிகள்';
 
   @override
   String get onboardingContinue => 'தொடர்';
@@ -1141,9 +893,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get onboardingStart => 'தொடங்குவோம்';
-
-  @override
-  String get onboardingNext => 'அடுத்து';
 
   @override
   String get onboardingAllow => 'அனுமதி';
@@ -1264,6 +1013,63 @@ class AppLocalizationsTa extends AppLocalizations {
   }
 
   @override
+  String get onboardingWhy => 'ஏன்?';
+
+  @override
+  String get onboardingScreeningWhy =>
+      'உங்கள் தொலைபேசி இந்த செயலியைத் தேர்ந்தெடுக்கக் கேட்கும். அழைப்புகளைச் சரிபார்க்க அதைத் தேர்ந்தெடுக்கவும்.';
+
+  @override
+  String get onboardingMessagesWhy =>
+      'வித்தியாசமான இணைப்புகள் அல்லது பணக் கோரிக்கைகள் போன்ற மோசடி அறிகுறிகளை நாங்கள் தேடுகிறோம்.';
+
+  @override
+  String get onboardingBatterySettingsHint =>
+      'அமைப்புகள் திறக்கும். இந்த செயலியைக் கண்டுபிடித்து \"மேம்படுத்த வேண்டாம்\" எனத் தேர்ந்தெடுக்கவும்.';
+
+  @override
+  String get onboardingModelTitle => 'மோசடி சரிபார்ப்பான்';
+
+  @override
+  String get onboardingModelBody =>
+      'உங்கள் தொலைபேசியில் செய்திகளைச் சரிபார்க்கிறது. Wi‑Fi பயன்படுத்தவும்.';
+
+  @override
+  String onboardingModelDownload(String size) {
+    return 'பதிவிறக்கு ($size)';
+  }
+
+  @override
+  String get onboardingModelDownloadShort => 'பதிவிறக்கு';
+
+  @override
+  String onboardingModelDownloading(int percent) {
+    return 'பதிவிறக்குகிறது… $percent%';
+  }
+
+  @override
+  String get onboardingModelKeepGoing =>
+      'நீங்கள் தொடரலாம். பதிவிறக்கம் தொடரும்.';
+
+  @override
+  String get onboardingModelReady => 'பயன்படுத்தத் தயார்.';
+
+  @override
+  String get onboardingModelFailed =>
+      'பதிவிறக்கம் முடிவடையவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது பின்னர் அமைப்புகளில்.';
+
+  @override
+  String get onboardingModelMeteredTitle => 'மொபைல் தரவைப் பயன்படுத்தவா?';
+
+  @override
+  String onboardingModelMeteredBody(String size) {
+    return 'நீங்கள் Wi‑Fi இல் இல்லை. இது சுமார் $size தரவைப் பயன்படுத்தும்.';
+  }
+
+  @override
+  String get setupOpenSettingsFailed => 'அமைப்புகளைத் திறக்க முடியவில்லை.';
+
+  @override
   String get authEnterEmail => 'உங்கள் மின்னஞ்சலை உள்ளிடவும்.';
 
   @override
@@ -1319,9 +1125,6 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get authToggleToRegister => 'புதியவரா? கணக்கை உருவாக்கு';
-
-  @override
-  String get authGateMessage => 'தொடர உள்நுழையவும்';
 
   @override
   String get authGateTitle => 'உள்நுழைவு தேவை';
@@ -1431,6 +1234,25 @@ class AppLocalizationsTa extends AppLocalizations {
       'இது சமூகத்திலிருந்து அகற்றப்படும். இதை மீட்டெடுக்க முடியாது.';
 
   @override
+  String get myPostsEdit => 'திருத்து';
+
+  @override
+  String get editPostTitle => 'இடுகையைத் திருத்து';
+
+  @override
+  String get editPostSave => 'மாற்றங்களைச் சேமி';
+
+  @override
+  String get editPostSaving => 'சேமிக்கிறது...';
+
+  @override
+  String get editPostSaved => 'மாற்றங்கள் சேமிக்கப்பட்டன.';
+
+  @override
+  String get editPostReReview =>
+      'செய்தியைத் திருத்தினால் இடுகை மீண்டும் மதிப்பாய்வுக்கு அனுப்பப்படும்.';
+
+  @override
   String get postDetailThankYou =>
       'நன்றி. எங்கள் குழு இந்த இடுகையை மதிப்பாய்வு செய்யும்.';
 
@@ -1505,11 +1327,6 @@ class AppLocalizationsTa extends AppLocalizations {
   String get postDetailRemovedComment => 'இந்தக் கருத்து அகற்றப்பட்டது.';
 
   @override
-  String postDetailShowMoreReplies(int count) {
-    return 'மேலும் $count பதில்களைக் காட்டவும்';
-  }
-
-  @override
   String get guidanceClickedLink => 'நான் ஒரு இணைப்பைக் கிளிக் செய்தேன்';
 
   @override
@@ -1564,6 +1381,20 @@ class AppLocalizationsTa extends AppLocalizations {
       'தெரியாத எண்களிலிருந்து வரும் அழைப்புகள் இங்கே தோன்றும். விவரங்களைப் பார்க்க ஒரு அழைப்பைத் தட்டவும், மேலும் நீங்கள் மீண்டும் கேட்க விரும்பாத எண்களை நிர்வகிக்க மேல் மூலையில் உள்ள தடை ஐகானைப் பயன்படுத்தவும்.';
 
   @override
+  String get tourBlockedTitle => 'உங்கள் தடுக்கப்பட்ட எண்கள்';
+
+  @override
+  String get tourBlockedBody =>
+      'நீங்கள் தடுத்த எண்களைக் காண கோடு குறுக்கிட்ட கேடயச் சின்னத்தைத் தட்டவும்.';
+
+  @override
+  String get tourHelpTitle => 'உதவி தேவையா?';
+
+  @override
+  String get tourHelpBody =>
+      'எந்தத் திரையிலும் ? என்பதைத் தட்டி ஒவ்வொன்றின் அர்த்தத்தைப் பார்க்கவும்.';
+
+  @override
   String get tourSafetyTitle => 'பாதுகாப்பு';
 
   @override
@@ -1578,25 +1409,11 @@ class AppLocalizationsTa extends AppLocalizations {
       'ஒரு மோசடியைக் கண்டறிந்தீர்களா? இந்த தாவலிலிருந்து அதை சமூகத்துடன் பகிர்ந்து கொள்ளுங்கள், அதனால் மற்றவர்கள் அதே தந்திரத்தை அடையாளம் கண்டு பாதுகாப்பாக இருக்கலாம்.';
 
   @override
-  String get tourMyPostsTitle => 'எனது இடுகைகள்';
-
-  @override
-  String get tourMyPostsBody =>
-      'நீங்கள் புகாரளிக்கும் அனைத்தும் இங்கே வரும். விவாதத்தைக் கண்காணித்து, ஒரு மதிப்பீட்டாளர் உங்கள் இடுகையை மதிப்பாய்வு செய்தபோது பார்க்கவும்.';
-
-  @override
   String get tourProfileTitle => 'உங்கள் சுயவிவரம்';
 
   @override
   String get tourProfileBody =>
       'உங்கள் கணக்கு விவரங்களையும், இங்கே நீங்கள் புகாரளித்த மோசடிகளையும் பார்க்கவும்.';
-
-  @override
-  String get tourSettingsTitle => 'அமைப்புகள்';
-
-  @override
-  String get tourSettingsBody =>
-      'ஒரு பாதுகாப்பு மாதிரியைப் பதிவிறக்கவும், அனுமதிகளை நிர்வகிக்கவும், கணக்கு பிரிவிலிருந்து எந்த நேரத்திலும் இந்த சுற்றுப்பயணத்தை மீண்டும் இயக்கவும்.';
 
   @override
   String tourStepCounter(int current, int total) {
@@ -1611,4 +1428,107 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get tourNext => 'அடுத்து';
+
+  @override
+  String get tourBack => 'பின்செல்';
+
+  @override
+  String get helpTooltip => 'உதவி';
+
+  @override
+  String get helpGotIt => 'புரிந்தது';
+
+  @override
+  String get helpShowTour => 'செயலி சுற்றுப்பயணத்தை மீண்டும் காட்டு';
+
+  @override
+  String get helpCallsTitle => 'ஒவ்வொன்றின் அர்த்தம்';
+
+  @override
+  String get helpCallsHighRiskTitle => 'சிவப்பு அழைப்பு = மோசடி வாய்ப்பு';
+
+  @override
+  String get helpCallsHighRiskBody => 'பதிலளிக்கவோ திரும்ப அழைக்கவோ வேண்டாம்.';
+
+  @override
+  String get helpCallsNormalTitle => 'சாதாரண அழைப்பு';
+
+  @override
+  String get helpCallsNormalBody => 'இந்த எண்ணுக்கு மோசடி புகார்கள் இல்லை.';
+
+  @override
+  String get helpCallsBlockedRowTitle => 'தடுக்கப்பட்ட அழைப்பு';
+
+  @override
+  String get helpCallsBlockedRowBody =>
+      'நீங்கள் இந்த எண்ணைத் தடுத்துள்ளீர்கள். அது உங்களை அழைக்க முடியாது.';
+
+  @override
+  String get helpCallsBlockedListTitle => 'உங்கள் தடுக்கப்பட்ட எண்கள்';
+
+  @override
+  String get helpCallsBlockedListBody =>
+      'எண்களைப் பார்க்க அல்லது தடை நீக்க இதைத் தட்டவும்.';
+
+  @override
+  String get helpCallsMenuTitle => 'மேலும் விருப்பங்கள்';
+
+  @override
+  String get helpCallsMenuBody =>
+      'ஒரு எண்ணைச் சரிபார்க்கவும், தடுக்கவும் அல்லது புகாரளிக்கவும்.';
+
+  @override
+  String get helpCallsRefreshTitle => 'புதுப்பி';
+
+  @override
+  String get helpCallsRefreshBody =>
+      'உங்கள் அழைப்புகளை மீண்டும் சரிபார்க்கவும்.';
+
+  @override
+  String get helpCallsMissedBody => 'இந்த அழைப்புக்கு நீங்கள் பதிலளிக்கவில்லை.';
+
+  @override
+  String get helpCallsAnsweredBody =>
+      'இந்த அழைப்புக்கு நீங்கள் பதிலளித்தீர்கள்.';
+
+  @override
+  String get helpCallsRejectedBody => 'இந்த அழைப்பை நீங்கள் நிராகரித்தீர்கள்.';
+
+  @override
+  String get helpCallsBlockedIconBody => 'இந்த அழைப்பு தடுக்கப்பட்டது.';
+
+  @override
+  String get helpCallsOutgoingBody => 'இந்த எண்ணுக்கு நீங்கள் அழைத்தீர்கள்.';
+
+  @override
+  String get callsLikelyScam => 'மோசடி வாய்ப்பு';
+
+  @override
+  String get callsMoreOptions => 'மேலும் விருப்பங்கள்';
+
+  @override
+  String get callsBlockNumber => 'எண்ணைத் தடு';
+
+  @override
+  String get callsReportScam => 'மோசடி எனப் புகாரளி';
+
+  @override
+  String get callsBlockAndReport => 'தடுத்து புகாரளி';
+
+  @override
+  String get callsCheckNumber => 'எண்ணைச் சரிபார்';
+
+  @override
+  String get callsLoadFailedBody => 'மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get callsBlockedEmptyBody =>
+      'நீங்கள் தடுக்கும் எண்கள் இங்கே தோன்றும்.';
+
+  @override
+  String get callsContactsLoadFailed =>
+      'உங்கள் தொடர்புகளைக் காட்ட முடியவில்லை. மீண்டும் முயற்சிக்கவும்.';
+
+  @override
+  String get callsCallTooltip => 'அழை';
 }

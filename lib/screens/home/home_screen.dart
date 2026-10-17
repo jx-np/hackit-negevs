@@ -12,6 +12,7 @@ import 'package:scamwatch_mobile_app/state/auth_controller.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_card.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 
 /// Bottom-nav tab indices this screen links to. Kept in sync with the
 /// `_items` list in `HomePage` (lib/main.dart).
@@ -47,7 +48,10 @@ class HomeScreen extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _ProtectionStatusCard(onOpen: () => onNavigate(_kSafetyTab)),
+          KeyedSubtree(
+            key: CoachMarkTargets.keyOf(context, TourTarget.homeStatus),
+            child: _ProtectionStatusCard(onOpen: () => onNavigate(_kSafetyTab)),
+          ),
           SizedBox(height: tokens.space.xl2),
           const _NewsBanner(),
           SizedBox(height: tokens.space.xl2),
@@ -372,8 +376,6 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
                       Text(
                         title,
                         style: theme.textTheme.headlineSmall?.copyWith(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
                           color: foreground,
                           height: 1.2,
                         ),
@@ -382,7 +384,6 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
                       Text(
                         body,
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          fontSize: 18,
                           color: foreground.withValues(alpha: 0.85),
                           height: 1.35,
                         ),
@@ -520,8 +521,6 @@ class _StatusStat extends StatelessWidget {
                     Text(
                       value,
                       style: theme.textTheme.headlineSmall?.copyWith(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
                         color: color,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
@@ -530,8 +529,7 @@ class _StatusStat extends StatelessWidget {
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontSize: 16,
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         color: color.withValues(alpha: 0.8),
                       ),
                     ),
@@ -562,7 +560,7 @@ class _StatusButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    const labelStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.w700);
+    final labelStyle = Theme.of(context).textTheme.titleLarge;
     const size = Size.fromHeight(60);
 
     switch (state) {
@@ -690,7 +688,6 @@ class _NewsBannerState extends State<_NewsBanner> {
                   ? Text(
                       l10n.homeNewsCount(page + 1, articles.length),
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: scheme.onSurfaceVariant,
                       ),
@@ -917,7 +914,6 @@ class _NewsError extends StatelessWidget {
                 child: Text(
                   l10n.homeNewsError,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    fontSize: 18,
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
@@ -933,7 +929,7 @@ class _NewsError extends StatelessWidget {
             icon: const Icon(LucideIcons.refreshCw, size: 22),
             label: Text(
               l10n.homeNewsRetry,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -994,8 +990,6 @@ class _NewsCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleLarge?.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
                         color: onColor,
                         height: 1.25,
                       ),
@@ -1010,7 +1004,6 @@ class _NewsCard extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    fontSize: 19,
                     color: onColor.withValues(alpha: 0.85),
                     height: 1.4,
                   ),
@@ -1021,7 +1014,6 @@ class _NewsCard extends StatelessWidget {
                   Text(
                     l10n.homeNewsReadMore,
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontSize: 19,
                       fontWeight: FontWeight.w700,
                       color: scheme.primary,
                     ),
@@ -1090,8 +1082,6 @@ class _NewsArticleSheet extends StatelessWidget {
                     Text(
                       title,
                       style: theme.textTheme.headlineSmall?.copyWith(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
                         height: 1.25,
                       ),
                     ),
@@ -1099,7 +1089,6 @@ class _NewsArticleSheet extends StatelessWidget {
                     Text(
                       body,
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        fontSize: 20,
                         height: 1.5,
                         color: scheme.onSurface.withValues(alpha: 0.85),
                       ),
@@ -1116,7 +1105,7 @@ class _NewsArticleSheet extends StatelessWidget {
               ),
               child: Text(
                 l10n.homeNewsClose,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -1157,10 +1146,7 @@ class _SectionTitle extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-              ),
+              style: theme.textTheme.titleLarge,
             ),
           ),
           if (trailing != null) ...[
@@ -1280,16 +1266,12 @@ class _QuickActionCard extends StatelessWidget {
                   children: [
                     Text(
                       action.title,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: theme.textTheme.titleLarge,
                     ),
                     SizedBox(height: tokens.space.xs),
                     Text(
                       action.body,
                       style: theme.textTheme.bodyLarge?.copyWith(
-                        fontSize: 18,
                         color: scheme.onSurfaceVariant,
                         height: 1.3,
                       ),

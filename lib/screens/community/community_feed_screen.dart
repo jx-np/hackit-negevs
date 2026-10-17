@@ -104,14 +104,14 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
         child: _buildBody(theme, l10n),
       ),
       bottomBar: SizedBox(
-        height: 56,
         width: double.infinity,
         child: FilledButton.icon(
           onPressed: _createPost,
           icon: const Icon(LucideIcons.plus),
           label: Text(l10n.communityShareScam),
           style: FilledButton.styleFrom(
-            textStyle: theme.textTheme.labelLarge?.copyWith(fontSize: 18),
+            minimumSize: const Size.fromHeight(56),
+            textStyle: theme.textTheme.titleMedium,
             shape: RoundedRectangleBorder(borderRadius: tokens.radii.lgRadius),
           ),
         ),
@@ -192,17 +192,33 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
           SizedBox(height: tokens.space.sm),
           Text(post.redactedExcerpt, maxLines: 3, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyLarge),
           SizedBox(height: tokens.space.md),
-          Row(
+          Wrap(
+            spacing: tokens.space.lg,
+            runSpacing: tokens.space.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (post.category != null) ...[
-                Icon(LucideIcons.tag, size: 20, color: scheme.primary),
-                SizedBox(width: tokens.space.xs),
-                Text(post.category!.displayName, style: theme.textTheme.bodyMedium),
-                SizedBox(width: tokens.space.lg),
-              ],
-              Icon(LucideIcons.messageCircle, size: 20, color: scheme.onSurfaceVariant),
-              SizedBox(width: tokens.space.xs),
-              Text('${post.commentCount}', style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+              if (post.category != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(LucideIcons.tag, size: 20, color: scheme.primary),
+                    SizedBox(width: tokens.space.xs),
+                    Flexible(
+                      child: Text(
+                        post.category!.displayName,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(LucideIcons.messageCircle, size: 20, color: scheme.onSurfaceVariant),
+                  SizedBox(width: tokens.space.xs),
+                  Text('${post.commentCount}', style: theme.textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
+                ],
+              ),
             ],
           ),
         ],
@@ -225,8 +241,7 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
           SizedBox(width: tokens.space.xs),
           Text(
             l10n.commonReviewed,
-            style: TextStyle(
-              fontSize: 14,
+            style: theme.textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: tokens.risk.onSafeContainer,
             ),

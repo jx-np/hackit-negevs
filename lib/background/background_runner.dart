@@ -40,6 +40,12 @@ class BackgroundRunner {
   bool _draining = false;
   static const int _maxQueueLength = 25;
 
+  /// Messages shorter than this (after trimming) skip the on-device model
+  /// entirely: a scam needs both an ask and pressure, which cannot fit in a
+  /// handful of characters, so running the model would only waste a load and a
+  /// generation on replies like "ok" or "see you".
+  static const int _minAnalyzableChars = 10;
+
   bool _running = false;
   bool _modelLoading = false;
   bool _modelReady = false;
@@ -313,6 +319,23 @@ class BackgroundRunner {
     _busy = true;
     _wakeLock('acquireWakeLock');
     try {
+      // Very short messages ("ok", "hi", "👍") cannot carry a scam's ask plus
+      // its pressure, so they are not worth a model load or a generation.
+      // Skip the model entirely and record a not_scam verdict so the message
+      // still shows as checked. Measured on the trimmed text so leading or
+      // trailing whitespace does not pad a one-word reply over the threshold.
+      if (record.content.trim().length < _minAnalyzableChars) {
+        final verdict = ScamVerdict(
+          label: ScamLabel.notScam,
+          confidence: 0.95,
+          reason: 'Message too short to be a scam',
+          source: EvaluationSource.local,
+        );
+        _evaluated++;
+        await _log.attachVerdict(id, record, verdict);
+        return;
+      }
+
       // A notification arrived: keep the model alive and load it if this is
       // the first message since it was unloaded. Scam checks run entirely
       // on-device — the message is never sent off the device.
@@ -321,9 +344,14 @@ class BackgroundRunner {
         await _warmUp();
       }
 
+      // Compute the cheap local hints once, up front: they involve a
+      // contact-directory lookup, and both the model prompt and the alert gate
+      // below need them. Passing them into evaluate() avoids a second lookup.
+      final hints = await ScamHintBuilder.fromRecord(record);
+
       ScamVerdict verdict;
       try {
-        verdict = await _local.evaluate(record);
+        verdict = await _local.evaluate(record, hints: hints);
       } catch (error) {
         // A failed on-device evaluation must not escalate off-device; surface
         // it as an inconclusive verdict instead.
@@ -336,7 +364,6 @@ class BackgroundRunner {
       // A small model misfires on short, vague or odd-looking messages, so an
       // alert also requires high confidence and at least two corroborating
       // signals computed independently of the model.
-      final hints = await ScamHintBuilder.fromRecord(record);
       if (hints.shouldAlert(verdict.label.wire, verdict.confidence)) {
         await _raiseAlert(record, verdict);
       }
@@ -515,7 +542,7 @@ class BackgroundRunner {
       final started = DateTime.now();
       try {
         final hints = await ScamHintBuilder.fromRecord(record);
-        final verdict = await _local.evaluate(record);
+        final verdict = await _local.evaluate(record, hints: hints);
         final elapsedMs = DateTime.now().difference(started).inMilliseconds;
         entry['verdict'] = verdict.toJson();
         entry['hints'] = _hintsToJson(hints);

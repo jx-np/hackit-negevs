@@ -25,8 +25,8 @@ class OnboardingIllustration extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeOutCubic,
-        width: 132,
-        height: 132,
+        width: 112,
+        height: 112,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: accent.withValues(alpha: 0.12),
@@ -42,7 +42,7 @@ class OnboardingIllustration extends StatelessWidget {
           child: Icon(
              done ? LucideIcons.check : icon,
             key: ValueKey<bool>(done),
-            size: 64,
+            size: 56,
             color: accent,
           ),
         ),

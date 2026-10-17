@@ -1,30 +1,57 @@
-/// Result of `POST /uploads`. Uploading automatically schedules a detection
-/// check, so the response also carries the [checkId] of a check already in
-/// `processing`. Poll `GET /detection/{check_id}` (via [DetectionService.get])
-/// until its status is `ready` or `failed`.
+/// Result of `POST /uploads`. The upload is stored privately for OCR + PII
+/// redaction; poll the owner-only `GET /uploads/{upload_id}` (via
+/// [DetectionService.uploadStatus]) until the upload's [status] is `ready` or
+/// `failed`. The redacted derivative is then served from
+/// `GET /uploads/{upload_id}/redacted-image`. Attach the screenshot to a
+/// community post by its [uploadId]. To get a scam verdict for the screenshot,
+/// call `POST /detection` with the `upload_id` separately.
 class Upload {
   const Upload({
     required this.uploadId,
     required this.mediaType,
-    required this.checkId,
     required this.status,
   });
 
   final String uploadId;
   final String mediaType;
 
-  /// The detection check scheduled for this upload. Use it to poll for the
-  /// verdict and to attach the screenshot to a community post.
-  final String checkId;
-
-  /// Detection status at upload time — normally `processing`.
+  /// Upload processing status at upload time — normally `processing`.
   final String status;
 
   factory Upload.fromJson(Map<String, dynamic> json) {
     return Upload(
       uploadId: '${json['upload_id']}',
       mediaType: (json['media_type'] as String?) ?? '',
-      checkId: '${json['check_id']}',
+      status: (json['status'] as String?) ?? 'processing',
+    );
+  }
+}
+
+/// Progress of an upload's processing pipeline, from the owner-only
+/// `GET /uploads/{upload_id}`. Unlike [DetectionResult], this carries no
+/// verdict — it only reports whether the redacted derivative is ready. Poll it
+/// after [DetectionService.uploadImage] until [status] is `ready` or `failed`.
+class UploadProgress {
+  const UploadProgress({
+    required this.uploadId,
+    required this.mediaType,
+    required this.status,
+  });
+
+  final String uploadId;
+  final String mediaType;
+
+  /// Upload processing status: `processing`, `ready`, or `failed`.
+  final String status;
+
+  bool get isReady => status == 'ready';
+  bool get isProcessing => status == 'processing';
+  bool get isFailed => status == 'failed';
+
+  factory UploadProgress.fromJson(Map<String, dynamic> json) {
+    return UploadProgress(
+      uploadId: '${json['upload_id']}',
+      mediaType: (json['media_type'] as String?) ?? '',
       status: (json['status'] as String?) ?? 'processing',
     );
   }

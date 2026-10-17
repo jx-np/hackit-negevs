@@ -58,6 +58,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   image_picker: ^1.1.2
   image_editor_plus: ^1.0.8
+  image: ^4.12.0
 
 dev_dependencies:
   flutter_test:

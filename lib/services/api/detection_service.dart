@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
 import '../../api/api_client.dart';
+import '../../api/api_config.dart';
 import '../../api/api_exception.dart';
 import '../../models/api/community_models.dart';
 import '../../models/api/detection_models.dart';
@@ -51,22 +52,21 @@ class DetectionService {
   /// Uploads a screenshot to `POST /uploads` and returns the created [Upload].
   ///
   /// Uploading automatically schedules a detection check, so there is no need
-  /// to call [checkScreenshot] afterwards — poll [get] with the returned
-  /// [Upload.checkId] until its status is `ready` or `failed`. An optional
-  /// [locale] tunes the analysis.
+  /// to call [checkScreenshot] afterwards — poll [uploadStatus] with the
+  /// returned [Upload.uploadId] until its status is `ready` or `failed`. An
+  /// optional [locale] tunes the analysis.
   ///
   /// Validates the media type and size client-side first so an obviously bad
   /// file never leaves the device; the server remains the source of truth and
   /// its `413`/`422` responses surface as [ApiException]s too.
   ///
-  /// Although the server tolerates anonymous uploads, the created detection
-  /// check can only be polled back via the owner-only `GET /detection/{id}`
-  /// endpoint. An anonymous upload therefore produces a check the signed-in
-  /// poller can never read ("check not found"). To avoid that mismatch, this
-  /// refuses to upload unless a bearer token is physically present (not just
-  /// the `isSignedIn` UI flag) and throws a clear `401` otherwise. Pass
-  /// [requireAuth] `false` only for a genuinely fire-and-forget anonymous
-  /// upload that is never polled.
+  /// Although the server tolerates anonymous uploads, the upload's progress can
+  /// only be polled back via the owner-only `GET /uploads/{id}` endpoint. An
+  /// anonymous upload therefore produces one the signed-in poller can never
+  /// read ("not found"). To avoid that mismatch, this refuses to upload unless
+  /// a bearer token is physically present (not just the `isSignedIn` UI flag)
+  /// and throws a clear `401` otherwise. Pass [requireAuth] `false` only for a
+  /// genuinely fire-and-forget anonymous upload that is never polled.
   Future<Upload> uploadImage(
     File file, {
     String? locale,
@@ -198,10 +198,35 @@ class DetectionService {
     return DetectionResult.fromJson(response.json);
   }
 
+  /// Fetches the full detection check (verdict, signals, recommended actions)
+  /// from the owner-only `GET /detection/{id}`. Use this when the actual scam
+  /// assessment is needed; to only track an upload's processing progress, poll
+  /// [uploadStatus] instead.
   Future<DetectionResult> get(String checkId) async {
     final response = await _client.get('/detection/$checkId');
     return DetectionResult.fromJson(response.json);
   }
+
+  /// Polls an upload's processing progress via the owner-only
+  /// `GET /uploads/{id}`. Returns only `{upload_id, media_type, status}` — no
+  /// verdict. Poll after [uploadImage] until [UploadProgress.status] is `ready`
+  /// (the redacted derivative is available from [uploadRedactedImageUrl]) or
+  /// `failed`.
+  Future<UploadProgress> uploadStatus(String uploadId) async {
+    final response = await _client.get('/uploads/$uploadId');
+    return UploadProgress.fromJson(response.json);
+  }
+
+  /// Absolute URL for an upload's redacted derivative, served by the owner-only
+  /// `GET /uploads/{id}/redacted-image` (Cache-Control: private, no-store).
+  /// Loading it needs the caller's bearer token — pair it with
+  /// [redactedImageHeaders] when handing the URL to `Image.network`.
+  String uploadRedactedImageUrl(String uploadId) =>
+      ApiConfig.absoluteUrl('${ApiConfig.apiPrefix}/uploads/$uploadId/redacted-image');
+
+  /// Auth headers for loading [uploadRedactedImageUrl] from `Image.network`,
+  /// since the redacted image is owner-only.
+  Future<Map<String, String>> redactedImageHeaders() => _client.authHeaders();
 
   Future<Paginated<DetectionResult>> history({
     int? limit,

@@ -77,7 +77,7 @@ class OnboardingPageLayout extends StatelessWidget {
           return Opacity(
             opacity: (1 - delta.abs() * 1.4).clamp(0.0, 1.0),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight: (constraints.maxHeight - 32).clamp(
@@ -89,7 +89,7 @@ class OnboardingPageLayout extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     layer(illustration, 0.1),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     if (labelText != null) ...[
                       layer(labelText, 0.2),
                       const SizedBox(height: 8),

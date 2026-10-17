@@ -142,7 +142,8 @@ class _PermissionsTabState extends State<PermissionsTab>
     try {
       await openAppSettings();
     } catch (_) {
-      _showStatus('Could not open app settings.');
+      if (!mounted) return;
+      _showStatus(AppLocalizations.of(context).setupOpenSettingsFailed);
     }
   }
 
@@ -280,25 +281,27 @@ class _PermissionsTabState extends State<PermissionsTab>
   }) {
     final tokens = context.tokens;
     final l10n = AppLocalizations.of(context);
+    // The button sits under the text instead of beside it, so large text
+    // sizes never squeeze the title into a narrow column.
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Icon(granted ? LucideIcons.circleCheck : LucideIcons.circleAlert,
+            size: 28,
             color: granted ? tokens.risk.safe : tokens.risk.danger),
         SizedBox(width: tokens.space.md),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           SizedBox(height: tokens.space.xs),
-          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: statusColor)),
-        ])),
-        SizedBox(width: tokens.space.md),
-        granted
-          ? Icon(LucideIcons.check, size: 18, color: tokens.risk.safe)
-          : FilledButton(
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: granted ? statusColor : Theme.of(context).colorScheme.onSurfaceVariant)),
+          if (!granted) ...[
+            SizedBox(height: tokens.space.sm),
+            FilledButton(
               onPressed: onGrant,
-              style: FilledButton.styleFrom(minimumSize: const Size(0, 46)),
               child: Text(l10n.permGrant),
             ),
+          ],
+        ])),
       ],
     );
   }
@@ -352,7 +355,7 @@ class _PermissionsTabState extends State<PermissionsTab>
                 child: Row(children: [
                   Icon(LucideIcons.circleAlert, color: tokens.risk.onWarningContainer),
                   SizedBox(width: tokens.space.md),
-                  Expanded(child: Text('${l10n.permScreeningNotGranted}\n${l10n.permScreeningTapHint}', style: TextStyle(color: tokens.risk.onWarningContainer))),
+                  Expanded(child: Text('${l10n.permScreeningNotGranted}. ${l10n.permScreeningTapHint}', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: tokens.risk.onWarningContainer))),
                 ]),
               ),
             ],
@@ -387,9 +390,7 @@ class _PermissionsTabState extends State<PermissionsTab>
                 ),
               ],
             ),
-            SizedBox(height: tokens.space.sm),
-            Text(l10n.permGrantFollowing, style: TextStyle(color: scheme.onSurfaceVariant)),
-            SizedBox(height: tokens.space.sm),
+            SizedBox(height: tokens.space.lg),
             _buildPermissionTile(
               permission: Permission.phone,
               title: l10n.permPhoneCallLog,

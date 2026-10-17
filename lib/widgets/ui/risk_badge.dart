@@ -85,13 +85,14 @@ class RiskBadge extends StatelessWidget {
             Icon(level.icon, size: 15, color: c.onContainer),
             SizedBox(width: tokens.space.xs),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              color: c.onContainer,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              height: 1,
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: c.onContainer,
+                fontWeight: FontWeight.w700,
+                height: 1.2,
+              ),
             ),
           ),
         ],

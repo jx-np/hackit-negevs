@@ -7,6 +7,7 @@ import 'package:scamwatch_mobile_app/api/api_exception.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:scamwatch_mobile_app/models/api/auth_models.dart';
 import 'package:scamwatch_mobile_app/models/api/community_models.dart';
+import 'package:scamwatch_mobile_app/screens/community/edit_post_screen.dart';
 import 'package:scamwatch_mobile_app/screens/community/post_detail_screen.dart';
 import 'package:scamwatch_mobile_app/screens/settings/settings_page.dart';
 import 'package:scamwatch_mobile_app/services/api/community_service.dart';
@@ -14,6 +15,7 @@ import 'package:scamwatch_mobile_app/state/auth_controller.dart';
 import 'package:scamwatch_mobile_app/state/posts_refresh_signal.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_card.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/empty_state.dart';
@@ -71,16 +73,25 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   PostsRefreshSignal? _postsSignal;
   int _handledRevision = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    // Initial open: load the list and the newest previews.
-    _load(fetchPreviews: true);
-  }
+  /// This tab is built at app start, often before sign-in, so posts are
+  /// loaded only while signed in and reloaded whenever sign-in state changes.
+  AuthController? _auth;
+  bool _wasSignedIn = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final auth = context.read<AuthController>();
+    if (!identical(auth, _auth)) {
+      _auth?.removeListener(_onAuthChanged);
+      _auth = auth;
+      auth.addListener(_onAuthChanged);
+      _wasSignedIn = auth.isSignedIn;
+      if (_wasSignedIn) {
+        // Initial open: load the list and the newest previews.
+        _load(fetchPreviews: true);
+      }
+    }
     final signal = context.read<PostsRefreshSignal>();
     if (!identical(signal, _postsSignal)) {
       _postsSignal?.removeListener(_onPostsSignal);
@@ -93,7 +104,26 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   @override
   void dispose() {
     _postsSignal?.removeListener(_onPostsSignal);
+    _auth?.removeListener(_onAuthChanged);
     super.dispose();
+  }
+
+  void _onAuthChanged() {
+    final signedIn = _auth?.isSignedIn ?? false;
+    if (signedIn == _wasSignedIn) return;
+    _wasSignedIn = signedIn;
+    if (signedIn) {
+      _load(fetchPreviews: true);
+    } else if (mounted) {
+      setState(() {
+        _posts = const [];
+        _previewUrls = const {};
+        _imageHeaders = const {};
+        _postTags = const {};
+        _error = null;
+        _loading = false;
+      });
+    }
   }
 
   void _onPostsSignal() {
@@ -168,9 +198,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 
   /// Tags to show on a post card. Prefers the tags the list endpoint returned,
-  /// falling back to the detail-fetched tags for the newest posts (the
-  /// `/me/posts` list often omits tags, so the detail fetch is the reliable
-  /// source for the few cards that have a preview).
+  /// falling back to the detail-fetched tags for the newest posts.
   List<ScamTag> _tagsFor(FeedPost post) {
     if (post.tags.isNotEmpty) return post.tags;
     return _postTags[post.postId] ?? const [];
@@ -188,6 +216,32 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     );
   }
 
+  /// Opens the edit screen for [post]. The card only holds a [FeedPost]
+  /// (a truncated excerpt, no full message), so we first fetch the full
+  /// [PostDetail] to pre-fill the form. On a successful save the edit screen
+  /// pops the updated detail and we reload the list so the card reflects the
+  /// new title and review status.
+  Future<void> _editPost(FeedPost post) async {
+    final PostDetail detail;
+    try {
+      detail = await _community.post(post.postId);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      return;
+    }
+    if (!mounted) return;
+    final updated = await Navigator.of(context).push<PostDetail>(
+      MaterialPageRoute<PostDetail>(
+        builder: (_) => EditPostScreen(client: widget.client, post: detail),
+      ),
+    );
+    if (updated == null) return;
+    // Saved: refresh the list (and newest previews) so the card picks up the
+    // edited title, tags, and reset review status.
+    await _load(fetchPreviews: true);
+  }
+
   Future<void> _deletePost(FeedPost post) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
@@ -198,13 +252,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.commonCancel, style: const TextStyle(fontSize: 16)),
+            child: Text(
+              l10n.commonCancel,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
             child: Text(
               l10n.myPostsDelete,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.titleSmall,
             ),
           ),
         ],
@@ -384,7 +441,10 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
             style: theme.textTheme.bodyLarge,
           ),
           SizedBox(height: tokens.space.md),
-          Row(
+          Wrap(
+            spacing: tokens.space.sm,
+            runSpacing: tokens.space.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _voteButton(
                 theme,
@@ -394,7 +454,6 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 onTap: () => _vote(post, 1),
                 enabled: !_votingPostIds.contains(post.postId),
               ),
-              SizedBox(width: tokens.space.sm),
               _voteButton(
                 theme,
                 icon: LucideIcons.thumbsDown,
@@ -403,20 +462,43 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
                 onTap: () => _vote(post, -1),
                 enabled: !_votingPostIds.contains(post.postId),
               ),
-              SizedBox(width: tokens.space.lg),
-              Icon(
-                LucideIcons.messageCircle,
-                size: 20,
-                color: theme.colorScheme.onSurfaceVariant,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    LucideIcons.messageCircle,
+                    size: 20,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  SizedBox(width: tokens.space.xs),
+                  Text(
+                    '${post.commentCount}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: tokens.space.xs),
-              Text(
-                '${post.commentCount}',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+            ],
+          ),
+          SizedBox(height: tokens.space.xs),
+          Wrap(
+            spacing: tokens.space.xs,
+            runSpacing: tokens.space.xs,
+            children: [
+              TextButton.icon(
+                onPressed: () => _editPost(post),
+                icon: const Icon(LucideIcons.pencil, size: 20),
+                label: Text(l10n.myPostsEdit),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: tokens.space.md,
+                    vertical: tokens.space.sm,
+                  ),
+                  textStyle: theme.textTheme.labelLarge,
                 ),
               ),
-              const Spacer(),
               TextButton.icon(
                 onPressed: () => _deletePost(post),
                 icon: const Icon(LucideIcons.trash2, size: 20),
@@ -456,7 +538,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       icon: Icon(icon, size: 20),
       label: Text(
         label,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        style: theme.textTheme.titleSmall,
       ),
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(48, 48),
@@ -492,8 +574,7 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
           SizedBox(width: tokens.space.xs),
           Text(
             l10n.commonReviewed,
-            style: TextStyle(
-              fontSize: 14,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
               fontWeight: FontWeight.w700,
               color: tokens.risk.onSafeContainer,
             ),
@@ -536,11 +617,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   }
 }
 
-/// A small 86px rounded preview of a post's first redacted image, shown on the
-/// "My posts" card. Falls back to nothing visible on error (the parent only
-/// renders this when a preview URL exists, but the image fetch can still fail).
 /// Small pill chips for a post's scam tags, shown beneath the title on each
-/// "My posts" card. Renders nothing when the post has no tags.
+/// "My posts" card. Wraps onto extra lines at large text sizes.
 class _PostTagChips extends StatelessWidget {
   const _PostTagChips({required this.tags});
 
@@ -571,11 +649,13 @@ class _PostTagChips extends StatelessWidget {
               children: [
                 Icon(LucideIcons.tag, size: 14, color: scheme.primary),
                 SizedBox(width: tokens.space.xs),
-                Text(
-                  tag.displayName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: Text(
+                    tag.displayName,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -586,6 +666,9 @@ class _PostTagChips extends StatelessWidget {
   }
 }
 
+/// A small 86px rounded preview of a post's first redacted image, shown on the
+/// "My posts" card. Falls back to nothing visible on error (the parent only
+/// renders this when a preview URL exists, but the image fetch can still fail).
 class _PostThumbnail extends StatelessWidget {
   const _PostThumbnail({required this.url, required this.headers});
 
@@ -645,6 +728,7 @@ class _SettingsAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return IconButton(
+      key: CoachMarkTargets.keyOf(context, TourTarget.profileSettings),
       onPressed: onPressed,
       icon: const Icon(LucideIcons.settings, size: 26),
       iconSize: 26,
@@ -670,7 +754,7 @@ class _LogOutAction extends StatelessWidget {
         icon: const Icon(LucideIcons.logOut, size: 22),
         label: Text(
           l10n.myProfileSignOut,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.titleSmall,
         ),
         style: TextButton.styleFrom(
           foregroundColor: scheme.error,
@@ -738,7 +822,6 @@ class _ProfileHeader extends StatelessWidget {
                       Text(
                         user.email,
                         style: theme.textTheme.bodyLarge?.copyWith(
-                          fontSize: 17,
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
@@ -808,8 +891,7 @@ class _StatTile extends StatelessWidget {
         SizedBox(height: tokens.space.xs),
         Text(
           label,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            fontSize: 15,
+          style: theme.textTheme.bodyMedium?.copyWith(
             color: scheme.onSurfaceVariant,
           ),
         ),

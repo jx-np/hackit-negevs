@@ -6,9 +6,11 @@ import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import '../permission_step.dart';
 import 'onboarding_illustration.dart';
 import 'onboarding_page_layout.dart';
+import 'status_note.dart';
 
-/// A single permission explained in plain words, with a short status note
-/// underneath that updates as the permission changes.
+/// A single permission in one short sentence, with a status note underneath
+/// that updates as the permission changes. Extra detail, when there is any,
+/// sits behind a small "Why?" button.
 class PermissionPage extends StatelessWidget {
   const PermissionPage({
     super.key,
@@ -17,8 +19,6 @@ class PermissionPage extends StatelessWidget {
     required this.step,
     required this.status,
     required this.skipped,
-    required this.stepNumber,
-    required this.stepTotal,
   });
 
   final PageController controller;
@@ -28,36 +28,44 @@ class PermissionPage extends StatelessWidget {
 
   /// The user tapped "Not now" or declined the system prompt.
   final bool skipped;
-  final int stepNumber;
-  final int stepTotal;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final why = step.why(l10n);
+    final note = _buildNote(context, l10n);
     return OnboardingPageLayout(
       controller: controller,
       index: index,
-      label: l10n.onboardingStepCount(stepNumber, stepTotal),
       illustration: OnboardingIllustration(
         icon: step.icon,
         done: status == StepStatus.granted,
       ),
       title: step.title(l10n),
       body: step.body(l10n),
-      footer: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        child: _buildNote(context, l10n),
+      footer: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: note,
+          ),
+          if (why != null && status != StepStatus.granted) ...[
+            SizedBox(height: context.tokens.space.sm),
+            _WhyButton(text: why),
+          ],
+        ],
       ),
     );
   }
 
   Widget _buildNote(BuildContext context, AppLocalizations l10n) {
     if (status == StepStatus.granted) {
-      return _StatusNote(
+      return OnboardingStatusNote(
         key: const ValueKey('granted'),
-         icon: LucideIcons.circleCheck,
+        icon: LucideIcons.circleCheck,
         text: l10n.onboardingStatusOn,
-         color: context.tokens.risk.safe,
+        color: context.tokens.risk.safe,
       );
     }
     final String text;
@@ -66,59 +74,61 @@ class PermissionPage extends StatelessWidget {
     } else if (skipped) {
       text = l10n.onboardingStatusSkipped;
     } else if (step.opensSettings) {
-      text = l10n.onboardingSettingsHint;
+      text = step.settingsHint(l10n);
     } else {
       return const SizedBox.shrink(key: ValueKey('none'));
     }
-    return _StatusNote(
+    return OnboardingStatusNote(
       key: ValueKey(text),
-       icon: LucideIcons.info,
+      icon: LucideIcons.info,
       text: text,
-      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
   }
 }
 
-class _StatusNote extends StatelessWidget {
-  const _StatusNote({
-    super.key,
-    required this.icon,
-    required this.text,
-    required this.color,
-  });
+/// Small "Why?" text button that reveals one extra sentence.
+class _WhyButton extends StatefulWidget {
+  const _WhyButton({required this.text});
 
-  final IconData icon;
   final String text;
-  final Color color;
+
+  @override
+  State<_WhyButton> createState() => _WhyButtonState();
+}
+
+class _WhyButtonState extends State<_WhyButton> {
+  bool _open = false;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Semantics(
-      liveRegion: true,
-      child: Container(
-        width: double.infinity,
-         padding: EdgeInsets.all(context.tokens.space.lg),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-           borderRadius: context.tokens.radii.lgRadius,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 28),
-             SizedBox(width: context.tokens.space.md),
-            Expanded(
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      alignment: Alignment.topCenter,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton.icon(
+            onPressed: () => setState(() => _open = !_open),
+            icon: Icon(
+              _open ? LucideIcons.chevronUp : LucideIcons.circleHelp,
+            ),
+            label: Text(l10n.onboardingWhy),
+          ),
+          if (_open)
+            Semantics(
+              liveRegion: true,
               child: Text(
-                text,
+                widget.text,
+                textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: color,
-                  height: 1.4,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

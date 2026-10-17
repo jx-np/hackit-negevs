@@ -15,9 +15,11 @@ import 'package:scamwatch_mobile_app/models/api/detection_models.dart';
 import 'package:scamwatch_mobile_app/screens/community/post_detail_screen.dart';
 import 'package:scamwatch_mobile_app/services/api/community_service.dart';
 import 'package:scamwatch_mobile_app/services/api/detection_service.dart';
+import 'package:scamwatch_mobile_app/services/image_downscaler.dart';
 import 'package:scamwatch_mobile_app/state/posts_refresh_signal.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_card.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 
@@ -29,12 +31,13 @@ import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 /// at a time. Instead it becomes [_UploadStatus.queued] (uploaded, waiting its
 /// turn) and the check driver works through the queue LIFO (last-picked first).
 /// When an image reaches the front it moves to [_UploadStatus.processing] and
-/// polls `GET /detection/{check_id}` until it is [_UploadStatus.ready] or
-/// [_UploadStatus.failed]; only then does the next queued image start its check.
+/// polls the owner-only `GET /uploads/{upload_id}` until it is
+/// [_UploadStatus.ready] or [_UploadStatus.failed]; only then does the next
+/// queued image start its check.
 enum _UploadStatus { uploading, queued, processing, ready, failed }
 
 /// Tracks one picked screenshot through upload + detection so the UI can show
-/// per-image progress and the submit step can collect the ready `check_id`s.
+/// per-image progress and the submit step can collect the ready `upload_id`s.
 class _ImageUpload {
   _ImageUpload(this.file);
 
@@ -43,13 +46,9 @@ class _ImageUpload {
   XFile file;
 
   /// The stored upload returned by `/uploads`. Null until it responds. This is
-  /// what gets attached to the post via `upload_ids`.
+  /// what gets attached to the post via `upload_ids`, and the key used to poll
+  /// the owner-only `GET /uploads/{upload_id}` for processing status.
   String? uploadId;
-
-  /// The detection check auto-scheduled by the upload. Null until `/uploads`
-  /// responds. Used only to poll `GET /detection/{check_id}` for processing
-  /// status; the post itself is attached by [uploadId], not this.
-  String? checkId;
 
   _UploadStatus status = _UploadStatus.uploading;
 
@@ -74,12 +73,18 @@ class _ImageUpload {
   /// an edited re-upload is trusted and not re-checked.
   bool reuploading = false;
 
-  bool get isReady => status == _UploadStatus.ready;
+  /// True once the upload has a server-side id that is safe to attach to a
+  /// post. A re-uploading image is NOT ready: its edited bytes are still in
+  /// flight and [uploadId] still points at the stale pre-edit upload, so
+  /// [_submit] must skip it until the re-upload lands.
+  bool get isReady => status == _UploadStatus.ready && !reuploading;
 
   /// True while the image is still working toward a terminal state: uploading,
-  /// waiting in the check queue, or being checked. [_waitForImages] and
-  /// [_submit] block until every image is out of this set (ready or failed).
+  /// waiting in the check queue, being checked, or re-uploading an edit.
+  /// [_waitForImages] and [_submit] block until every image is out of this set
+  /// (ready or failed).
   bool get isPending =>
+      reuploading ||
       status == _UploadStatus.uploading ||
       status == _UploadStatus.queued ||
       status == _UploadStatus.processing;
@@ -161,10 +166,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   /// True when at least one screenshot is attached.
   bool get _hasImages => _images.isNotEmpty;
 
-  /// True when every attached image has finished analysis (ready). An empty
-  /// list counts as ready so a text-only post can be shared immediately.
-  bool get _allImagesReady =>
-      _images.every((image) => image.status == _UploadStatus.ready);
+  /// True when every attached image has finished analysis (ready) and is not
+  /// mid re-upload of an edit. An empty list counts as ready so a text-only
+  /// post can be shared immediately.
+  bool get _allImagesReady => _images.every((image) => image.isReady);
 
   /// True when any attached image is still uploading, queued, or processing.
   bool get _anyImagePending => _images.any((image) => image.isPending);
@@ -222,16 +227,17 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     final List<XFile> accepted = <XFile>[];
     bool rejected = false;
     for (final XFile file in picked) {
-      // TODO: Compress/downscale the picked image before this size check to
-      // reduce upload size (e.g. re-encode to JPEG at a capped resolution and
-      // quality). Compressing first would also let oversized screenshots fit
-      // under [_maxImageBytes] instead of being rejected outright below.
-      final int length = await file.length();
+      // Downscale to 720p and strip metadata (EXIF/GPS/camera info) before the
+      // size check. Re-encoding to JPEG drops all metadata and shrinks the
+      // file, which also lets large screenshots fit under [_maxImageBytes]
+      // instead of being rejected outright.
+      final File shrunk = await ImageDownscaler.process(File(file.path));
+      final int length = await shrunk.length();
       if (length > _maxImageBytes) {
         rejected = true;
         continue;
       }
-      accepted.add(file);
+      accepted.add(XFile(shrunk.path));
     }
     if (!mounted) return;
     final List<_ImageUpload> added = <_ImageUpload>[];
@@ -282,7 +288,6 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       if (!mounted || !_images.contains(image)) return;
       setState(() {
         image.uploadId = upload.uploadId;
-        image.checkId = upload.checkId;
         // Uploaded, but wait in the check queue rather than polling now.
         image.status = _UploadStatus.queued;
       });
@@ -342,47 +347,50 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   }
 
   Future<void> _poll(_ImageUpload image) async {
-    final String? checkId = image.checkId;
-    if (checkId == null || !mounted || !_images.contains(image)) {
+    final String? uploadId = image.uploadId;
+    if (uploadId == null || !mounted || !_images.contains(image)) {
       image.pollTimer?.cancel();
       return;
     }
     final DateTime? deadline = image.pollDeadline;
     if (deadline != null && DateTime.now().isAfter(deadline)) {
-      debugPrint('Image check $checkId timed out while processing');
+      debugPrint('Upload $uploadId timed out while processing');
       image.failureReason = 'Analysis timed out';
       _markFailed(image);
       return;
     }
     try {
-      final DetectionResult result = await _detection.get(checkId);
+      // Only the upload's processing status matters here (not a verdict): once
+      // it is `ready` the redacted screenshot can be attached to a post. Poll
+      // the owner-only `GET /uploads/{id}` progress endpoint by upload id.
+      final UploadProgress progress = await _detection.uploadStatus(uploadId);
       if (!mounted || !_images.contains(image)) return;
       // Log the raw status each tick so a slow backend vs. a terminal failure
       // (and any unexpected status string) is visible when running attached.
-      debugPrint('Image check $checkId status: "${result.status}"');
-      if (result.isReady) {
+      debugPrint('Upload $uploadId status: "${progress.status}"');
+      if (progress.isReady) {
         image.pollTimer?.cancel();
         setState(() => image.status = _UploadStatus.ready);
         // Slot freed — let the next queued image start its check.
         _processNextCheck();
-      } else if (result.isFailed) {
-        // The server resolves a screenshot check to `failed` when its PII
-        // redaction service can't process the image (e.g. PII_SERVICE_URL
-        // unset) — the upload succeeded but analysis could not complete.
-        debugPrint('Image check $checkId resolved to failed on the server');
+      } else if (progress.isFailed) {
+        // The server resolves an upload to `failed` when its PII redaction
+        // service can't process the image (e.g. PII_SERVICE_URL unset) — the
+        // upload succeeded but the redacted derivative could not be produced.
+        debugPrint('Upload $uploadId resolved to failed on the server');
         image.failureReason = 'Analysis could not complete';
         _markFailed(image);
       }
       // Otherwise still processing; keep polling until ready/failed/timeout.
     } on ApiException catch (e) {
       if (e.isNotFound || e.isForbidden || e.isUnauthorized) {
-        // Terminal: the check can't be read by this caller (e.g. it was
+        // Terminal: the upload can't be read by this caller (e.g. it was
         // created under a different identity, or the session is gone).
         // Retrying can't fix that, so stop immediately instead of spinning
         // until the deadline. _markFailed re-uploads once, which also
-        // re-creates the check under the current (authenticated) identity.
+        // re-creates the upload under the current (authenticated) identity.
         debugPrint(
-          'Image check $checkId poll failed terminally: '
+          'Upload $uploadId poll failed terminally: '
           '${e.statusCode} ${e.code} ${e.message}',
         );
         image.failureReason = e.message;
@@ -391,7 +399,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       }
       // Transient errors (network, 5xx) shouldn't kill the whole image — let
       // polling retry on the next tick; the deadline guard eventually gives up.
-      debugPrint('Image check $checkId poll error (will retry): ${e.message}');
+      debugPrint('Upload $uploadId poll error (will retry): ${e.message}');
     }
   }
 
@@ -409,7 +417,6 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       setState(() {
         image.retries += 1;
         image.uploadId = null;
-        image.checkId = null;
         image.status = _UploadStatus.uploading;
         image.pollDeadline = null;
         image.failureReason = null;
@@ -442,7 +449,6 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       for (final _ImageUpload image in failed) {
         image.retries = 0;
         image.uploadId = null;
-        image.checkId = null;
         image.status = _UploadStatus.uploading;
         image.pollDeadline = null;
         image.failureReason = null;
@@ -463,8 +469,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
 
   /// Opens the image editor on a ready screenshot so the user can fix the PII
   /// redaction (e.g. paint over anything the automatic censor missed). On save,
-  /// the edited bytes are re-uploaded through `/uploads` and the image keeps its
-  /// ready status WITHOUT re-polling — an edited re-upload is trusted. Editing
+  /// the edited bytes are re-uploaded through `/uploads`, producing a brand-new
+  /// upload the server must redact afresh. The image re-enters the check queue
+  /// and is polled back to `ready` before it can be attached to a post — the
+  /// server rejects a post whose `upload_id` has not finished redaction. Editing
   /// resets the review flag so the user re-confirms the final images.
   Future<void> _editImage(_ImageUpload image) async {
     final l10n = AppLocalizations.of(context);
@@ -497,21 +505,37 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     });
 
     try {
+      // The editor bakes a thin uniform (white) border into the merged JPEG;
+      // crop it off before anything else so the re-upload matches the original
+      // framing. Falls back to the untrimmed file if no border is detected.
+      final File trimmed = await ImageDownscaler.trimUniformBorder(tempFile);
+      // Downscale to 720p and strip metadata from the edited bytes too, so an
+      // edited re-upload gets the same privacy/size treatment as a fresh pick.
+      final File shrunk = await ImageDownscaler.process(trimmed);
       final Upload up = await _detection.uploadImage(
-        tempFile,
+        shrunk,
         requireAuth: true,
       );
       if (!mounted) return;
       if (!_images.contains(image)) return;
       setState(() {
         // Point the thumbnail at the edited file and attach the new upload.
-        image.file = XFile(tempPath);
+        image.file = XFile(shrunk.path);
         image.uploadId = up.uploadId;
-        image.checkId = up.checkId;
-        // Trusted edit: ready immediately, no re-check (user decision).
-        image.status = _UploadStatus.ready;
+        // The edit produced a brand-new upload the server still has to redact.
+        // Its `upload_id` is NOT valid for a post until `GET /uploads/{id}`
+        // reports `ready` (POST /community/posts rejects a not-yet-redacted
+        // upload and creates no post). So re-enter the normal check queue and
+        // poll for redaction instead of trusting it ready immediately — exactly
+        // like a freshly picked image.
+        image.status = _UploadStatus.queued;
+        image.pollDeadline = null;
+        image.failureReason = null;
         image.reuploading = false;
       });
+      // Drive the serial check queue so the re-uploaded image gets polled to
+      // `ready` (or `failed`) before it can be attached to a post.
+      _processNextCheck();
     } on ApiException catch (e) {
       debugPrint('Edited image re-upload failed: ${e.message}');
       if (!mounted) return;
@@ -594,8 +618,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         }
         // Collect the upload IDs for every image that finished analysis; any
         // failed ones were dropped by the "post without photos" choice above.
-        // The post attaches screenshots by `upload_id` (the `check_id` is only
-        // for polling).
+        // The post attaches screenshots by `upload_id`.
         final List<String> uploadIds = <String>[
           for (final _ImageUpload image in _images)
             if (image.isReady && image.uploadId != null) image.uploadId!,
@@ -822,6 +845,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _HeroCard(
+              // Spotlit by the app tour's "Report" step. Attached to the top
+              // card so it is visible without scrolling when the tab opens.
+              // Exactly one mounted widget carries this key.
+              key: CoachMarkTargets.keyOf(context, TourTarget.reportCreate),
               icon: widget.numberReport
                   ? LucideIcons.phone
                   : LucideIcons.messageSquareWarning,
@@ -915,7 +942,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
             icon: const Icon(LucideIcons.clipboardPaste, size: 24),
             label: Text(
               l10n.reportTabPaste,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             style: TextButton.styleFrom(
               minimumSize: const Size(48, 48),
@@ -970,7 +999,6 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
 TextStyle? _fieldTextStyle(BuildContext context, {bool emphasis = false}) {
   final theme = Theme.of(context);
   return theme.textTheme.bodyLarge?.copyWith(
-    fontSize: emphasis ? 20 : 18,
     fontWeight: emphasis ? FontWeight.w600 : FontWeight.w400,
     height: 1.4,
   );
@@ -987,10 +1015,11 @@ InputDecoration _fieldDecoration(
     borderRadius: tokens.radii.mdRadius,
     borderSide: BorderSide(color: scheme.outlineVariant, width: 1.5),
   );
+  final textTheme = Theme.of(context).textTheme;
   return InputDecoration(
     hintText: hint,
-    hintStyle: TextStyle(fontSize: 18, color: scheme.onSurfaceVariant),
-    errorStyle: TextStyle(fontSize: 16, color: context.tokens.risk.danger),
+    hintStyle: textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
+    errorStyle: textTheme.bodyMedium?.copyWith(color: context.tokens.risk.danger),
     filled: true,
     fillColor: Theme.of(context).cardColor,
     prefixIcon: prefixIcon == null
@@ -1024,6 +1053,7 @@ class _SectionGap extends StatelessWidget {
 
 class _HeroCard extends StatelessWidget {
   const _HeroCard({
+    super.key,
     required this.icon,
     required this.title,
     required this.body,
@@ -1068,7 +1098,6 @@ class _HeroCard extends StatelessWidget {
                 Text(
                   body,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    fontSize: 17,
                     height: 1.45,
                     color: scheme.onSurfaceVariant,
                   ),
@@ -1093,7 +1122,6 @@ class _FieldLabel extends StatelessWidget {
     return Text(
       text,
       style: theme.textTheme.titleLarge?.copyWith(
-        fontSize: 20,
         fontWeight: FontWeight.w700,
       ),
     );
@@ -1167,15 +1195,13 @@ class _ReasonTile extends StatelessWidget {
                   Text(
                     option.label,
                     style: theme.textTheme.titleLarge?.copyWith(
-                      fontSize: 20,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   SizedBox(height: tokens.space.xs),
                   Text(
                     option.description,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontSize: 16,
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
@@ -1255,6 +1281,9 @@ class _PhotoGrid extends StatelessWidget {
       children: [
         for (final _ImageUpload image in images)
           _PhotoThumbnail(
+            // Key by the logical image identity (not list position) so widget
+            // state tracks the image when one is removed from the middle.
+            key: ObjectKey(image),
             image: image,
             size: _tileSize,
             removeLabel: removeLabel,
@@ -1318,8 +1347,7 @@ class _AddPhotoTile extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontSize: 15,
+                  style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                     color: scheme.primary,
                   ),
@@ -1335,6 +1363,7 @@ class _AddPhotoTile extends StatelessWidget {
 
 class _PhotoThumbnail extends StatelessWidget {
   const _PhotoThumbnail({
+    super.key,
     required this.image,
     required this.size,
     required this.removeLabel,
@@ -1359,15 +1388,23 @@ class _PhotoThumbnail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
-    final bool showProcessing = image.isPending;
-    final bool showFailed = image.status == _UploadStatus.failed;
     final bool showReuploading = image.reuploading;
+    // `isPending` now includes the re-uploading state so submit waits for it,
+    // but the thumbnail shows a dedicated re-uploading overlay for that case,
+    // so suppress the generic processing overlay while re-uploading to avoid
+    // stacking two identical spinners.
+    final bool showProcessing = image.isPending && !showReuploading;
+    final bool showFailed = image.status == _UploadStatus.failed;
     // A ready image can be tapped to open the editor and fix the redaction,
     // but not while it's re-uploading an edit or still processing.
     final bool canEdit = onEdit != null &&
         image.status == _UploadStatus.ready &&
         !image.reuploading;
-    return SizedBox(
+    // The tile is a fixed-size thumbnail, so cap text scaling for its small
+    // status overlays to keep them inside the square.
+    return MediaQuery.withClampedTextScaling(
+      maxScaleFactor: 1.3,
+      child: SizedBox(
       width: size,
       height: size,
       child: Stack(
@@ -1375,7 +1412,12 @@ class _PhotoThumbnail extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: tokens.radii.mdRadius,
-            child: Image.file(File(image.file.path), fit: BoxFit.cover),
+            child: Image.file(
+              File(image.file.path),
+              key: ValueKey<String>(image.file.path),
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
           ),
           // Tap target for editing a ready image. Sits above the image but
           // below the overlays and corner buttons.
@@ -1564,6 +1606,7 @@ class _PhotoThumbnail extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
@@ -1594,7 +1637,6 @@ class _ErrorNote extends StatelessWidget {
               child: Text(
                 message,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  fontSize: 17,
                   color: tokens.risk.onDangerContainer,
                 ),
               ),
@@ -1718,8 +1760,8 @@ class _SubmitButtonState extends State<_SubmitButton>
                 size: 24,
               );
 
-    final Widget button = SizedBox(
-      height: 60,
+    final Widget button = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 60),
       child: FilledButton.icon(
         onPressed: enabled ? widget.onPressed : null,
         style: FilledButton.styleFrom(
@@ -1728,7 +1770,10 @@ class _SubmitButtonState extends State<_SubmitButton>
         icon: icon,
         label: Text(
           widget.label,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -1819,15 +1864,14 @@ class _SuccessView extends StatelessWidget {
             message,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyLarge?.copyWith(
-              fontSize: 18,
               height: 1.45,
               color: scheme.onSurfaceVariant,
             ),
           ),
           SizedBox(height: tokens.space.xl3),
           if (onOpenPost != null) ...[
-            SizedBox(
-              height: 60,
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 60),
               child: FilledButton.icon(
                 onPressed: onOpenPost,
                 style: FilledButton.styleFrom(
@@ -1838,8 +1882,7 @@ class _SuccessView extends StatelessWidget {
                 icon: const Icon(LucideIcons.arrowRight, size: 24),
                 label: Text(
                   openPostLabel,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1848,8 +1891,8 @@ class _SuccessView extends StatelessWidget {
             SizedBox(height: tokens.space.md),
           ],
           if (onDone != null) ...[
-            SizedBox(
-              height: 60,
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 60),
               child: onOpenPost != null
                   ? OutlinedButton(
                       onPressed: onDone,
@@ -1861,8 +1904,7 @@ class _SuccessView extends StatelessWidget {
                       ),
                       child: Text(
                         doneLabel,
-                        style: const TextStyle(
-                          fontSize: 20,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1876,8 +1918,7 @@ class _SuccessView extends StatelessWidget {
                       ),
                       child: Text(
                         doneLabel,
-                        style: const TextStyle(
-                          fontSize: 20,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -1885,8 +1926,8 @@ class _SuccessView extends StatelessWidget {
             ),
             SizedBox(height: tokens.space.md),
           ],
-          SizedBox(
-            height: 60,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 60),
             child: OutlinedButton.icon(
               onPressed: onReportAnother,
               style: OutlinedButton.styleFrom(
@@ -1898,8 +1939,7 @@ class _SuccessView extends StatelessWidget {
               icon: const Icon(LucideIcons.rotateCcw, size: 24),
               label: Text(
                 reportAnotherLabel,
-                style: const TextStyle(
-                  fontSize: 20,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1966,7 +2006,6 @@ class _ReviewCheckbox extends StatelessWidget {
                 child: Text(
                   label,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    fontSize: 16,
                     height: 1.35,
                     fontWeight: FontWeight.w600,
                     color: textColor,

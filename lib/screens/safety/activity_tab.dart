@@ -55,6 +55,7 @@ class _ActivityTabState extends State<ActivityTab> {
               Expanded(
                 child: Wrap(
                   spacing: 8,
+                  runSpacing: 8,
                   children: [
                     ChoiceChip(
                       label: Text(l10n.activityAll(widget.entries.length)),
@@ -213,7 +214,7 @@ class _ActivityTileState extends State<_ActivityTile> {
                     SizedBox(height: tokens.space.xs),
                     Text(
                       meta.toString(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
                     ),
@@ -221,7 +222,7 @@ class _ActivityTileState extends State<_ActivityTile> {
                 ),
               ),
               IconButton(
-                tooltip: _expanded ? 'Collapse' : 'Expand',
+                tooltip: _expanded ? l10n.safetyShowLess : l10n.safetyShowMore,
                 icon: Icon(
                   _expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
                 ),
@@ -242,7 +243,7 @@ class _ActivityTileState extends State<_ActivityTile> {
         padding: EdgeInsets.only(top: context.tokens.space.lg),
         child: Text(
           l10n.activityNotCheckedYet,
-          style: Theme.of(context).textTheme.bodySmall,
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
     }
@@ -280,7 +281,7 @@ class _ActivityTileState extends State<_ActivityTile> {
               verdict.raw.trim().isEmpty
                   ? l10n.activityNoOutput
                   : verdict.raw.trim(),
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 fontFamily: 'monospace',
               ),
             ),
@@ -295,8 +296,9 @@ class _ActivityTileState extends State<_ActivityTile> {
     return Padding(
       padding: EdgeInsets.only(top: context.tokens.space.xs),
       child: RichText(
+        textScaler: MediaQuery.textScalerOf(context),
         text: TextSpan(
-          style: theme.textTheme.bodySmall,
+          style: theme.textTheme.bodyMedium,
           children: [
             TextSpan(
               text: '$label: ',

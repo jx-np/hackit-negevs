@@ -118,10 +118,15 @@ class _NumberCheckScreenState extends State<NumberCheckScreen> {
             ),
           ),
           SizedBox(height: tokens.space.xs),
-          Text(
-            widget.rawNumber,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              widget.rawNumber,
+              maxLines: 1,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -253,13 +258,13 @@ class _NumberCheckScreenState extends State<NumberCheckScreen> {
         ),
         if (_outcome == _CheckOutcome.failed) ...[
           SizedBox(height: tokens.space.lg),
-          SizedBox(
-            height: 56,
-            child: FilledButton.icon(
-              onPressed: _check,
-              icon: const Icon(Icons.refresh),
-              label: Text(l10n.commonRetry),
+          FilledButton.icon(
+            onPressed: _check,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
             ),
+            icon: const Icon(Icons.refresh),
+            label: Text(l10n.commonRetry),
           ),
         ],
       ],

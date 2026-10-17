@@ -65,11 +65,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         final l10n = AppLocalizations.of(context);
         setState(() {
-          _error = l10n.contactsLoadFailed(e.toString());
+          _error = l10n.callsContactsLoadFailed;
           _isLoading = false;
         });
       }
@@ -232,7 +232,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                 IconButton(
                   onPressed: () => _callNumber(contact.phones.first.number),
                   icon: Icon(LucideIcons.phone, color: scheme.primary),
-                  tooltip: 'Call',
+                  tooltip: AppLocalizations.of(context).callsCallTooltip,
                   constraints: const BoxConstraints(
                     minWidth: 48,
                     minHeight: 48,
@@ -289,11 +289,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
           SnackBar(content: Text(l10n.contactsCouldNotCall)),
         );
       }
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.contactsCouldNotCallError(e.toString()))),
+        SnackBar(content: Text(l10n.contactsCouldNotCall)),
       );
     }
   }

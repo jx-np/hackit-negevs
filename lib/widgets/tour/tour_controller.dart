@@ -1,15 +1,12 @@
 import 'package:flutter/widgets.dart';
-
-import '../../services/protection_settings.dart';
-import 'tour_models.dart';
+import 'package:scamwatch_mobile_app/services/protection_settings.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 
 /// Drives the interactive coach-mark tour.
 ///
-/// The controller owns the active state and the current step index. It does not
-/// know how to switch tabs itself; [HomePage] supplies an [onShowTab] callback
-/// so the controller can bring each step's tab on screen before highlighting
-/// it. The overlay widget listens to this controller and rebuilds as the tour
-/// advances.
+/// Owns the active state and the current step index. It does not switch tabs
+/// itself; `HomePage` supplies [onShowTab] so each step's tab is on screen
+/// before the overlay spotlights it. `CoachMarkOverlay` listens and rebuilds.
 class TourController extends ChangeNotifier {
   TourController({required this.steps, ProtectionSettings? settings})
       : _settings = settings ?? ProtectionSettings();
@@ -17,7 +14,7 @@ class TourController extends ChangeNotifier {
   final List<TourStep> steps;
   final ProtectionSettings _settings;
 
-  /// Invoked with the tab index each step wants on screen. Set by [HomePage].
+  /// Invoked with the tab index each step wants on screen. Set by `HomePage`.
   void Function(int tabIndex)? onShowTab;
 
   bool _active = false;
@@ -30,6 +27,7 @@ class TourController extends ChangeNotifier {
   TourStep? get currentStep =>
       _active && _index >= 0 && _index < steps.length ? steps[_index] : null;
 
+  bool get isFirstStep => _index <= 0;
   bool get isLastStep => _index >= steps.length - 1;
 
   /// Starts the tour from the first step and shows that step's tab.
@@ -41,10 +39,10 @@ class TourController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Advances to the next step, or finishes when past the last step.
+  /// Advances to the next step, or finishes after the last one.
   void next() {
     if (!_active) return;
-    if (_index >= steps.length - 1) {
+    if (isLastStep) {
       finish();
       return;
     }
@@ -53,8 +51,15 @@ class TourController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Ends the tour early. Still marks the tour as seen so it does not reappear
-  /// on the next launch.
+  /// Goes back one step. No-op on the first step.
+  void back() {
+    if (!_active || isFirstStep) return;
+    _index -= 1;
+    _showCurrentTab();
+    notifyListeners();
+  }
+
+  /// Ends the tour early. Still marks it as seen so it does not reappear.
   void skip() => finish();
 
   /// Ends the tour and persists that the user has seen it.

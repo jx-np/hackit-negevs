@@ -32,8 +32,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       TextEditingController(text: widget.initialText ?? '');
 
   List<ScamCategory> _categories = const [];
-  List<ScamTag> _availableTags = const [];
-  final Set<String> _selectedTags = <String>{};
   String? _scamType;
 
   bool _loadingOptions = true;
@@ -56,19 +54,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Future<void> _loadOptions() async {
     setState(() => _loadingOptions = true);
     List<ScamCategory> cats = const [];
-    List<ScamTag> tags = const [];
     try {
       final types = await _community.scamTypes();
       cats = types.items;
     } catch (_) {}
-    try {
-      final tagList = await _community.tags(limit: 50);
-      tags = tagList.items;
-    } catch (_) {}
     if (!mounted) return;
     setState(() {
       _categories = cats;
-      _availableTags = tags;
       _loadingOptions = false;
     });
   }
@@ -88,7 +80,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         title: _titleController.text.trim(),
         redactedText: _textController.text.trim(),
         scamType: _scamType!,
-        tags: _selectedTags.toList(),
       );
       if (!mounted) return;
       Navigator.of(context).pop(post);
@@ -124,9 +115,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       title: l10n.communityShareScam,
       scrollable: true,
       bottomBar: SizedBox(
-        height: 60,
         width: double.infinity,
         child: FilledButton.icon(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(60)),
           onPressed: _submitting ? null : _submit,
           icon: _submitting
               ? const SizedBox(
@@ -137,7 +128,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               : const Icon(LucideIcons.send, size: 24),
           label: Text(
             _submitting ? l10n.commonSharing : l10n.commonShareWithCommunity,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
@@ -188,33 +181,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ),
                     ],
                   ),
-                  if (_availableTags.isNotEmpty) ...[
-                    SizedBox(height: tokens.space.xl),
-                    _FieldLabel(l10n.commonTagsOptional),
-                    SizedBox(height: tokens.space.md),
-                    Wrap(
-                      spacing: tokens.space.md,
-                      runSpacing: tokens.space.md,
-                      children: [
-                        for (final tag in _availableTags)
-                          FilterChip(
-                            label: Text(tag.displayName, style: theme.textTheme.bodyLarge),
-                            selected: _selectedTags.contains(tag.slug),
-                            onSelected: (selected) => setState(() {
-                              if (selected) {
-                                _selectedTags.add(tag.slug);
-                              } else {
-                                _selectedTags.remove(tag.slug);
-                              }
-                            }),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: tokens.space.lg,
-                              vertical: tokens.space.md,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
                   if (_error != null) ...[
                     SizedBox(height: tokens.space.lg),
                     Container(

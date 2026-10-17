@@ -20,9 +20,12 @@ import '../../services/call_event_service.dart';
 import '../../services/report_service.dart';
 import '../../services/role_service.dart';
 import '../../theme/app_tokens.dart';
-import '../../widgets/ui/app_card.dart';
 import '../../widgets/ui/app_screen.dart';
 import '../../widgets/ui/empty_state.dart';
+import 'package:scamwatch_mobile_app/screens/calls/widgets/call_record_tile.dart';
+import 'package:scamwatch_mobile_app/screens/calls/widgets/calls_help.dart';
+import 'package:scamwatch_mobile_app/widgets/help/screen_help.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 import 'blocked_numbers_screen.dart';
 import 'high_risk_call_alert.dart';
 import 'number_check_screen.dart';
@@ -272,9 +275,10 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
       // skipped unless the user explicitly refreshes (forceRecheck).
       await _checkRecentTrustScores(records, forceRecheck: forceRecheck);
     } catch (e) {
+      debugPrint('Failed to load call history: $e');
       if (!mounted) return;
       setState(() {
-        _error = 'Failed to load call history: $e';
+        _error = AppLocalizations.of(context).callsLoadFailedBody;
         _isLoading = false;
       });
     }
@@ -474,71 +478,6 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     await _loadBlockedNumbers();
   }
 
-  String _formatTimestamp(int timestamp) {
-    if (timestamp <= 0) return AppLocalizations.of(context).commonUnknown;
-    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    final hour = date.hour.toString().padLeft(2, '0');
-    final minute = date.minute.toString().padLeft(2, '0');
-    return '${date.day}/${date.month}/${date.year} $hour:$minute';
-  }
-
-  String _statusLabel(CallRecord record) {
-    final l10n = AppLocalizations.of(context);
-    if (record.direction == CallRecord.directionOutgoing) {
-      return l10n.callOutgoing;
-    }
-    switch (record.status) {
-      case CallRecord.statusAnswered:
-        return l10n.callAnswered;
-      case CallRecord.statusRejected:
-        return l10n.callRejected;
-      case CallRecord.statusMissed:
-        return l10n.callMissed;
-      case CallRecord.statusBlocked:
-        return l10n.callBlockedLabel;
-      default:
-        return l10n.commonUnknown;
-    }
-  }
-
-  Color _statusColor(CallRecord record) {
-    final tokens = context.tokens;
-    final scheme = Theme.of(context).colorScheme;
-    if (record.direction == CallRecord.directionOutgoing) {
-      return scheme.primary;
-    }
-    switch (record.status) {
-      case CallRecord.statusAnswered:
-        return tokens.risk.safe;
-      case CallRecord.statusRejected:
-        return tokens.risk.warning;
-      case CallRecord.statusMissed:
-        return tokens.risk.danger;
-      case CallRecord.statusBlocked:
-        return tokens.risk.danger;
-      default:
-        return scheme.onSurfaceVariant;
-    }
-  }
-
-  IconData _statusIcon(CallRecord record) {
-    if (record.direction == CallRecord.directionOutgoing) {
-      return LucideIcons.phoneOutgoing;
-    }
-    switch (record.status) {
-      case CallRecord.statusAnswered:
-        return LucideIcons.phoneIncoming;
-      case CallRecord.statusRejected:
-        return LucideIcons.phoneOff;
-      case CallRecord.statusMissed:
-        return LucideIcons.phoneMissed;
-      case CallRecord.statusBlocked:
-        return LucideIcons.ban;
-      default:
-        return LucideIcons.phone;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -547,14 +486,22 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
       scrollable: false,
       actions: [
         IconButton(
+          key: CoachMarkTargets.keyOf(context, TourTarget.callsBlockedButton),
           tooltip: l10n.callBlockedNumbers,
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           icon: const Icon(LucideIcons.shieldBan),
           onPressed: _openBlockedNumbers,
         ),
         IconButton(
           tooltip: l10n.commonRefresh,
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           icon: const Icon(LucideIcons.refreshCw),
           onPressed: () => _loadHistory(forceRecheck: true),
+        ),
+        HelpButton(
+          key: CoachMarkTargets.keyOf(context, TourTarget.callsHelpButton),
+          title: l10n.helpCallsTitle,
+          entries: callsHelpEntries,
         ),
       ],
       body: _buildBody(context, l10n),
@@ -654,136 +601,54 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   }
 
   Widget _recordCard(BuildContext context, CallRecord record, bool isBlocked) {
-    final l10n = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
-    final tokens = context.tokens;
-    // High-risk numbers tint the whole row red; blocked still wins the accent
-    // color. The high-risk background applies regardless of blocked state so a
-    // reported scam number stays visually loud.
-    final isHighRisk = record.isHighRisk;
-    final accent = isBlocked
-        ? scheme.error
-        : isHighRisk
-        ? tokens.risk.danger
-        : _statusColor(record);
-    return AppCard(
-      color: isHighRisk ? tokens.risk.dangerContainer : null,
-      border: isHighRisk
-          ? Border.all(color: tokens.risk.danger.withValues(alpha: 0.5))
-          : null,
-      padding: EdgeInsets.symmetric(
-        horizontal: tokens.space.lg,
-        vertical: tokens.space.md,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.14),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isBlocked ? LucideIcons.ban : _statusIcon(record),
-              color: accent,
-              size: 22,
-            ),
-          ),
-          SizedBox(width: tokens.space.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  record.rawNumber,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: tokens.space.xs),
-                Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: _statusLabel(record),
-                        style: TextStyle(
-                          color: accent,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (record.status == CallRecord.statusAnswered &&
-                          record.durationSeconds > 0)
-                        TextSpan(
-                          text: l10n.callDurationSuffix(record.durationSeconds),
-                        ),
-                      if (record.reported)
-                        TextSpan(
-                          text: l10n.callReportedSuffix,
-                          style: TextStyle(
-                            color: scheme.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      TextSpan(
-                        text: ' • ${_formatTimestamp(record.timestamp)}',
-                      ),
-                    ],
-                  ),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _buildMenu(record, isBlocked),
-        ],
-      ),
+    return CallRecordTile(
+      record: record,
+      isBlocked: isBlocked,
+      trailing: _buildMenu(record, isBlocked),
     );
   }
 
   Widget _buildMenu(CallRecord record, bool isBlocked) {
     final l10n = AppLocalizations.of(context);
     return FPopoverMenu.tiles(
-      builder: (context, controller, _) => FButton.icon(
-        onPress: controller.toggle,
-        variant: FButtonVariant.ghost,
-        size: FButtonSizeVariant.sm,
-        child: context.theme.icons.ellipsis(context),
+      builder: (context, controller, _) => IconButton(
+        onPressed: controller.toggle,
+        tooltip: l10n.callsMoreOptions,
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        icon: const Icon(LucideIcons.ellipsis),
       ),
       menuBuilder: (context, controller, _) => [
         FTileGroup(
           children: [
             FTile(
-              prefix: const Icon(Icons.verified_user),
-              title: Text(l10n.callCheckNumber),
+              prefix: const Icon(LucideIcons.shieldQuestion),
+              title: Text(l10n.callsCheckNumber),
               onPress: () => _runMenu(controller, 'check', record),
             ),
             if (!isBlocked)
               FTile(
                 variant: FItemVariant.destructive,
-                prefix: const Icon(Icons.block),
-                title: Text(l10n.callBlock),
+                prefix: const Icon(LucideIcons.ban),
+                title: Text(l10n.callsBlockNumber),
                 onPress: () => _runMenu(controller, 'block', record),
               ),
             if (isBlocked)
               FTile(
-                prefix: const Icon(Icons.lock_open),
+                prefix: const Icon(LucideIcons.lockOpen),
                 title: Text(l10n.callUnblock),
                 onPress: () => _runMenu(controller, 'unblock', record),
               ),
             if (!record.reported)
               FTile(
-                prefix: const Icon(Icons.flag),
-                title: Text(l10n.commonReport),
+                prefix: const Icon(LucideIcons.flag),
+                title: Text(l10n.callsReportScam),
                 onPress: () => _runMenu(controller, 'report', record),
               ),
             if (!isBlocked && !record.reported)
               FTile(
                 variant: FItemVariant.destructive,
-                prefix: const Icon(Icons.report),
-                title: Text(l10n.callBlockAndReport),
+                prefix: const Icon(LucideIcons.octagonAlert),
+                title: Text(l10n.callsBlockAndReport),
                 onPress: () => _runMenu(controller, 'block_report', record),
               ),
           ],

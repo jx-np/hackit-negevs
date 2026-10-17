@@ -60,7 +60,8 @@ class _AuthGateOverlay extends StatelessWidget {
         color: scheme.surface.withValues(alpha: isDark ? 0.55 : 0.6),
         alignment: Alignment.center,
         padding: EdgeInsets.all(tokens.space.xl), // 24
-        child: ConstrainedBox(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
           child: Container(
             padding: EdgeInsets.all(tokens.space.xl2), // 32
@@ -108,14 +109,15 @@ class _AuthGateOverlay extends StatelessWidget {
                 SizedBox(height: tokens.space.xl2), // 32
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
                   child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                    ),
                     onPressed: () => requireLogin(context),
                     icon: const Icon(LucideIcons.logIn, size: 22),
                     label: Text(
                       l10n.authGateAction,
-                      style: const TextStyle(
-                        fontSize: 18,
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -124,6 +126,7 @@ class _AuthGateOverlay extends StatelessWidget {
               ],
             ),
           ),
+        ),
         ),
       ),
     );

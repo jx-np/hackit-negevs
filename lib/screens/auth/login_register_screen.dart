@@ -260,9 +260,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   ),
                 ],
                 SizedBox(height: context.tokens.space.xl2),
-                SizedBox(
-                  height: 64,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 64),
                   child: FilledButton(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(64),
+                    ),
                     onPressed: busy ? null : _submit,
                     child: busy
                         ? const SizedBox(
@@ -272,26 +275,24 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           )
                         : Text(
                             _registerMode ? l10n.authCreateAccount : l10n.authSignIn,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
                   ),
                 ),
                 SizedBox(height: context.tokens.space.lg),
-                SizedBox(
-                  height: 56,
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
                   child: TextButton(
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                    ),
                     onPressed: busy ? null : _toggleMode,
                     child: Text(
                       _registerMode
                           ? l10n.authToggleToLogin
                           : l10n.authToggleToRegister,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
                 ),

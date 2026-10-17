@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Lightbox } from './Lightbox';
 
 interface PostImageProps {
   /** Loadable redacted-image URLs, in display order. */
@@ -15,8 +16,9 @@ interface PostImageProps {
 /**
  * Renders a post's redacted screenshots with a lightbox.
  *
- * Only the PII-redacted copies the backend serves are ever displayed. A
- * thumbnail strip appears when a post has more than one image.
+ * Only the PII-redacted copies the backend serves are ever displayed. A single
+ * image fills the frame; multiple images become a swipeable carousel with
+ * arrows and a dot indicator.
  */
 export function PostImages({
   urls,
@@ -26,6 +28,7 @@ export function PostImages({
 }: PostImageProps) {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  const [page, setPage] = useState(0);
   const [revealed, setRevealed] = useState(!concealUntilRevealed);
   const count = urls.length;
 
@@ -42,112 +45,106 @@ export function PostImages({
     [count],
   );
 
-  // Close on Escape and step with the arrow keys while the lightbox is open.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-      if (e.key === 'ArrowLeft') step(-1);
-      if (e.key === 'ArrowRight') step(1);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, step]);
+  const pageStep = useCallback(
+    (delta: number) => setPage((p) => ((p + delta) % count + count) % count),
+    [count],
+  );
 
   if (count === 0) return null;
 
   const detail = variant === 'detail';
+  const carousel = count > 1;
 
   return (
     <>
-      <div className={detail ? 'space-y-3' : 'space-y-2'}>
-        {urls.map((url, i) => (
-          <div
-            key={url}
-            className="relative overflow-hidden rounded-md border border-scam-line"
-          >
+      <div
+        className="relative overflow-hidden rounded-md border border-scam-line"
+        {...(carousel
+          ? { role: 'group', 'aria-roledescription': 'carousel', 'aria-label': `${alt} — ${count} redacted screenshots` }
+          : {})}
+      >
+        {/* Sliding track: every slide stays mounted so each screenshot is in the DOM. */}
+        <div
+          className="flex transition-transform duration-300 ease-out"
+          style={{ transform: `translateX(-${page * 100}%)` }}
+        >
+          {urls.map((url, i) => (
+            <div key={url} className="relative w-full shrink-0 basis-full">
+              <button
+                type="button"
+                onClick={() => (revealed ? show(i) : setRevealed(true))}
+                className="block w-full cursor-zoom-in"
+                aria-label={revealed ? `View image ${i + 1} of ${count}` : 'Reveal image'}
+                aria-hidden={carousel && i !== page}
+                tabIndex={carousel && i !== page ? -1 : undefined}
+              >
+                <img
+                  src={url}
+                  alt={`${alt} — redacted screenshot ${i + 1}`}
+                  loading="lazy"
+                  className={`block w-full bg-scam-750 object-contain transition ${
+                    revealed ? '' : 'blur-md'
+                  } ${detail ? 'max-h-[32rem]' : 'max-h-80'}`}
+                />
+              </button>
+              {!revealed && (
+                <span className="pointer-events-none absolute inset-0 grid place-items-center bg-scam-950/50 text-xs font-semibold uppercase tracking-wider text-scam-text">
+                  Sensitive evidence · click to reveal
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {carousel && (
+          <>
             <button
               type="button"
-              onClick={() => (revealed ? show(i) : setRevealed(true))}
-              className="block w-full cursor-zoom-in"
-              aria-label={revealed ? `View image ${i + 1} of ${count}` : 'Reveal image'}
+              aria-label="Previous image in carousel"
+              onClick={() => pageStep(-1)}
+              className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-scam-950/70 text-scam-text transition hover:bg-scam-950/90"
             >
-              <img
-                src={url}
-                alt={`${alt} — redacted screenshot ${i + 1}`}
-                loading="lazy"
-                className={`block w-full bg-scam-750 object-contain transition ${
-                  revealed ? '' : 'blur-md'
-                } ${detail ? 'max-h-[32rem]' : 'max-h-80'}`}
-              />
+              <ChevronLeft size={20} />
             </button>
-            {!revealed && (
-              <span className="pointer-events-none absolute inset-0 grid place-items-center bg-scam-950/50 text-xs font-semibold uppercase tracking-wider text-scam-text">
-                Sensitive evidence · click to reveal
-              </span>
-            )}
-          </div>
-        ))}
+            <button
+              type="button"
+              aria-label="Next image in carousel"
+              onClick={() => pageStep(1)}
+              className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-scam-950/70 text-scam-text transition hover:bg-scam-950/90"
+            >
+              <ChevronRight size={20} />
+            </button>
+
+            <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-scam-950/70 px-2 py-0.5 text-xs font-semibold text-scam-text">
+              {page + 1} / {count}
+            </span>
+
+            <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+              {urls.map((url, i) => (
+                <button
+                  key={url}
+                  type="button"
+                  aria-label={`Go to image ${i + 1}`}
+                  aria-current={i === page}
+                  onClick={() => setPage(i)}
+                  className={`pointer-events-auto h-2 rounded-full transition-all ${
+                    i === page ? 'w-5 bg-scam-text' : 'w-2 bg-scam-text/40 hover:bg-scam-text/70'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${alt} images`}
-          className="fixed inset-0 z-50 flex flex-col bg-scam-950/95"
-          onClick={() => setOpen(false)}
-        >
-          <div className="flex items-center justify-between px-4 py-3 text-xs font-semibold uppercase tracking-wider text-scam-muted">
-            <span>
-              Redacted screenshot {index + 1} of {count}
-            </span>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              aria-label="Close image viewer"
-              className="grid h-9 w-9 place-items-center rounded-md text-scam-text transition hover:bg-scam-800"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          <div className="relative flex min-h-0 flex-1 items-center justify-center px-4 pb-6">
-            <img
-              src={urls[index]}
-              alt={`${alt} — redacted screenshot ${index + 1}`}
-              className="max-h-full max-w-full object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-
-            {count > 1 && (
-              <>
-                <button
-                  type="button"
-                  aria-label="Previous image"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    step(-1);
-                  }}
-                  className="absolute left-4 grid h-11 w-11 place-items-center rounded-full bg-scam-800/80 text-scam-text transition hover:bg-scam-750"
-                >
-                  <ChevronLeft size={22} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Next image"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    step(1);
-                  }}
-                  className="absolute right-4 grid h-11 w-11 place-items-center rounded-full bg-scam-800/80 text-scam-text transition hover:bg-scam-750"
-                >
-                  <ChevronRight size={22} />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <Lightbox
+          urls={urls}
+          alt={alt}
+          index={index}
+          onStep={carousel ? step : undefined}
+          onClose={() => setOpen(false)}
+        />
       )}
     </>
   );

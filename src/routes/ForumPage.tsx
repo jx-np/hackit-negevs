@@ -3,6 +3,7 @@ import { ArrowLeft, PlusCircle, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ForumSidebar, type ForumPanel } from '../components/forum/ForumSidebar';
+import { NewestReportsContent } from '../components/forum/NewestReports';
 import { PostList } from '../components/forum/PostList';
 import { RecentReports } from '../components/forum/RecentReports';
 import { SearchBar } from '../components/forum/SearchBar';
@@ -18,6 +19,8 @@ import { VerifiedContent } from './VerifiedDatabasePage';
 /** Renders the inline content for a given forum navigation panel. */
 function PanelContent({ panel }: { panel: ForumPanel }) {
   switch (panel) {
+    case 'newest':
+      return <NewestReportsContent />;
     case 'stay-safe':
       return <StaySafeContent />;
     case 'rules':
@@ -130,7 +133,12 @@ export function ForumPage() {
         </section>
 
         {/* Right sidebar — recently reported scams + active threat alerts */}
-        <RecentReports />
+        <RecentReports
+          onSeeAll={() => {
+            setPanel('newest');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
       </div>
     </div>
   );

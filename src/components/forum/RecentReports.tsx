@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom';
 import { usePosts } from '../../hooks/usePosts';
 import type { Post, RiskLevel } from '../../types';
 
+/** Only reports created within this window count as "recent". */
+const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function isRecent(post: Post): boolean {
+  return Date.now() - new Date(post.createdAt).getTime() <= RECENT_WINDOW_MS;
+}
+
 /** Relative "time ago" from an ISO timestamp. */
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -56,26 +63,39 @@ function RecentRow({ post }: { post: Post }) {
   );
 }
 
-export function RecentReports() {
+type RecentReportsProps = {
+  /** Switch the main feed to the full, newest-first report list. */
+  onSeeAll?: () => void;
+};
+
+export function RecentReports({ onSeeAll }: RecentReportsProps) {
   // Always show the newest reports, independent of the main feed filters.
   const { data, isLoading } = usePosts({ query: '', tagId: null, sort: 'new' });
-  const recent = (data?.pages.flatMap((p) => p.posts) ?? []).slice(0, 6);
+  const recent = (data?.pages.flatMap((p) => p.posts) ?? [])
+    .filter(isRecent)
+    .slice(0, 6);
 
   return (
     <aside
-      className="w-full lg:sticky lg:top-[6.5rem] lg:w-[310px] lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
+      className="w-full lg:sticky lg:top-[6.5rem] lg:mt-[97px] lg:w-[310px] lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
       aria-label="Recently reported scams"
     >
       {/* Recently reported */}
       <div className="sr-surface p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between border-b border-scam-line pb-3">
           <span className="sr-label">Recently Reported Scams</span>
-          <Link to="/forum" className="sr-focus rounded text-xs font-semibold text-trust-700 hover:underline dark:text-trust-400">
-            See all
-          </Link>
+          {onSeeAll && (
+            <button
+              type="button"
+              onClick={onSeeAll}
+              className="text-xs font-medium text-trust-400 transition hover:underline"
+            >
+              See all
+            </button>
+          )}
         </div>
 
-        <div className="mt-2 flex flex-col divide-y divide-scam-line">
+        <div className="mt-1 flex flex-col divide-y divide-scam-line">
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="space-y-2 py-3">

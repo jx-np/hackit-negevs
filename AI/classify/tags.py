@@ -32,6 +32,12 @@ TAGS: dict[str, str] = {
     "money-request": "asks to transfer money or share payment details",
     "suspicious-link": "contains a risky or unexpected URL",
     "government-impersonation": "pretends to be a government agency or official",
+    "money-mule": "recruits the reader to receive or move money for a criminal",
+    "loan-scam": "offers a fake loan or charges upfront loan fees",
+    "gambling-scam": "a fake gambling, betting, or online casino platform",
+    "sextortion": "threatens to expose intimate images or private information",
+    "family-emergency-scam": "pretends a family member has an emergency and needs money",
+    "ticket-resale-scam": "a fake event, travel, or resale ticket deal",
     "other": "none of the above, or the tag is unclear",
 }
 

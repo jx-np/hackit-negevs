@@ -22,6 +22,7 @@ from PIL import Image
 
 from app.clef_client import ClefError
 from app.main import app
+from pii.ocr_remote import OcrUnavailableError
 
 
 def _png_bytes(size=(100, 100)) -> bytes:
@@ -47,6 +48,14 @@ class _StubOcr:
 
     def extractImageWithBoundingBox(self, image):  # noqa: N802 (match real API)
         return list(self._boxes)
+
+    async def aextract(self, image_bytes, media_type):
+        return list(self._boxes)
+
+
+class _RaisingOcr(_StubOcr):
+    async def aextract(self, image_bytes, media_type):
+        raise OcrUnavailableError()
 
 
 class _StubClef:
@@ -139,6 +148,12 @@ def test_multipart_redact_fails_closed_on_clef_outage(client):
         data={"locale": "en-SG"},
         files={"image": ("upload.png", _png_bytes(), "image/png")},
     )
+    assert resp.status_code == 502
+
+
+def test_ocr_unavailable_returns_502(client):
+    app.state.ocr_engine = _RaisingOcr([])
+    resp = client.post("/v1/redact", data={"locale": ""}, files={"image": ("upload.png", _png_bytes(), "image/png")})
     assert resp.status_code == 502
 
 

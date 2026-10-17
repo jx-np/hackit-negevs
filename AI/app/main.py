@@ -26,7 +26,7 @@ from classify.classify import classify as run_classify
 from classify.tags import classify_tags as run_classify_tags
 from pii.censor import build_cleaned_text, censor_image
 from pii.decide import decide_pii
-from pii.ocr import OcrEngine
+from pii.ocr_remote import OcrBadImageError, OcrUnavailableError, RemoteOcrEngine, build_ocr_engine
 
 from .clef_client import ClefClient, ClefError
 from .config import get_settings
@@ -53,14 +53,17 @@ _logger = get_logger("main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Load the OCR model once at startup (expensive) and keep one clef client.
-    app.state.ocr_engine = OcrEngine()
+    settings = get_settings()
+    app.state.ocr_engine = build_ocr_engine(settings)
     app.state.clef_client = ClefClient()
-    _logger.info("ai service starting")
+    mode = "remote" if settings.ocr_service_url.strip() else "local"
+    _logger.info("ai service starting ocr_mode=%s", mode)
     try:
         yield
     finally:
         await app.state.clef_client.aclose()
+        if isinstance(app.state.ocr_engine, RemoteOcrEngine):
+            await app.state.ocr_engine.aclose()
         _logger.info("ai service stopped")
 
 
@@ -123,8 +126,13 @@ async def _run_redaction(image_bytes: bytes, media_type: str) -> _RedactOutcome:
     image bytes or OCR/box text — only counts, latency, status, media type.
     """
     started = time.monotonic()
-    engine: OcrEngine = app.state.ocr_engine
-    boxes = engine.extractImageWithBoundingBox(image_bytes)
+    engine = app.state.ocr_engine
+    try:
+        boxes = await engine.aextract(image_bytes, media_type)
+    except OcrBadImageError as exc:
+        raise HTTPException(status_code=400, detail="invalid image") from exc
+    except OcrUnavailableError as exc:
+        raise HTTPException(status_code=502, detail="ocr unavailable") from exc
 
     # No text found -> return the original image unchanged, nothing to redact.
     # Short-circuit *before* the PII decision: with no boxes there is nothing to

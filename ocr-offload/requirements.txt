@@ -1,0 +1,18 @@
+# PaddlePaddle CPU wheel is published on its own index; install first:
+# python -m pip install paddlepaddle==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
+# Headless Linux: PaddleX pulls in non-headless opencv, which needs libGL.so.1.
+# Install libgl1 + libglib2.0-0 (Debian/Ubuntu) or mesa-libGL + glib2 (RHEL),
+# or swap the wheel for opencv-python-headless. See README.md.
+# ONNX Runtime CPU extra: python -m pip install onnxruntime (see README.md).
+# Optional fetch script dependency: python -m pip install huggingface_hub (see README.md).
+paddleocr==3.7.0
+pillow==10.4.0
+setuptools==75.6.0
+fastapi==0.115.6
+python-multipart==0.0.20
+uvicorn==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+pytest==8.3.4
+httpx==0.28.1

@@ -27,6 +27,12 @@ CANONICAL_SEED_TAGS = {
     "money-request",
     "suspicious-link",
     "government-impersonation",
+    "money-mule",
+    "loan-scam",
+    "gambling-scam",
+    "sextortion",
+    "family-emergency-scam",
+    "ticket-resale-scam",
     "other",
 }
 

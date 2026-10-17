@@ -115,8 +115,11 @@ Copy `.env.example` to `.env` and adjust. Real env vars win over the file.
 | `CLEF_BASE_URL` | `http://localhost:30000` | SGLang clef-flash server (direct, not a gateway) |
 | `CLEF_MODEL` | `Cloudflare/clef-flash` | model name sent in the request body |
 | `CLEF_TIMEOUT_SECONDS` | `30` | clef HTTP timeout |
-| `OCR_MODEL` | `PP-OCRv6_small_rec` | PaddleOCR 3.x text-recognition model name (note the `_rec` suffix); PaddleOCR 2.x uses its default model |
+| `OCR_MODEL` | `PP-OCRv6_small_rec` | Tier (`PP-OCRv6_tiny`, `_small`, `_medium`) selects detection and recognition, or use a specific `_rec`/`_det` model name; PaddleOCR 2.x uses its default model |
 | `OCR_MIN_SCORE` | `0.5` | drop OCR boxes below this recognition confidence |
+| `OCR_SERVICE_URL` | empty | Optional remote OCR service base URL; empty runs PaddleOCR locally |
+| `OCR_SERVICE_API_KEY` | empty | Optional bearer token for remote OCR |
+| `OCR_SERVICE_TIMEOUT_SECONDS` | `60` | Remote OCR request timeout |
 | `PII_THRESHOLD` | `0.5` | min true-probability to treat an OCR box as PII |
 | `SIGNAL_THRESHOLD` | `0.5` | min true-probability for a classification signal to fire |
 | `VERDICT_LOW` | `0.67` | score < this → `likely_safe` |
@@ -124,6 +127,14 @@ Copy `.env.example` to `.env` and adjust. Real env vars win over the file.
 | `LOG_LEVEL` | `info` | logging verbosity (never raise to a level that leaks content) |
 
 ## Run the server
+
+### OCR offload
+
+By default OCR runs locally through PaddleOCR. Set `OCR_SERVICE_URL` to an
+ocr-offload service base URL to send image OCR requests remotely; optionally set
+`OCR_SERVICE_API_KEY` for bearer authentication. `OCR_MODEL` and
+`OCR_MIN_SCORE` apply only to local OCR. Remote OCR failures fail closed with
+HTTP 502, while an image rejected by the OCR service returns HTTP 400.
 
 ```bash
 cd AI
@@ -281,9 +292,14 @@ The first run may download the OCR model. This runs locally and does not need
 pytest, the API server, or SGLang. The recognized text is printed in your
 terminal and drawn in the window, so use a document you are comfortable
 displaying there. The pinned PaddleOCR 3.x stack honors `OCR_MODEL` (default
-`PP-OCRv6_small_rec` — note the `_rec` suffix on the recognition-model name; the
-bare tier name like `PP-OCRv6_small` has no engine binding); older PaddleOCR 2.x
-installs ignore it and use their built-in default recognition model.
+`PP-OCRv6_small_rec`; a bare tier name such as `PP-OCRv6_small` selects both its
+`_det` and `_rec` models, while a specific `_rec` or `_det` name selects only that
+component); older PaddleOCR 2.x installs ignore it and use their built-in default
+recognition model. On headless Linux the local OCR path needs the graphics
+libraries OpenCV links against (`libgl1` and `libglib2.0-0` on Debian/Ubuntu, or
+`mesa-libGL` and `glib2` on RHEL); without them importing `cv2` fails with
+`ImportError: libGL.so.1`. Installing `opencv-python-headless` instead of
+`opencv-python`/`opencv-contrib-python` also works.
 
 ## Manual smoke (no GPU)
 

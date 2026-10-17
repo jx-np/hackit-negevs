@@ -10,6 +10,7 @@ Privacy: never log recognised text or image bytes. Log only counts and status.
 
 from __future__ import annotations
 
+import asyncio
 import io
 from typing import Any
 
@@ -20,6 +21,18 @@ from app.config import get_settings
 from app.logging import get_logger
 
 _logger = get_logger("ocr")
+
+
+def resolve_ocr_models(name: str) -> tuple[str | None, str | None]:
+    """Resolve a PaddleOCR tier or component model name."""
+    name = name.strip()
+    if not name:
+        return None, None
+    if name.endswith("_rec"):
+        return None, name
+    if name.endswith("_det"):
+        return name, None
+    return f"{name}_det", f"{name}_rec"
 
 
 def _to_ndarray(image: Any) -> np.ndarray:
@@ -144,25 +157,28 @@ class OcrEngine:
                     "use_textline_orientation": False,
                     "enable_mkldnn": False,
                 }
-                try:
-                    self._ocr = PaddleOCR(
-                        text_recognition_model_name=self._model_name,
-                        **common,
+                det_model, rec_model = resolve_ocr_models(self._model_name)
+                model_kwargs = {
+                    key: value
+                    for key, value in (
+                        ("text_detection_model_name", det_model),
+                        ("text_recognition_model_name", rec_model),
                     )
-                    loaded_model = self._model_name
+                    if value is not None
+                }
+                try:
+                    self._ocr = PaddleOCR(**model_kwargs, **common)
+                    loaded_det, loaded_rec = det_model, rec_model
                 except (ValueError, KeyError):
-                    # Unknown/invalid OCR_MODEL (e.g. a bare tier name like
-                    # "PP-OCRv6_small" with no engine binding). Degrade to the
-                    # PaddleOCR default rather than failing every request.
                     _logger.warning(
                         "ocr model invalid, using default model=%s", self._model_name
                     )
                     self._ocr = PaddleOCR(**common)
-                    loaded_model = "default (invalid OCR_MODEL)"
+                    loaded_det = loaded_rec = "default (invalid OCR_MODEL)"
             else:
                 self._ocr = PaddleOCR(use_angle_cls=False, show_log=False)
-                loaded_model = "default (legacy PaddleOCR)"
-            _logger.info("ocr model loaded model=%s", loaded_model)
+                loaded_det = loaded_rec = "default (legacy PaddleOCR)"
+            _logger.info("ocr model loaded det=%s rec=%s", loaded_det, loaded_rec)
         return self._ocr
 
     def extractImageWithBoundingBox(self, image: Any) -> list[dict]:
@@ -189,3 +205,7 @@ class OcrEngine:
             self._min_score,
         )
         return kept
+
+    async def aextract(self, image_bytes: bytes, media_type: str) -> list[dict]:
+        """Run local PaddleOCR without blocking the async event loop."""
+        return await asyncio.to_thread(self.extractImageWithBoundingBox, image_bytes)

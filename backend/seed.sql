@@ -25,6 +25,12 @@ INSERT INTO tags (slug, name_key) VALUES
 	('money-request',      'tag.money_request'),
 	('suspicious-link',    'tag.suspicious_link'),
 	('government-impersonation', 'tag.government_impersonation'),
+	('money-mule',         'tag.money_mule'),
+	('loan-scam',          'tag.loan_scam'),
+	('gambling-scam',      'tag.gambling_scam'),
+	('sextortion',         'tag.sextortion'),
+	('family-emergency-scam', 'tag.family_emergency_scam'),
+	('ticket-resale-scam', 'tag.ticket_resale_scam'),
 	('other',              'tag.other')
 ON CONFLICT (slug) DO UPDATE SET name_key = EXCLUDED.name_key;
 

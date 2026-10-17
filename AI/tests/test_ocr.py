@@ -151,3 +151,13 @@ def test_missing_score_defaults_zero_and_dropped():
     eng = _engine_with([_FakeResultObj(payload)], min_score=0.5)
     boxes = eng.extractImageWithBoundingBox(_IMG)
     assert [b["text"] for b in boxes] == ["a"]
+
+
+def test_resolve_ocr_models():
+    assert O.resolve_ocr_models("PP-OCRv6_medium") == (
+        "PP-OCRv6_medium_det",
+        "PP-OCRv6_medium_rec",
+    )
+    assert O.resolve_ocr_models("PP-OCRv6_small_rec") == (None, "PP-OCRv6_small_rec")
+    assert O.resolve_ocr_models("PP-OCRv6_medium_det") == ("PP-OCRv6_medium_det", None)
+    assert O.resolve_ocr_models("") == (None, None)

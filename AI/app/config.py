@@ -27,10 +27,13 @@ class Settings(BaseSettings):
     clef_model: str = "Cloudflare/clef-flash"
     clef_timeout_seconds: float = 30.0
 
-    # OCR (CPU). PaddleOCR 3.x text-recognition model name (note the _rec
-    # suffix; the bare tier name like "PP-OCRv6_small" has no engine binding).
+    # OCR (CPU). Accept a tier name (PP-OCRv6_tiny/small/medium) to select both
+    # models, or a specific model name ending in _rec or _det.
     ocr_model: str = "PP-OCRv6_small_rec"
     ocr_min_score: float = 0.5
+    ocr_service_url: str = ""
+    ocr_service_api_key: str = ""
+    ocr_service_timeout_seconds: float = 60.0
 
     # Decision thresholds.
     pii_threshold: float = 0.5

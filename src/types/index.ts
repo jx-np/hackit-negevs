@@ -84,17 +84,18 @@ export interface NewPostInput {
   incidentDate?: string | null;
 }
 
+/** Progress of an upload's background OCR + redaction job. */
+export type UploadStatus = 'processing' | 'ready' | 'failed';
+
 /**
- * Result of `POST /uploads`. Uploading schedules a screenshot detection check
- * automatically, so the upload is only publishable once the check reaches
- * `ready` (redaction produces the image that is actually attached).
+ * Result of `POST /uploads`. Uploading schedules the screenshot check
+ * automatically, so the upload is only publishable once it reaches `ready`
+ * (redaction produces the image that is actually attached).
  */
 export interface UploadedMedia {
   uploadId: string;
   /** The image's media type, e.g. "image/png". */
   mediaType: string;
-  /** The detection check scheduled for this upload. */
-  checkId: string;
   /** Local file name, kept for display only. */
   name: string;
 }
@@ -370,15 +371,14 @@ export interface ApiTrustScore {
 export interface ApiUploadResponse {
   upload_id: string;
   media_type: string;
-  check_id: string;
   status: string;
 }
 
-/** Response body from GET /detection/{id} (screenshot checks). */
-export interface ApiDetection {
-  check_id: string;
-  status: 'processing' | 'ready' | 'failed';
-  verdict?: 'suspicious' | 'unclear' | 'likely_safe';
+/** Response body from GET /uploads/{id} (upload progress). */
+export interface ApiUpload {
+  upload_id: string;
+  media_type: string;
+  status: UploadStatus;
 }
 
 /** Standard backend error body. */

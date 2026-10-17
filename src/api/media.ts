@@ -3,16 +3,16 @@
  *
  * Flow (see API.docs.md §5):
  *   1. `POST /uploads` — multipart `image` field; stores the image and
- *      schedules the detection check, returning `{ upload_id, check_id }`.
- *   2. Poll `GET /detection/{check_id}` until `status` is `ready` or `failed`.
- *      The check runs OCR and produces a PII-redacted copy of the image.
- *   3. `GET /detection/{id}/redacted-image` — the censored copy, previewed to
- *      the author before publishing.
+ *      schedules the background OCR + redaction job, returning
+ *      `{ upload_id, media_type, status }`.
+ *   2. Poll `GET /uploads/{upload_id}` until `status` is `ready` or `failed`.
+ *   3. `GET /uploads/{upload_id}/redacted-image` — the censored copy,
+ *      previewed to the author before publishing.
  *
  * A post attaches images by sending the *upload ids* on create; the backend
  * copies the redacted derivatives into post-owned objects.
  */
-import type { ApiDetection, ApiUploadResponse, UploadedMedia } from '../types';
+import type { ApiUpload, ApiUploadResponse, UploadedMedia } from '../types';
 import { ApiError, apiAssetUrl, apiFetch, apiFetchBlob } from './client';
 
 /** Media types accepted by `POST /uploads`. */
@@ -26,9 +26,9 @@ export const ALLOWED_MEDIA_TYPES = [
 export const MAX_MEDIA_BYTES = 10 * 1024 * 1024; // 10 MiB
 
 /**
- * Upload a screenshot. The response identifies the scheduled detection check;
- * the image is not publishable until that check has produced a redacted copy
- * (use `waitForRedaction`).
+ * Upload a screenshot. The response identifies the upload whose redaction job
+ * has been scheduled; the image is not publishable until that job has produced
+ * a redacted copy (use `waitForRedaction`).
  */
 export async function uploadMedia(
   file: File,
@@ -46,28 +46,27 @@ export async function uploadMedia(
   return {
     uploadId: res.upload_id,
     mediaType: res.media_type,
-    checkId: res.check_id,
     name: file.name,
   };
 }
 
-/** Fetch the current state of a detection check. */
-export async function getDetection(checkId: string): Promise<ApiDetection> {
-  return apiFetch<ApiDetection>(`/detection/${encodeURIComponent(checkId)}`);
+/** Fetch the current progress of an upload. Owner-only. */
+export async function getUpload(uploadId: string): Promise<ApiUpload> {
+  return apiFetch<ApiUpload>(`/uploads/${encodeURIComponent(uploadId)}`);
 }
 
 /**
- * Cancel and permanently delete a detection check and its uploads.
+ * Cancel and permanently delete an upload.
  *
- * `DELETE /detection/{id}` is owner-only and irreversible. If the check is
- * still `queued` or `processing`, this cancels the in-flight (or not-yet-started)
+ * `DELETE /uploads/{id}` is owner-only and irreversible. If redaction is still
+ * `queued` or `processing`, this cancels the in-flight (or not-yet-started)
  * OCR + PII-removal job, so no further compute is spent on a screenshot the
- * author has removed. A `404` means the check is already gone or was never
+ * author has removed. A `404` means the upload is already gone or was never
  * ours — harmless for a removal, so it is treated as success.
  */
-export async function deleteDetection(checkId: string): Promise<void> {
+export async function deleteUpload(uploadId: string): Promise<void> {
   try {
-    await apiFetch<void>(`/detection/${encodeURIComponent(checkId)}`, {
+    await apiFetch<void>(`/uploads/${encodeURIComponent(uploadId)}`, {
       method: 'DELETE',
     });
   } catch (err) {
@@ -84,22 +83,22 @@ export interface RedactionOptions {
 }
 
 /**
- * Poll a screenshot check until its redaction finishes.
+ * Poll an upload until its redaction finishes.
  *
- * Resolves once the check is `ready`. Rejects when the check `failed` (which is
- * what the backend reports when its redaction service is unavailable) or when
+ * Resolves once the upload is `ready`. Rejects when it `failed` (which is what
+ * the backend reports when its redaction service is unavailable) or when
  * polling exceeds `timeoutMs`.
  */
 export async function waitForRedaction(
-  checkId: string,
+  uploadId: string,
   { timeoutMs = 60_000, intervalMs = 1_500 }: RedactionOptions = {},
-): Promise<ApiDetection> {
+): Promise<ApiUpload> {
   const deadline = Date.now() + timeoutMs;
 
   for (;;) {
-    const check = await getDetection(checkId);
-    if (check.status === 'ready') return check;
-    if (check.status === 'failed') {
+    const upload = await getUpload(uploadId);
+    if (upload.status === 'ready') return upload;
+    if (upload.status === 'failed') {
       throw new Error(
         'We could not redact this screenshot. Try a different image, or post without it.',
       );
@@ -114,14 +113,14 @@ export async function waitForRedaction(
 }
 
 /**
- * Fetch the redacted image for a check as an object URL. Owner-only, so this
+ * Fetch the redacted image for an upload as an object URL. Owner-only, so this
  * is the preview shown to the author before they publish.
  *
  * The caller owns the returned URL and must `URL.revokeObjectURL` it.
  */
-export async function fetchRedactedImageUrl(checkId: string): Promise<string> {
+export async function fetchRedactedImageUrl(uploadId: string): Promise<string> {
   const blob = await apiFetchBlob(
-    `/detection/${encodeURIComponent(checkId)}/redacted-image`,
+    `/uploads/${encodeURIComponent(uploadId)}/redacted-image`,
   );
   return URL.createObjectURL(blob);
 }

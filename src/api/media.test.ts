@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  deleteDetection,
+  deleteUpload,
   MAX_MEDIA_BYTES,
   uploadMedia,
   validateMediaFile,
@@ -72,7 +72,6 @@ describe('uploadMedia', () => {
         {
           upload_id: '12',
           media_type: 'image/png',
-          check_id: '56',
           status: 'processing',
         },
         201,
@@ -85,7 +84,6 @@ describe('uploadMedia', () => {
     expect(media).toEqual({
       uploadId: '12',
       mediaType: 'image/png',
-      checkId: '56',
       name: 'evidence.png',
     });
 
@@ -106,46 +104,52 @@ describe('uploadMedia', () => {
 });
 
 describe('waitForRedaction', () => {
-  it('resolves once the check reports ready', async () => {
+  it('polls the upload status and resolves once it reports ready', async () => {
     const statuses = ['processing', 'processing', 'ready'];
     let call = 0;
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({
+        upload_id: '12',
+        media_type: 'image/png',
+        status: statuses[Math.min(call++, statuses.length - 1)],
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const upload = await waitForRedaction('12', { intervalMs: 1 });
+    expect(upload.status).toBe('ready');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/uploads/12');
+  });
+
+  it('rejects when the upload fails (redaction service unavailable)', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
         jsonResponse({
-          check_id: '56',
-          status: statuses[Math.min(call++, statuses.length - 1)],
+          upload_id: '12',
+          media_type: 'image/png',
+          status: 'failed',
         }),
       ),
     );
-
-    const check = await waitForRedaction('56', { intervalMs: 1 });
-    expect(check.status).toBe('ready');
-  });
-
-  it('rejects when the check fails (redaction service unavailable)', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => jsonResponse({ check_id: '56', status: 'failed' })),
-    );
-    await expect(waitForRedaction('56', { intervalMs: 1 })).rejects.toThrow(
+    await expect(waitForRedaction('12', { intervalMs: 1 })).rejects.toThrow(
       /could not redact/i,
     );
   });
 });
 
-describe('deleteDetection', () => {
-  it('sends DELETE /detection/{id} and resolves on 204', async () => {
+describe('deleteUpload', () => {
+  it('sends DELETE /uploads/{id} and resolves on 204', async () => {
     const fetchMock = vi.fn(async () => noContentResponse());
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(deleteDetection('56')).resolves.toBeUndefined();
+    await expect(deleteUpload('12')).resolves.toBeUndefined();
 
     const [url, init] = fetchMock.mock.calls[0] as unknown as [
       string,
       RequestInit,
     ];
-    expect(url).toContain('/detection/56');
+    expect(url).toContain('/uploads/12');
     expect(init.method).toBe('DELETE');
   });
 
@@ -156,7 +160,7 @@ describe('deleteDetection', () => {
         jsonResponse({ error: { code: 'not_found', message: 'nope' } }, 404),
       ),
     );
-    await expect(deleteDetection('does-not-exist')).resolves.toBeUndefined();
+    await expect(deleteUpload('does-not-exist')).resolves.toBeUndefined();
   });
 
   it('rethrows other errors (e.g. 401 unauthenticated)', async () => {
@@ -169,6 +173,6 @@ describe('deleteDetection', () => {
         ),
       ),
     );
-    await expect(deleteDetection('56')).rejects.toThrow();
+    await expect(deleteUpload('12')).rejects.toThrow();
   });
 });

@@ -90,6 +90,9 @@ CREATE TABLE private_uploads (
     -- worker finishes; the original (storage_key) and the redacted copy are
     -- distinct objects so the raw image can be purged independently.
     redacted_storage_key text UNIQUE,
+    -- Cleaned/redacted text produced by the PII worker, never raw message text;
+    -- stored briefly so a later detection request can classify it.
+    extracted_text text,
     media_type text NOT NULL CHECK (media_type IN ('image/jpeg', 'image/png', 'image/webp')),
     byte_size bigint NOT NULL CHECK (byte_size > 0),
     status text NOT NULL DEFAULT 'uploaded'

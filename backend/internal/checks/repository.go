@@ -82,9 +82,11 @@ type Repository interface {
 	// GetUploadByCheckID returns the upload linked to a check. Returns
 	// ErrUploadNotFound if the check has no linked upload.
 	GetUploadByCheckID(ctx context.Context, checkID int64) (Upload, error)
-	// LinkUploadToCheck sets private_uploads.check_id and marks the upload
-	// processing, in a single statement.
+	// LinkUploadToCheck sets private_uploads.check_id.
 	LinkUploadToCheck(ctx context.Context, uploadID, checkID int64) error
+	MarkUploadProcessing(ctx context.Context, uploadID int64) error
+	CompleteUploadRedaction(ctx context.Context, uploadID int64, extractedText *string, redactedStorageKey string) error
+	FailUpload(ctx context.Context, uploadID int64) error
 
 	// CompleteCheckFromUpload stores the result produced by the OCR worker: it
 	// sets extracted_text, verdict, assessment, status='ready', and
@@ -94,9 +96,10 @@ type Repository interface {
 	// extractedText and a are both nil when the worker recovered no readable
 	// text: the check still completes as 'ready' but carries no extracted text,
 	// no verdict, and no assessment (classification is skipped entirely).
-	CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText *string, redactedStorageKey string, a *Assessment) error
-	// FailCheck marks a check (and optionally its upload) failed.
-	FailCheck(ctx context.Context, checkID int64, uploadID *int64) error
+	CompleteCheckFromUpload(ctx context.Context, checkID int64, extractedText *string, a *Assessment) error
+	// FailCheck marks a check failed. Upload state is owned exclusively by the
+	// PII-redaction worker, so failing a check never touches the upload.
+	FailCheck(ctx context.Context, checkID int64) error
 
 	// DeleteCheck permanently removes a check and, via ON DELETE CASCADE, its
 	// linked uploads. It returns the deleted uploads so the caller can purge
@@ -275,12 +278,12 @@ func (r *PostgresRepository) ListChecksByOwner(ctx context.Context, ownerUserID 
 // GetUploadByID implements Repository.
 func (r *PostgresRepository) GetUploadByID(ctx context.Context, id int64) (Upload, error) {
 	const q = `
-		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at
+		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, extracted_text, media_type, byte_size, status, created_at
 		FROM private_uploads
 		WHERE id = $1`
 	var u Upload
 	err := r.pool.QueryRow(ctx, q, id).Scan(
-		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.ExtractedText, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -295,14 +298,14 @@ func (r *PostgresRepository) GetUploadByID(ctx context.Context, id int64) (Uploa
 // same check, the most recently created row wins.
 func (r *PostgresRepository) GetUploadByCheckID(ctx context.Context, checkID int64) (Upload, error) {
 	const q = `
-		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at
+		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, extracted_text, media_type, byte_size, status, created_at
 		FROM private_uploads
 		WHERE check_id = $1
 		ORDER BY created_at DESC, id DESC
 		LIMIT 1`
 	var u Upload
 	err := r.pool.QueryRow(ctx, q, checkID).Scan(
-		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.ExtractedText, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -317,7 +320,7 @@ func (r *PostgresRepository) GetUploadByCheckID(ctx context.Context, checkID int
 func (r *PostgresRepository) LinkUploadToCheck(ctx context.Context, uploadID, checkID int64) error {
 	const q = `
 		UPDATE private_uploads
-		SET check_id = $2, status = 'processing'
+		SET check_id = $2
 		WHERE id = $1`
 	if _, err := r.pool.Exec(ctx, q, uploadID, checkID); err != nil {
 		return fmt.Errorf("checks: link upload to check: %w", err)
@@ -326,7 +329,41 @@ func (r *PostgresRepository) LinkUploadToCheck(ctx context.Context, uploadID, ch
 }
 
 // CompleteCheckFromUpload implements Repository.
-func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkID, uploadID int64, extractedText *string, redactedStorageKey string, a *Assessment) error {
+func (r *PostgresRepository) MarkUploadProcessing(ctx context.Context, uploadID int64) error {
+	tag, err := r.pool.Exec(ctx, `UPDATE private_uploads SET status = 'processing' WHERE id = $1`, uploadID)
+	if err != nil {
+		return fmt.Errorf("checks: mark upload processing: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrUploadNotFound
+	}
+	return nil
+}
+
+func (r *PostgresRepository) CompleteUploadRedaction(ctx context.Context, uploadID int64, extractedText *string, redactedStorageKey string) error {
+	tag, err := r.pool.Exec(ctx, `UPDATE private_uploads SET status = 'ready', extracted_text = $2, redacted_storage_key = $3 WHERE id = $1`, uploadID, extractedText, redactedStorageKey)
+	if err != nil {
+		return fmt.Errorf("checks: complete upload redaction: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrUploadNotFound
+	}
+	return nil
+}
+
+func (r *PostgresRepository) FailUpload(ctx context.Context, uploadID int64) error {
+	tag, err := r.pool.Exec(ctx, `UPDATE private_uploads SET status = 'failed' WHERE id = $1`, uploadID)
+	if err != nil {
+		return fmt.Errorf("checks: fail upload: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrUploadNotFound
+	}
+	return nil
+}
+
+// CompleteCheckFromUpload implements Repository.
+func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkID int64, extractedText *string, a *Assessment) error {
 	// A nil assessment is the "no readable text was recovered" terminal state:
 	// both verdict and assessment are stored as SQL NULL so the check surfaces
 	// no verdict. JSON-marshal only when an assessment is present.
@@ -343,17 +380,11 @@ func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkI
 		verdict = &a.Verdict
 	}
 
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("checks: begin complete tx: %w", err)
-	}
-	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
-
 	const updCheck = `
 		UPDATE private_checks
 		SET extracted_text = $2, verdict = $3, assessment = $4, status = 'ready', completed_at = now()
 		WHERE id = $1`
-	tag, err := tx.Exec(ctx, updCheck, checkID, extractedText, verdict, assessmentJSON)
+	tag, err := r.pool.Exec(ctx, updCheck, checkID, extractedText, verdict, assessmentJSON)
 	if err != nil {
 		return fmt.Errorf("checks: complete check: %w", err)
 	}
@@ -364,37 +395,14 @@ func (r *PostgresRepository) CompleteCheckFromUpload(ctx context.Context, checkI
 		return ErrCheckNotFound
 	}
 
-	const updUpload = `UPDATE private_uploads SET status = 'ready', redacted_storage_key = $2 WHERE id = $1`
-	if _, err := tx.Exec(ctx, updUpload, uploadID, redactedStorageKey); err != nil {
-		return fmt.Errorf("checks: mark upload ready: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("checks: commit complete tx: %w", err)
-	}
 	return nil
 }
 
 // FailCheck implements Repository.
-func (r *PostgresRepository) FailCheck(ctx context.Context, checkID int64, uploadID *int64) error {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("checks: begin fail tx: %w", err)
-	}
-	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
-
+func (r *PostgresRepository) FailCheck(ctx context.Context, checkID int64) error {
 	const updCheck = `UPDATE private_checks SET status = 'failed', completed_at = now() WHERE id = $1`
-	if _, err := tx.Exec(ctx, updCheck, checkID); err != nil {
+	if _, err := r.pool.Exec(ctx, updCheck, checkID); err != nil {
 		return fmt.Errorf("checks: fail check: %w", err)
-	}
-	if uploadID != nil {
-		const updUpload = `UPDATE private_uploads SET status = 'failed' WHERE id = $1`
-		if _, err := tx.Exec(ctx, updUpload, *uploadID); err != nil {
-			return fmt.Errorf("checks: fail upload: %w", err)
-		}
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("checks: commit fail tx: %w", err)
 	}
 	return nil
 }
@@ -411,7 +419,7 @@ func (r *PostgresRepository) DeleteCheck(ctx context.Context, checkID int64) ([]
 	defer tx.Rollback(ctx) //nolint:errcheck // rollback is a no-op after commit
 
 	const selUploads = `
-		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at
+		SELECT id, check_id, owner_user_id, storage_key, redacted_storage_key, extracted_text, media_type, byte_size, status, created_at
 		FROM private_uploads
 		WHERE check_id = $1`
 	rows, err := tx.Query(ctx, selUploads, checkID)
@@ -422,7 +430,7 @@ func (r *PostgresRepository) DeleteCheck(ctx context.Context, checkID int64) ([]
 	for rows.Next() {
 		var u Upload
 		if err := rows.Scan(
-			&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+			&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.ExtractedText, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
 		); err != nil {
 			rows.Close()
 			return nil, fmt.Errorf("checks: scan upload for delete: %w", err)
@@ -454,10 +462,10 @@ func (r *PostgresRepository) DeleteUpload(ctx context.Context, uploadID int64) (
 	const q = `
 		DELETE FROM private_uploads
 		WHERE id = $1
-		RETURNING id, check_id, owner_user_id, storage_key, redacted_storage_key, media_type, byte_size, status, created_at`
+		RETURNING id, check_id, owner_user_id, storage_key, redacted_storage_key, extracted_text, media_type, byte_size, status, created_at`
 	var u Upload
 	err := r.pool.QueryRow(ctx, q, uploadID).Scan(
-		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
+		&u.ID, &u.CheckID, &u.OwnerUserID, &u.StorageKey, &u.RedactedStorageKey, &u.ExtractedText, &u.MediaType, &u.ByteSize, &u.Status, &u.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

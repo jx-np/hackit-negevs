@@ -24,7 +24,8 @@ INSERT INTO tags (slug, name_key) VALUES
 	('delivery-scam',      'tag.delivery_scam'),
 	('money-request',      'tag.money_request'),
 	('suspicious-link',    'tag.suspicious_link'),
-	('government-impersonation', 'tag.government_impersonation')
+	('government-impersonation', 'tag.government_impersonation'),
+	('other',              'tag.other')
 ON CONFLICT (slug) DO UPDATE SET name_key = EXCLUDED.name_key;
 
 -- Official resources (vetted catalog). verified_at is required by the schema.

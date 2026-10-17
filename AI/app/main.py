@@ -21,7 +21,9 @@ from dataclasses import dataclass
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 
+from classify.category import classify_category as run_classify_category
 from classify.classify import classify as run_classify
+from classify.tags import classify_tags as run_classify_tags
 from pii.censor import build_cleaned_text, censor_image
 from pii.decide import decide_pii
 from pii.ocr import OcrEngine
@@ -31,7 +33,11 @@ from .config import get_settings
 from .logging import get_logger
 from .schemas import (
     Assessment,
+    ClassifyCategoryRequest,
+    ClassifyCategoryResponse,
     ClassifyRequest,
+    ClassifyTagsRequest,
+    ClassifyTagsResponse,
     RedactRequest,
     RedactResponse,
     RedactResult,
@@ -70,6 +76,28 @@ async def healthz() -> dict:
 async def classify_endpoint(req: ClassifyRequest) -> Assessment:
     assessment = await run_classify(req.text, locale=req.locale, client=app.state.clef_client)
     return Assessment(**assessment)
+
+
+@app.post("/v1/classify/tags", response_model=ClassifyTagsResponse)
+async def classify_tags_endpoint(req: ClassifyTagsRequest) -> ClassifyTagsResponse:
+    """Score every canonical scam tag against the message.
+
+    A standalone aid beside `/v1/classify`; on a clef outage it returns the
+    all-zero degraded result rather than failing the request.
+    """
+    result = await run_classify_tags(req.text, locale=req.locale, client=app.state.clef_client)
+    return ClassifyTagsResponse(**result)
+
+
+@app.post("/v1/classify/category", response_model=ClassifyCategoryResponse)
+async def classify_category_endpoint(req: ClassifyCategoryRequest) -> ClassifyCategoryResponse:
+    """Predict the message's scam category (categories.slug) with one question.
+
+    Used by the Go post classifier. On a clef outage it returns the empty
+    degraded result rather than failing the request.
+    """
+    result = await run_classify_category(req.text, locale=req.locale, client=app.state.clef_client)
+    return ClassifyCategoryResponse(**result)
 
 
 @dataclass

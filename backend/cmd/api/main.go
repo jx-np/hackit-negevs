@@ -139,9 +139,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	checksRepo := checks.NewPostgresRepository(pool)
 	checksSvc := checks.NewService(checksRepo, checksRepo, store, redactor, detectionClassifier)
 	checksHandler := checks.NewHandler(checksSvc)
-	// The scam classifier assigns each post's category on publish. Swap the
-	// stub for the decision-model client once that service exists.
-	postClassifier := classifier.NewStub()
+	// The scam classifier assigns each post's category and tags on publish. When
+	// the AI service is configured it supplies both; otherwise the stub keeps
+	// posts classified during local development.
+	var postClassifier classifier.Classifier = classifier.NewStub()
+	if cfg.PIIServiceURL != "" {
+		postClassifier = classifier.NewHTTPClassifier(cfg.PIIServiceURL, cfg.TagConfidenceThreshold)
+		logger.Info("community post classification configured",
+			"url", cfg.PIIServiceURL,
+			"tag_threshold", cfg.TagConfidenceThreshold,
+		)
+	}
 	reportsHandler := reports.NewHandler(reports.NewService(reports.NewPostgresRepository(pool), postClassifier, store))
 	moderationHandler := moderation.NewHandler(moderation.NewService(moderation.NewPostgresRepository(pool)))
 	resourcesHandler := resources.NewHandler(resources.NewService(resources.NewPostgresRepository(pool)))

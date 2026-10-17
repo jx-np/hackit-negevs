@@ -56,6 +56,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, requireAuth, optionalAuth, 
 	// Screenshot uploads: multipart image stored for later OCR + redaction.
 	// Uploads are owner-scoped, so the submitter must be authenticated.
 	mux.Handle("POST /api/v1/uploads", global(requireAuth(http.HandlerFunc(h.createUpload))))
+	mux.Handle("GET /api/v1/uploads/{id}", global(requireAuth(http.HandlerFunc(h.getUpload))))
+	mux.Handle("GET /api/v1/uploads/{id}/redacted-image", global(requireAuth(http.HandlerFunc(h.getUploadRedactedImage))))
 
 	// Private detection is owner-scoped and requires an authenticated principal.
 	mux.Handle("POST /api/v1/detection", global(requireAuth(http.HandlerFunc(h.createCheck))))
@@ -85,11 +87,7 @@ type createCheckRequest struct {
 type uploadResponse struct {
 	UploadID  string `json:"upload_id"`
 	MediaType string `json:"media_type"`
-	// CheckID and Status describe the detection check that was automatically
-	// scheduled for this upload. The check starts in "processing"; poll
-	// GET /detection/{check_id} for the ready assessment.
-	CheckID string `json:"check_id"`
-	Status  string `json:"status"`
+	Status    string `json:"status"`
 }
 
 type signalDTO struct {
@@ -222,7 +220,7 @@ func (h *Handler) createUpload(w http.ResponseWriter, r *http.Request) {
 	// An optional locale form field tunes analysis; the service normalizes it.
 	locale := strings.TrimSpace(r.FormValue("locale"))
 
-	res, err := h.svc.CreateUploadAndCheck(r.Context(), CreateUploadBlobInput{
+	res, err := h.svc.CreateUploadAndRedact(r.Context(), CreateUploadBlobInput{
 		OwnerUserID: p.UserID,
 		MediaType:   mediaType,
 		Body:        file,
@@ -233,11 +231,55 @@ func (h *Handler) createUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.WriteJSON(w, http.StatusCreated, uploadResponse{
-		UploadID:  encodeID(res.Upload.ID),
-		MediaType: res.Upload.MediaType,
-		CheckID:   encodeID(res.Check.ID),
-		Status:    res.Check.Status,
+		UploadID:  encodeID(res.ID),
+		MediaType: res.MediaType,
+		Status:    res.Status,
 	})
+}
+
+func (h *Handler) getUpload(w http.ResponseWriter, r *http.Request) {
+	id, ok := decodeID(r.PathValue("id"))
+	if !ok {
+		httpx.NotFound(w, r, "upload not found")
+		return
+	}
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		httpx.Unauthorized(w, r, "authentication required")
+		return
+	}
+	u, err := h.svc.GetUpload(r.Context(), id, p.UserID)
+	if err != nil {
+		h.writeServiceError(w, r, err)
+		return
+	}
+	httpx.WriteJSON(w, http.StatusOK, uploadResponse{UploadID: encodeID(u.ID), MediaType: u.MediaType, Status: u.Status})
+}
+
+func (h *Handler) getUploadRedactedImage(w http.ResponseWriter, r *http.Request) {
+	id, ok := decodeID(r.PathValue("id"))
+	if !ok {
+		httpx.NotFound(w, r, "upload not found")
+		return
+	}
+	p, ok := auth.PrincipalFromContext(r.Context())
+	if !ok {
+		httpx.Unauthorized(w, r, "authentication required")
+		return
+	}
+	img, err := h.svc.OpenUploadRedactedImage(r.Context(), id, p.UserID)
+	if err != nil {
+		h.writeServiceError(w, r, err)
+		return
+	}
+	defer img.Body.Close()
+	w.Header().Set("Content-Type", img.MediaType)
+	if img.Size > 0 {
+		w.Header().Set("Content-Length", strconv.FormatInt(img.Size, 10))
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.Copy(w, img.Body)
 }
 
 // getRedactedImage streams the PII-redacted screenshot derivative for a check.
@@ -319,7 +361,7 @@ func (h *Handler) createCheck(w http.ResponseWriter, r *http.Request) {
 		// background context (detached from the request) with its own timeout so
 		// the deferred response returns immediately and the worker survives the
 		// request lifetime. ProcessUpload marks the check failed on any error.
-		h.svc.StartProcessUpload(res.Check.ID, uploadID)
+		h.svc.StartClassifyCheck(res.Check.ID, uploadID)
 		// Deferred: no synchronous result.
 		httpx.WriteJSON(w, http.StatusAccepted, checkResponse{
 			CheckID: encodeID(res.Check.ID),
@@ -582,6 +624,8 @@ func (h *Handler) writeServiceError(w http.ResponseWriter, r *http.Request, err 
 		httpx.NotFound(w, r, "check not found")
 	case errors.Is(err, ErrUploadNotFound):
 		httpx.NotFound(w, r, "upload not found")
+	case errors.Is(err, ErrUploadNotReady):
+		httpx.Conflict(w, r, "upload is not ready for detection")
 	case errors.Is(err, ErrImageRequired):
 		httpx.Unprocessable(w, r, "image is required", map[string]string{
 			"image": "must be provided as a multipart form field named 'image'",

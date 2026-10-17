@@ -35,6 +35,10 @@ type Config struct {
 	// and has no classifier (text detection fails), since the local rules
 	// analyzer was removed. Driven by PII_SERVICE_URL.
 	PIIServiceURL string
+	// TagConfidenceThreshold is the minimum model probability for a predicted
+	// community-post tag to be attached to a post. Predicted tags scored below
+	// it are dropped. Driven by TAG_CONFIDENCE_THRESHOLD; defaults to 0.30.
+	TagConfidenceThreshold float64
 	// ReaperEnabled turns on the background retention reaper that deletes
 	// expired private checks/uploads (and their blobs). Driven by
 	// REAPER_ENABLED; defaults to true.
@@ -72,6 +76,12 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.ReaperInterval = reaperInterval
+
+	tagThreshold, err := getEnvFloat("TAG_CONFIDENCE_THRESHOLD", 0.30)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.TagConfidenceThreshold = tagThreshold
 
 	accessTTL, err := getEnvDuration("ACCESS_TOKEN_TTL", 15*time.Minute)
 	if err != nil {
@@ -146,6 +156,18 @@ func getEnvInt(key string, fallback int) (int, error) {
 		return 0, fmt.Errorf("config: invalid int for %s: %w", key, err)
 	}
 	return n, nil
+}
+
+func getEnvFloat(key string, fallback float64) (float64, error) {
+	v, ok := os.LookupEnv(key)
+	if !ok || v == "" {
+		return fallback, nil
+	}
+	f, err := strconv.ParseFloat(strings.TrimSpace(v), 64)
+	if err != nil {
+		return 0, fmt.Errorf("config: invalid float for %s: %w", key, err)
+	}
+	return f, nil
 }
 
 // loadDotEnv reads KEY=VALUE pairs from a .env file in the working directory

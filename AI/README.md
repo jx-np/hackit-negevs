@@ -52,6 +52,9 @@ AI/
 │   └── requirements.txt
 ├── classify/   # scam classification concern (dependency-light)
 │   ├── classify.py     # build questions, call clef, map to Assessment
+│   ├── choice.py       # shared single `choice` question helpers
+│   ├── tags.py         # per-tag scoring via one choice question
+│   ├── category.py     # scam-category scoring via one choice question
 │   └── requirements.txt
 ├── sglang/run-clef.sh  # docker run for clef-flash (ops step)
 └── tests/              # pytest, all mock clef (no GPU needed)
@@ -134,7 +137,94 @@ Endpoints:
 
 - `GET /healthz` → `{"status": "ok"}`
 - `POST /v1/classify` → full `Assessment` JSON
+- `POST /v1/classify/tags` → per-tag score distribution (see below)
+- `POST /v1/classify/category` → per-category score distribution (see below)
+- `POST /v1/redact` → redacted image (base64) + cleaned text (Go field names)
 - `POST /v1/pii/redact` → redacted image (base64) + cleaned text
+
+### `POST /v1/classify/tags`
+
+A standalone scoring aid beside `/v1/classify` (it does not feed the Go
+`Assessment` contract). It asks clef a **single `choice` question** whose options
+are the nine canonical tags seeded in `../backend/seed.sql`, and returns the
+probability the model assigns to each tag plus the single best match. One
+question keeps the decision-model cost minimal (one pass regardless of tag
+count):
+
+```bash
+curl http://localhost:8099/v1/classify/tags \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"Your account is locked. Verify your OTP now at http://bit.ly/x","locale":"en-SG"}'
+```
+
+```jsonc
+{
+  "best_tag": "phishing",
+  "scores": {
+    "bank-impersonation": 0.03,
+    "otp-scam": 0.12,
+    "phishing": 0.68,
+    "prize-scam": 0.01,
+    "delivery-scam": 0.02,
+    "money-request": 0.05,
+    "suspicious-link": 0.07,
+    "government-impersonation": 0.02
+    // ...one entry per canonical tag; values sum to 1
+  },
+  "confidence": 0.64,
+  "degraded": false
+}
+```
+
+`best_tag` echoes the model's chosen option; `scores` holds every canonical tag
+(keyed by slug, summing to 1); `confidence` is the normalized-entropy confidence
+of that distribution. On a clef outage the endpoint stays 200 and returns an
+empty result — `best_tag: ""`, `scores: {}`, `confidence: 0.0` — with
+`"degraded": true`, so a caller can tell "no signal / outage" from a genuine
+low score. Keep `classify/tags.TAGS` in sync with the `tags` table in
+`../backend/seed.sql`.
+
+
+### `POST /v1/classify/category`
+
+The sibling of `/v1/classify/tags` for the **scam category** taxonomy
+(`categories.slug` — separate from tags; the two overlap only on `phishing`).
+It asks clef one `choice` question over the eight canonical categories seeded in
+`../backend/seed.sql` and returns the model's per-category distribution. The Go
+post classifier calls it (with `/v1/classify/tags`) to assign a published post's
+category and tags:
+
+```bash
+curl http://localhost:8099/v1/classify/category \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"Your account is locked. Verify your OTP now at http://bit.ly/x","locale":"en-SG"}'
+```
+
+```jsonc
+{
+  "category": "phishing",
+  "scores": {
+    "scam_call": 0.02,
+    "scam_text": 0.10,
+    "phishing": 0.74,
+    "ecommerce": 0.02,
+    "investment": 0.01,
+    "job_scam": 0.01,
+    "impersonation": 0.08,
+    "other": 0.02
+    // ...one entry per canonical category; values sum to 1
+  },
+  "confidence": 0.70,
+  "degraded": false
+}
+```
+
+`category` echoes the model's chosen option; `scores` holds every canonical
+category (keyed by slug, summing to 1). On a clef outage the endpoint stays 200
+and returns `category: ""`, `scores: {}`, `confidence: 0.0`,
+`"degraded": true`. Keep `classify/category.CATEGORIES` in sync with the
+`categories` table in `../backend/seed.sql`.
+
 
 ## Run clef-flash (SGLang, GPU)
 

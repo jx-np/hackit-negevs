@@ -53,6 +53,48 @@ class Assessment(BaseModel):
     suggested_tags: list[str]
 
 
+# --- Per-tag scoring ------------------------------------------------------
+# Standalone aid beside /v1/classify: ONE choice question over the canonical
+# tags. Tag slugs are the keys of `classify.tags.TAGS` (kept in sync with
+# backend/seed.sql). `scores` is empty only in the degraded (clef-down) case,
+# which is flagged by the top-level `degraded` boolean.
+
+
+class ClassifyTagsRequest(BaseModel):
+    text: str
+    locale: str = "en-SG"
+
+
+class ClassifyTagsResponse(BaseModel):
+    # Highest-probability tag, or "" in the degraded case.
+    best_tag: str
+    # Probability per canonical tag slug (sums to 1), empty when degraded.
+    scores: dict[str, float]
+    confidence: float
+    degraded: bool = False
+
+
+# --- Category scoring -----------------------------------------------------
+# Used by the Go post classifier to assign a published post's scam category
+# (categories.slug) before it becomes publicly visible. Separate taxonomy from
+# the tags above; keys come from `classify.category.CATEGORIES`, kept in sync
+# with backend/seed.sql.
+
+
+class ClassifyCategoryRequest(BaseModel):
+    text: str
+    locale: str = "en-SG"
+
+
+class ClassifyCategoryResponse(BaseModel):
+    # Highest-probability category slug, or "" in the degraded case.
+    category: str
+    # Probability per canonical category slug (sums to 1), empty when degraded.
+    scores: dict[str, float]
+    confidence: float
+    degraded: bool = False
+
+
 # --- PII redaction --------------------------------------------------------
 
 

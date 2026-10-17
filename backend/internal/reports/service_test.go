@@ -23,10 +23,12 @@ func newFakeRepo() *fakeRepo {
 		cats: map[string]Category{
 			"phishing":      {ID: 1, Slug: "phishing", NameKey: "cat.phishing"},
 			"impersonation": {ID: 2, Slug: "impersonation", NameKey: "cat.impersonation"},
+			"other":         {ID: 3, Slug: "other", NameKey: "cat.other"},
 		},
 		tags: map[string]Tag{
 			"phishing": {ID: 10, Slug: "phishing", NameKey: "tag.phishing"},
 			"otp-scam": {ID: 11, Slug: "otp-scam", NameKey: "tag.otp_scam"},
+			"other":    {ID: 12, Slug: "other", NameKey: "tag.other"},
 		},
 	}
 }
@@ -133,9 +135,9 @@ func TestCreateAssignsCategoryFromClassifier(t *testing.T) {
 	}{
 		{name: "predicted phishing", classifier: stubClassifier{slug: "phishing"}, wantSlug: "phishing"},
 		{name: "predicted impersonation", classifier: stubClassifier{slug: "impersonation"}, wantSlug: "impersonation"},
-		{name: "unknown slug stays unclassified", classifier: stubClassifier{slug: "crypto-rug"}, wantSlug: ""},
-		{name: "classifier failure stays unclassified", classifier: stubClassifier{err: errors.New("boom")}, wantSlug: ""},
-		{name: "empty prediction stays unclassified", classifier: stubClassifier{}, wantSlug: ""},
+		{name: "unknown slug falls back to other", classifier: stubClassifier{slug: "crypto-rug"}, wantSlug: "other"},
+		{name: "classifier failure falls back to other", classifier: stubClassifier{err: errors.New("boom")}, wantSlug: "other"},
+		{name: "empty prediction falls back to other", classifier: stubClassifier{}, wantSlug: "other"},
 	}
 
 	for _, tc := range tests {
@@ -156,14 +158,8 @@ func TestCreateAssignsCategoryFromClassifier(t *testing.T) {
 				t.Errorf("inserted Title = %q, want the submitted title", repo.created.Title)
 			}
 
-			if tc.wantSlug == "" {
-				if repo.created.CategoryID != nil {
-					t.Errorf("CategoryID = %v, want nil (unclassified)", *repo.created.CategoryID)
-				}
-				return
-			}
 			if repo.created.CategoryID == nil {
-				t.Fatal("CategoryID = nil, want the classifier's category")
+				t.Fatal("CategoryID = nil, want a resolved category")
 			}
 			if got := repo.cats[tc.wantSlug].ID; *repo.created.CategoryID != got {
 				t.Errorf("CategoryID = %d, want %d", *repo.created.CategoryID, got)
@@ -172,7 +168,7 @@ func TestCreateAssignsCategoryFromClassifier(t *testing.T) {
 	}
 }
 
-func TestCreateWithoutClassifierStaysUnclassified(t *testing.T) {
+func TestCreateWithoutClassifierFallsBackToOther(t *testing.T) {
 	repo := newFakeRepo()
 	svc := NewService(repo, nil, nil)
 
@@ -184,11 +180,12 @@ func TestCreateWithoutClassifierStaysUnclassified(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Create: unexpected error: %v", err)
 	}
-	if repo.created.CategoryID != nil {
-		t.Errorf("CategoryID = %v, want nil", *repo.created.CategoryID)
+	if repo.created.CategoryID == nil || *repo.created.CategoryID != repo.cats["other"].ID {
+		t.Errorf("CategoryID = %v, want the 'other' category (%d)", repo.created.CategoryID, repo.cats["other"].ID)
 	}
-	if repo.created.TagIDs != nil {
-		t.Errorf("TagIDs = %v, want nil", repo.created.TagIDs)
+	want := []int64{repo.tags["other"].ID}
+	if !reflect.DeepEqual(repo.created.TagIDs, want) {
+		t.Errorf("TagIDs = %v, want %v", repo.created.TagIDs, want)
 	}
 }
 
@@ -214,7 +211,7 @@ func TestCreateAssignsTagsFromClassifier(t *testing.T) {
 	}
 }
 
-func TestCreateClassifierFailureLeavesNoTags(t *testing.T) {
+func TestCreateClassifierFailureFallsBackToOtherTag(t *testing.T) {
 	repo := newFakeRepo()
 	svc := NewService(repo, stubClassifier{err: errors.New("boom")}, nil)
 
@@ -226,8 +223,32 @@ func TestCreateClassifierFailureLeavesNoTags(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("Create: unexpected error: %v", err)
 	}
-	if repo.created.TagIDs != nil {
-		t.Errorf("TagIDs = %v, want nil", repo.created.TagIDs)
+	want := []int64{repo.tags["other"].ID}
+	if !reflect.DeepEqual(repo.created.TagIDs, want) {
+		t.Errorf("TagIDs = %v, want %v (the 'other' tag)", repo.created.TagIDs, want)
+	}
+}
+
+func TestCreateUnknownTagsFallBackToOther(t *testing.T) {
+	repo := newFakeRepo()
+	svc := NewService(repo, stubClassifier{
+		slug: "phishing",
+		// Every predicted slug is unknown, so nothing resolves and the post
+		// falls back to the "other" tag rather than going untagged.
+		tags: []string{"does-not-exist", "also-missing"},
+	}, nil)
+
+	if _, err := svc.Create(context.Background(), CreateInput{
+		AuthorUserID:       7,
+		Title:              "Fake DBS SMS",
+		RedactedText:       "Call 91234567 to verify your account.",
+		ConfirmPublication: true,
+	}); err != nil {
+		t.Fatalf("Create: unexpected error: %v", err)
+	}
+	want := []int64{repo.tags["other"].ID}
+	if !reflect.DeepEqual(repo.created.TagIDs, want) {
+		t.Errorf("TagIDs = %v, want %v (the 'other' tag)", repo.created.TagIDs, want)
 	}
 }
 

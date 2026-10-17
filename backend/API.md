@@ -170,10 +170,9 @@ Request (text):
 { "text": "Your bank account is suspended. Verify now: http://bit.ly/x", "locale": "en-SG" }
 ```
 Request (screenshot — deferred): `{ "upload_id": "12", "locale": "en-SG" }`
-First upload the screenshot with `POST /uploads` (below) to obtain the
-`upload_id`. Note that `POST /uploads` already schedules the detection check
-automatically, so this separate call is only needed if you deliberately split
-uploading and scheduling into two steps.
+First upload the screenshot with `POST /uploads` (below) and wait until its
+status is `ready`; then submit its `upload_id` here. The check reuses the
+upload's redacted text and returns `409 upload_not_ready` until redaction finishes.
 
 Response `201` (text, ready):
 ```json
@@ -201,10 +200,9 @@ a safety guarantee. `unclear` is a valid, expected outcome.
 
 Response `202` (screenshot, processing): `{ "check_id": "56", "status": "processing" }`
 Poll `GET /detection/{id}` until `status` is `ready` or `failed`. A screenshot
-check runs OCR, removes PII from the extracted text **and** produces a redacted
-copy of the image; the raw upload is never analyzed publicly or exposed. If the
-redaction service is unavailable the check resolves to `status: "failed"` rather
-than returning un-redacted content.
+check classifies the upload's already-redacted text. If no text was recovered,
+the check completes without a verdict. If classification cannot complete the
+check resolves to `status: "failed"`.
 
 When a screenshot yields **no readable text** (OCR detects nothing, or every
 detected region falls below its confidence floor), the check still resolves to
@@ -229,17 +227,17 @@ classification service cannot be reached for a text check.
 **`multipart/form-data`** request (not JSON): send the image in a form field
 named `image`. An optional `locale` form field tunes analysis.
 
-Uploading **automatically schedules the detection check** — there is no need to
-call `POST /detection` separately. The response carries the `check_id` of a
-check already in `processing`; poll `GET /detection/{check_id}` until `status`
-is `ready` or `failed`.
+Uploading performs **PII removal only** (OCR, text cleanup, and image redaction).
+It does not create or classify a detection check. Poll `GET /uploads/{id}` until
+the upload status is `ready` or `failed`, then optionally create a check with
+`POST /detection`.
 
 - Allowed types: `image/jpeg`, `image/png`, `image/webp`.
 - Max size: **10 MiB**.
 
 Response `201`:
 ```json
-{ "upload_id": "12", "media_type": "image/png", "check_id": "56", "status": "processing" }
+{ "upload_id": "12", "media_type": "image/png", "status": "processing" }
 ```
 
 Errors:
@@ -247,21 +245,27 @@ Errors:
 - `422` if the `image` field is missing or the media type is not one of the allowed types.
 - `413` (`payload_too_large`) if the image exceeds 10 MiB.
 
-The raw upload is stored privately for OCR + redaction only; it is never logged
-or exposed through any public endpoint. Only the redacted derivative is served
-back (see `GET /detection/{id}/redacted-image`).
+The raw upload is stored privately for OCR + redaction only; its extracted text
+is stored only after PII removal and never logged. Only the redacted derivative
+is served back.
 
-`POST /detection` with an `upload_id` is still accepted for callers that want to
-upload and schedule as two separate steps, but is no longer required.
+### GET /uploads/{id}
+Authenticated, owner-only. Returns `{ "upload_id", "media_type", "status" }`.
+Use this to poll PII-removal status. Returns `404` for another user's or missing upload.
+
+### GET /uploads/{id}/redacted-image
+Authenticated, owner-only. Streams the redacted image with
+`Cache-Control: private, no-store`; returns `404` until a derivative exists.
+
+`POST /detection` with an `upload_id` is the only way to create a screenshot
+detection check; it requires the upload to be ready (otherwise `409 upload_not_ready`).
 
 ### DELETE /uploads/{id}
 Authenticated, owner-only. Cancels an upload and purges its stored raw and
 redacted blobs. Response `204` with no body.
 
-Because `POST /uploads` schedules detection immediately, an upload is normally
-linked to a check; deleting it removes the whole task (the check and all of its
-uploads), exactly as `DELETE /detection/{check_id}` would. A staged, unlinked
-upload (from a split upload/schedule flow) is removed on its own.
+An unlinked upload is removed on its own. If linked to a check, deleting it
+removes the whole task (the check and linked uploads).
 
 Returns `404` if the upload is not yours or does not exist, and `401` if the
 request is unauthenticated.
@@ -423,9 +427,9 @@ caller's own vote (`1`, `-1`, or `0`; always `0` for anonymous callers) — the
 same shape as post detail (§6), so the card can render the current score and
 highlight the user's vote without opening the post.
 
-Posts that have not yet been assigned a scam category by the classifier are
-excluded from the public feed and search for everyone except their author (who
-sees them with `"category": null`).
+Every post is assigned a scam category by the classifier; when no real category
+can be determined it falls back to the catch-all `other` category, so a post is
+never left unclassified (`"category"` is always present in the response).
 
 `is_mine` is `true` when the post was authored by the authenticated caller, and
 `false` otherwise (always `false` for anonymous callers). Posts are published
@@ -473,8 +477,8 @@ Response `200`:
 }
 ```
 `my_vote` is `1`, `-1`, or `0` (and `0` for anonymous callers). `category` is
-`null` until the classifier assigns one; an unclassified post is only returned to
-its author (and moderators). `404` if the post is
+always present: the classifier's prediction, or the catch-all `other` category
+when none resolves. `404` if the post is
 deleted/hidden/removed (moderators/admins can still see those).
 
 `redacted_image_urls` lists every redacted screenshot attached to the post, in
@@ -524,12 +528,13 @@ publishing.
 
 The scam category **and tags** are **not** client-supplied: both are assigned
 by the backend classifier. Neither `scam_type` nor `tags` is accepted in the
-request body (unknown fields are rejected with `422`). Until a category has
-been assigned the post is *unclassified*: `"category": null`, and it appears
-only in `GET /me/posts` and to its own author — it is excluded from the public
-feed, search, other users' post detail, and cannot be voted on or flagged. Tags
-predicted by the classifier that do not resolve to known tag slugs are silently
-dropped; a bad tag prediction never fails the publish.
+request body (unknown fields are rejected with `422`). A post is always
+classified and always tagged: when the classifier yields nothing usable (no
+prediction, an unknown slug, or an outage) the server falls back to the
+catch-all `other` category and `other` tag rather than leaving the post
+unclassified. Predicted tag slugs that do not resolve to known tags are silently
+dropped before the fallback is applied; a bad prediction never fails the
+publish.
 
 Response `201`: post detail (same shape as `GET /community/posts/{id}`).
 Errors: `422` (missing confirmation, empty title/body, or any
@@ -819,6 +824,8 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 | POST | `/auth/logout` | Public |
 | GET | `/me` | Authenticated |
 | POST | `/uploads` | Authenticated |
+| GET | `/uploads/{id}` | Authenticated (owner) |
+| GET | `/uploads/{id}/redacted-image` | Authenticated (owner) |
 | DELETE | `/uploads/{id}` | Authenticated (owner) |
 | POST | `/detection` | Authenticated |
 | GET | `/detection/{id}` | Authenticated (owner) |
@@ -861,7 +868,7 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 ## 16. Notes for teammates
 
 - **Private detection retention & deletion:** private uploads expire after **24 hours** and private checks after **30 days** (schema defaults, indexed by `expires_at`). A background **retention reaper** enforces these windows — enabled with `REAPER_ENABLED` (default `true`), running every `REAPER_INTERVAL` (default `1h`) — deleting expired rows and purging their stored blobs. Owners can also delete immediately: `DELETE /detection/{id}` removes a check (and its uploads and blobs) and `DELETE /uploads/{id}` cancels an upload. Deleting a check is irreversible, cascades its uploads, and nulls `source_check_id` on any published post (the post and its own image copy are unaffected).
-- **Screenshot uploads:** the full flow is implemented end to end — `POST /uploads` stores the image **and automatically schedules the detection check**, returning the `check_id` directly; OCR + PII redaction then run in the background and the redacted image is retrievable via `GET /detection/{id}/redacted-image` (and reusable on a published post via `GET /community/posts/{id}/images/{n}`). Clients just upload and poll `GET /detection/{check_id}`; a separate `POST /detection` call with the `upload_id` is still accepted but no longer required. The OCR + redaction itself is delegated to a separate Python PII-removal service over HTTP; when that service is not configured (`PII_SERVICE_URL` unset) screenshot checks resolve to `status: "failed"` rather than returning un-redacted content. Text detection does not depend on it.
+- **Screenshot uploads:** `POST /uploads` stores the image and schedules background OCR + PII redaction only. Poll `GET /uploads/{id}`; once ready, `POST /detection` creates a check and classifies the stored redacted text. The redacted image is available via `GET /uploads/{id}/redacted-image` or, once linked, `GET /detection/{id}/redacted-image`, and can be copied to a published post. Redaction is delegated to the Python PII-removal service; when unavailable uploads become failed. Text detection does not depend on it.
 - **Phone-number data source:** `GET /detection/phone-number/trust-score` works end to end but its data source is stubbed — until the data team wires the phone reputation table, every number returns `known: false` with the default score 60. The response contract is final.
 - **Flag vs. phone report:** "flag" (§9) escalates a *post/comment* to moderators. The phone-number feature (§5) is a *lookup* against the scam-number database. They are unrelated.
 - **DB note (backend/DB team):** the `report_receipts` table in `init.sql` is now unused — the "I received this too" feature was removed in favour of reactions. It can be dropped in a future migration.

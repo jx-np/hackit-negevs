@@ -29,6 +29,13 @@ const (
 	// postImageStoragePrefix groups the post-owned redacted image copies in the
 	// blob store, kept separate from the private check uploads/redacted objects.
 	postImageStoragePrefix = "post-images"
+
+	// Catch-all taxonomy slugs assigned when the classifier cannot resolve a
+	// real category or tag. Every published post is classified and carries at
+	// least one tag, so these fall back to the seeded "other" rows instead of
+	// leaving the post unclassified/untagged.
+	fallbackCategorySlug = "other"
+	fallbackTagSlug      = "other"
 )
 
 // Service holds reports business logic. It is transport-agnostic.
@@ -40,10 +47,10 @@ type Service struct {
 }
 
 // NewService constructs a reports Service. The classifier assigns the scam
-// category on publish; pass nil to disable classification (every post then
-// stays unclassified and author-only). The store holds the post's own redacted
-// image copy; pass nil to disable image attachment (posts then publish without
-// an image).
+// category and tags on publish; pass nil to disable classification (every post
+// then falls back to the catch-all "other" category and tag). The store holds
+// the post's own redacted image copy; pass nil to disable image attachment
+// (posts then publish without an image).
 func NewService(repo Repository, cl classifier.Classifier, store storage.Store) *Service {
 	return &Service{repo: repo, classifier: cl, store: store, now: time.Now}
 }
@@ -180,9 +187,9 @@ type CreateInput struct {
 
 // Create publishes a new report. It enforces explicit confirmation, re-scrubs
 // the body server-side, asks the classifier for the scam category and tags, and
-// links a source check only when the caller owns it. When classification fails
-// or yields no category the post is still created but stays unclassified, i.e.
-// visible only to its author until it is classified.
+// links a source check only when the caller owns it. Classification failure is
+// never fatal: the post is always published and always classified, falling back
+// to the catch-all "other" category/tag when no real prediction resolves.
 func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 	if !in.ConfirmPublication {
 		return Report{}, ErrConfirmationRequired
@@ -203,7 +210,8 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 
 	// Classification runs on the scrubbed body only and yields both the scam
 	// category and the post's tags. Failure is not fatal: the post is stored
-	// unclassified/untagged and hidden from other users.
+	// with the catch-all "other" category/tag instead of being left
+	// unclassified.
 	categoryID, tagIDs := s.classify(ctx, body, locale)
 
 	// Only link the source check when the caller actually owns it; otherwise
@@ -251,34 +259,43 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (Report, error) {
 }
 
 // classify asks the classifier for a category and tags and resolves both to
-// internal ids. The category is nil when there is no classifier, when the
-// classifier fails, or when the predicted slug does not exist — in all of those
-// cases the post remains unclassified rather than the publish failing. Predicted
-// tags that are unknown or blank are silently dropped. Only the scrubbed text is
-// passed on, and no result is logged.
+// internal ids. It never leaves a post unclassified: an absent classifier, a
+// classifier failure, an empty prediction, or an unknown predicted slug all fall
+// back to the catch-all "other" category, and an empty tag resolution falls back
+// to the "other" tag. Only the scrubbed text is passed on, and no result is
+// logged.
 func (s *Service) classify(ctx context.Context, scrubbedBody, locale string) (*int64, []int64) {
-	if s.classifier == nil {
-		return nil, nil
-	}
-	res, err := s.classifier.Classify(ctx, scrubbedBody, locale)
-	if err != nil {
-		return nil, nil
-	}
-
-	var categoryID *int64
-	if res.Classified() {
-		if cat, err := s.repo.GetCategoryBySlug(ctx, res.Slug); err == nil {
-			categoryID = &cat.ID
+	var predictedSlug string
+	var predictedTags []string
+	if s.classifier != nil {
+		if res, err := s.classifier.Classify(ctx, scrubbedBody, locale); err == nil {
+			predictedSlug = res.Slug
+			predictedTags = res.Tags
 		}
-		// An unknown predicted slug leaves the post unclassified.
 	}
 
-	return categoryID, s.resolvePredictedTags(ctx, res.Tags)
+	return s.resolveCategory(ctx, predictedSlug), s.resolvePredictedTags(ctx, predictedTags)
+}
+
+// resolveCategory maps a predicted category slug to a category id. An empty or
+// unknown prediction resolves to the catch-all "other" category. It returns nil
+// only when even the fallback is missing from the taxonomy.
+func (s *Service) resolveCategory(ctx context.Context, slug string) *int64 {
+	if slug != "" {
+		if cat, err := s.repo.GetCategoryBySlug(ctx, slug); err == nil {
+			return &cat.ID
+		}
+	}
+	if cat, err := s.repo.GetCategoryBySlug(ctx, fallbackCategorySlug); err == nil {
+		return &cat.ID
+	}
+	return nil
 }
 
 // resolvePredictedTags maps classifier-predicted tag slugs to tag ids. Unlike
 // client-supplied tags, an unknown, blank, or duplicate slug is silently dropped
-// rather than failing the publish: a bad prediction must never block a post.
+// rather than failing the publish: a bad prediction must never block a post. When
+// nothing resolves, the catch-all "other" tag is used so every post stays tagged.
 func (s *Service) resolvePredictedTags(ctx context.Context, slugs []string) []int64 {
 	cleaned := make([]string, 0, len(slugs))
 	seen := make(map[string]bool, len(slugs))
@@ -290,11 +307,20 @@ func (s *Service) resolvePredictedTags(ctx context.Context, slugs []string) []in
 		seen[sl] = true
 		cleaned = append(cleaned, sl)
 	}
-	if len(cleaned) == 0 {
+
+	ids := s.lookupTagSlugs(ctx, cleaned)
+	if len(ids) == 0 {
+		ids = s.lookupTagSlugs(ctx, []string{fallbackTagSlug})
+	}
+	return ids
+}
+
+// lookupTagSlugs resolves tag slugs to ids, dropping any that do not exist.
+func (s *Service) lookupTagSlugs(ctx context.Context, slugs []string) []int64 {
+	if len(slugs) == 0 {
 		return nil
 	}
-
-	found, _, err := s.repo.ResolveTagSlugs(ctx, cleaned)
+	found, _, err := s.repo.ResolveTagSlugs(ctx, slugs)
 	if err != nil {
 		return nil
 	}

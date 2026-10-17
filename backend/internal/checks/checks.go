@@ -53,6 +53,7 @@ var (
 	// ErrUploadNotFound is returned when a referenced upload does not exist or is
 	// not owned by the requester.
 	ErrUploadNotFound = errors.New("checks: upload not found")
+	ErrUploadNotReady = errors.New("checks: upload not ready")
 	// ErrResourceNotFound is returned when a resource-open references an unknown
 	// resource.
 	ErrResourceNotFound = errors.New("checks: resource not found")
@@ -136,6 +137,7 @@ type Upload struct {
 	OwnerUserID        int64
 	StorageKey         string
 	RedactedStorageKey *string
+	ExtractedText      *string
 	MediaType          string
 	ByteSize           int64
 	Status             string

@@ -1,10 +1,14 @@
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Link2,
+  Lock,
   MessageSquareText,
   Phone,
+  ScanLine,
   ShieldCheck,
   TriangleAlert,
 } from 'lucide-react';
+import type { HeroPhase } from './useHeroSequence';
 
 /**
  * Illustrative phone mockup for the landing hero.
@@ -16,7 +20,7 @@ import {
  * Purely decorative — hidden from assistive tech; the hero copy carries the
  * meaning.
  */
-export function DeviceMockup() {
+export function DeviceMockup({ phase = 'app' }: { phase?: HeroPhase }) {
   return (
     <div className="relative mx-auto w-[272px] sm:w-[300px]" aria-hidden>
       {/* Device frame */}
@@ -28,8 +32,122 @@ export function DeviceMockup() {
         <div className="relative aspect-[9/19.5] overflow-hidden rounded-[2.3rem] bg-white dark:bg-[#0b111c]">
           {/* Dynamic island */}
           <div className="absolute left-1/2 top-2.5 z-20 h-6 w-24 -translate-x-1/2 rounded-full bg-black" />
-          <AppScreen />
+          <AnimatePresence initial={false}>
+            {phase === 'app' ? (
+              <motion.div
+                key="app"
+                className="absolute inset-0"
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <AppScreen />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="lock"
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                <LockScreen phase={phase} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Lock screen: scam SMS arrives, ScamWatch scans it and flags it. */
+function LockScreen({ phase }: { phase: HeroPhase }) {
+  const hasNotice = phase !== 'lock';
+  const scanning = phase === 'scanning';
+  const flagged = phase === 'flagged';
+
+  return (
+    <div className="relative flex h-full flex-col items-center bg-gradient-to-b from-slate-800 via-indigo-950 to-slate-950 px-3 pt-12 text-white">
+      <Lock size={14} className="opacity-80" />
+      <p className="mt-2 text-5xl font-light tracking-tight">9:41</p>
+      <p className="text-[11px] text-white/70">Sunday, 18 October</p>
+
+      <div className="mt-6 w-full space-y-2">
+        {hasNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -32, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+            className={`relative overflow-hidden rounded-2xl p-2.5 ring-1 backdrop-blur-xl transition-colors duration-500 ${
+              flagged
+                ? 'bg-risk-600/30 ring-risk-500/70'
+                : 'bg-white/15 ring-white/10'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-white/70">
+              <MessageSquareText size={11} />
+              Messages · now
+            </div>
+            <p className="mt-1 text-[10px] font-semibold">+1 (555) 013 2290</p>
+            <p className="text-[10px] leading-snug text-white/90">
+              “Your bank account is locked. Verify now at bnk-secure-login.co”
+            </p>
+
+            {(scanning || flagged) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2 flex items-center gap-1.5 border-t border-white/15 pt-1.5 text-[9px] font-bold">
+                  {flagged ? (
+                    <>
+                      <TriangleAlert size={11} className="text-risk-500" />
+                      <span className="text-risk-500">High risk · phishing link</span>
+                    </>
+                  ) : (
+                    <>
+                      <ScanLine size={11} className="text-trust-400" />
+                      <span className="text-trust-400">ScamWatch is checking…</span>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
+            {scanning && (
+              <motion.div
+                aria-hidden
+                initial={{ x: '-100%' }}
+                animate={{ x: '400%' }}
+                transition={{ duration: 1.4, ease: 'easeInOut' }}
+                className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-trust-400/40 to-transparent"
+              />
+            )}
+          </motion.div>
+        )}
+
+        {flagged && (
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+            className="flex items-center gap-2 rounded-2xl bg-risk-600 p-2.5 shadow-lg shadow-risk-600/30"
+          >
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/20">
+              <ShieldCheck size={15} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold leading-tight">Scam detected</p>
+              <p className="text-[9px] leading-snug text-white/85">
+                ScamWatch blocked this message
+              </p>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

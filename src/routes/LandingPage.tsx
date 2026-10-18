@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
   BellRing,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { DeviceMockup, PopOutCard } from '../components/landing/DeviceMockup';
+import { useHeroSequence } from '../components/landing/useHeroSequence';
 
 const THREATS = [
   { icon: MessageSquareText, label: 'Scam texts & SMS' },
@@ -105,6 +106,9 @@ function SectionHeading({
 }
 
 export function LandingPage() {
+  const phase = useHeroSequence();
+  const showRisk = phase === 'flagged' || phase === 'app';
+  const showSafe = phase === 'app';
   return (
     <div className="overflow-x-clip bg-scam-950 text-scam-text">
       {/* ===== HERO ===== */}
@@ -175,34 +179,46 @@ export function LandingPage() {
           >
             <div className="pointer-events-none absolute inset-x-0 top-10 mx-auto h-[420px] w-[420px] rounded-full bg-gradient-to-b from-trust-500/20 to-transparent blur-2xl" />
             <div className="relative">
-              <DeviceMockup />
+              <DeviceMockup phase={phase} />
             </div>
-            <motion.div
-              aria-hidden
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-              className="absolute -left-2 top-24 hidden sm:block lg:-left-16"
-            >
-              <div className="animate-float">
-                <PopOutCard tone="risk" />
-              </div>
-            </motion.div>
-            <motion.div
-              aria-hidden
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.85 }}
-              className="absolute -right-2 bottom-20 hidden sm:block lg:-right-12"
-            >
-              <div className="animate-float [animation-delay:1.5s]">
-                <PopOutCard
-                  tone="safe"
-                  title="Reported to registry"
-                  body="Others will now be warned too"
-                />
-              </div>
-            </motion.div>
+            <AnimatePresence>
+              {showRisk && (
+                <motion.div
+                  key="risk"
+                  aria-hidden
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.5 }}
+                  className="absolute -left-2 top-24 hidden sm:block lg:-left-16"
+                >
+                  <div className="animate-float">
+                    <PopOutCard tone="risk" />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <AnimatePresence>
+              {showSafe && (
+                <motion.div
+                  key="safe"
+                  aria-hidden
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="absolute -right-2 bottom-20 hidden sm:block lg:-right-12"
+                >
+                  <div className="animate-float [animation-delay:1.5s]">
+                    <PopOutCard
+                      tone="safe"
+                      title="Reported to registry"
+                      body="Others will now be warned too"
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
 

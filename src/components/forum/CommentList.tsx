@@ -91,7 +91,7 @@ function CommentMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Comment options"
-        className="grid h-7 w-7 place-items-center rounded-md text-scam-dim transition hover:bg-scam-800 hover:text-scam-text"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-scam-dim transition hover:bg-scam-800 hover:text-scam-text"
       >
         <MoreVertical size={16} />
       </button>
@@ -345,7 +345,7 @@ function CommentItem({
           )}
         </div>
         <div className="min-w-0 flex-1 pb-1">
-          <div className="flex flex-wrap items-center gap-x-2">
+          <div className="relative flex flex-wrap items-center gap-x-2 pr-9">
             <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-scam-750 text-[10px] font-semibold text-scam-muted">
               {initials(comment.authorLabel)}
             </span>
@@ -359,6 +359,27 @@ function CommentItem({
             <span className="text-xs text-scam-dim">· {timeAgo(comment.createdAt)}</span>
             {comment.updatedAt !== comment.createdAt && !removed && (
               <span className="text-xs text-scam-dim">(edited)</span>
+            )}
+            {isLoggedIn && !removed && !editing && !flagging && !flagDone && (
+              <div className="absolute right-0 top-0">
+                <CommentMenu
+                  isAuthor={isAuthor}
+                  onFlag={() => setFlagging(true)}
+                  onEdit={() => {
+                    setDraft(comment.body);
+                    setEditing(true);
+                  }}
+                  onDelete={() => {
+                    if (
+                      window.confirm(
+                        'Delete this comment? This cannot be undone.',
+                      )
+                    ) {
+                      deleteMutation.mutate();
+                    }
+                  }}
+                />
+              </div>
             )}
           </div>
 
@@ -602,24 +623,6 @@ function CommentItem({
               </div>
             ))}
         </div>
-
-        {isLoggedIn && !removed && !editing && !flagging && !flagDone && (
-          <CommentMenu
-            isAuthor={isAuthor}
-            onFlag={() => setFlagging(true)}
-            onEdit={() => {
-              setDraft(comment.body);
-              setEditing(true);
-            }}
-            onDelete={() => {
-              if (
-                window.confirm('Delete this comment? This cannot be undone.')
-              ) {
-                deleteMutation.mutate();
-              }
-            }}
-          />
-        )}
       </div>
     </div>
   );

@@ -335,7 +335,7 @@ function CategoryRow({
       <span className="flex-1 truncate">{label}</span>
       {typeof count === 'number' && (
         <span
-          className={`rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+          className={`sr-nums rounded-full px-1.5 py-0.5 text-[11px] font-semibold ${
             active ? 'bg-trust-500/15 text-trust-700 dark:text-trust-300' : 'bg-scam-750 text-scam-dim'
           }`}
         >

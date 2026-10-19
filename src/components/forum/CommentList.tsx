@@ -528,7 +528,7 @@ function CommentItem({
                   initial={{ y: -4, opacity: 0.4 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ duration: 0.18 }}
-                  className="tabular-nums"
+                  className="sr-nums"
                 >
                   {like.count}
                 </motion.span>

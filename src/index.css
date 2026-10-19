@@ -227,6 +227,14 @@ body {
     box-shadow: 0 0 0 2px theme('colors.trust.500 / 35%');
   }
 
+  /* Numeric readout — counts, vote tallies, comment totals. Uses Inter's
+     digits so a lone "0" stays legible regardless of the reader's chosen
+     body font, and tabular/lining figures so counts don't jitter. */
+  .sr-nums {
+    font-family: theme('fontFamily.nums');
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
   /* Monospace evidence chip — reads as "data / evidence". */
   .sr-chip {
     @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs transition;

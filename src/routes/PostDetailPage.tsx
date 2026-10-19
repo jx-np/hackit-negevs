@@ -23,6 +23,7 @@ import {
 } from '../components/forum/PostCard';
 import { ShareMenu } from '../components/forum/ShareMenu';
 import { PostImages } from '../components/forum/PostImages';
+import { UpvoteBadge } from '../components/forum/UpvoteBadge';
 import { useAuth } from '../context/AuthContext';
 import { useSavedFeeds } from '../context/SavedFeedsContext';
 import { usePost } from '../hooks/usePost';
@@ -236,11 +237,10 @@ export function PostDetailPage() {
                   </div>
                   <div className="ml-auto flex items-center gap-4 text-sm text-scam-muted">
                     <span className="flex items-center gap-1.5">
-                      <MessageCircle size={16} /> {post.replyCount}
+                      <MessageCircle size={16} />{' '}
+                      <span className="sr-nums">{post.replyCount}</span>
                     </span>
-                    <span className="flex items-center gap-1.5 text-risk-low">
-                      <ShieldCheck size={16} /> {post.likeCount}
-                    </span>
+                    <UpvoteBadge count={reaction.upCount} className="text-risk-low" />
                   </div>
                 </div>
 
@@ -276,7 +276,7 @@ export function PostDetailPage() {
                         initial={{ y: -4, opacity: 0.4 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ duration: 0.18 }}
-                        className={`min-w-[1.5rem] pr-1 text-center text-sm font-semibold tabular-nums ${
+                        className={`sr-nums min-w-[1.5rem] pr-1 text-center text-sm font-semibold ${
                           reaction.myVote === 1 ? 'text-trust-400' : 'text-scam-text'
                         }`}
                       >
@@ -316,7 +316,7 @@ export function PostDetailPage() {
                         initial={{ y: -4, opacity: 0.4 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ duration: 0.18 }}
-                        className={`min-w-[1.5rem] pr-1 text-center text-sm font-semibold tabular-nums ${
+                        className={`sr-nums min-w-[1.5rem] pr-1 text-center text-sm font-semibold ${
                           reaction.myVote === -1 ? 'text-risk-high' : 'text-scam-text'
                         }`}
                       >
@@ -324,9 +324,7 @@ export function PostDetailPage() {
                       </motion.span>
                     </motion.button>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-risk-low">
-                    <ShieldCheck size={14} /> {reaction.upCount} confirmed
-                  </span>
+                  <UpvoteBadge count={reaction.upCount} className="text-risk-low" />
 
                   {/* Share + Save — mirrors the PostCard action affordances */}
                   <div className="ml-auto flex items-center gap-1">
@@ -388,7 +386,8 @@ export function PostDetailPage() {
               className="rounded-2xl border border-scam-line bg-scam-800 p-6 shadow-card sm:p-8"
             >
               <h2 className="mb-4 border-b border-scam-line pb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-scam-muted">
-                Discussion · {post.replyCount} {post.replyCount === 1 ? 'comment' : 'comments'}
+                Discussion · <span className="sr-nums">{post.replyCount}</span>{' '}
+                {post.replyCount === 1 ? 'comment' : 'comments'}
               </h2>
               <div className="mb-5">
                 <CommentList postId={post.id} />

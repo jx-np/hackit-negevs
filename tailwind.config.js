@@ -10,6 +10,9 @@ export default {
         // IA "security-grade" type system
         display: ["'Space Grotesk'", 'system-ui', 'sans-serif'],
         mono: ['ui-monospace', "'SF Mono'", "'Cascadia Code'", 'Menlo', 'Consolas', 'monospace'],
+        // Counts / tallies. Kept independent of --app-font-family because
+        // Atkinson Hyperlegible's geometric zero is hard to read at 12-14px.
+        nums: ["'Inter'", 'system-ui', '-apple-system', 'sans-serif'],
       },
       fontSize: {
         // Scales relative to the root --app-font-scale variable

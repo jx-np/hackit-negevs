@@ -34,6 +34,7 @@ import { CommentList } from './CommentList';
 import { PostImages } from './PostImages';
 import { PostImagePreview } from './PostImagePreview';
 import { ShareMenu } from './ShareMenu';
+import { UpvoteBadge } from './UpvoteBadge';
 
 function initials(name: string): string {
   return name
@@ -809,7 +810,7 @@ export function PostCard({ post }: { post: Post }) {
               initial={{ y: -4, opacity: 0.4 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.18 }}
-              className={`min-w-[1.5rem] pr-1 text-center text-sm font-semibold tabular-nums ${
+              className={`sr-nums min-w-[1.5rem] pr-1 text-center text-sm font-semibold ${
                 reaction.myVote === 1 ? 'text-trust-400' : 'text-scam-text'
               }`}
             >
@@ -846,7 +847,7 @@ export function PostCard({ post }: { post: Post }) {
               initial={{ y: -4, opacity: 0.4 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.18 }}
-              className={`min-w-[1.5rem] pr-1 text-center text-sm font-semibold tabular-nums ${
+              className={`sr-nums min-w-[1.5rem] pr-1 text-center text-sm font-semibold ${
                 reaction.myVote === -1 ? 'text-risk-high' : 'text-scam-text'
               }`}
             >
@@ -856,9 +857,7 @@ export function PostCard({ post }: { post: Post }) {
         </div>
 
         {/* Prominent social proof — reassuring on a safety site. */}
-        <span className="ml-1 mr-1 hidden items-center gap-1.5 text-xs font-medium text-risk-low sm:inline-flex">
-          <ShieldCheck size={14} /> {reaction.upCount} confirmed
-        </span>
+        <UpvoteBadge count={reaction.upCount} className="ml-1 mr-1 text-risk-low" />
 
         {reaction.error && (
           <span role="alert" className="ml-1 mr-1 text-xs font-medium text-risk-high">
@@ -872,7 +871,8 @@ export function PostCard({ post }: { post: Post }) {
           aria-expanded={showComments}
           className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition hover:bg-scam-800 hover:text-trust-400"
         >
-          <MessageCircle size={16} /> {post.replyCount}
+          <MessageCircle size={16} />{' '}
+          <span className="sr-nums">{post.replyCount}</span>
         </button>
 
         <div className="ml-auto flex items-center gap-1">

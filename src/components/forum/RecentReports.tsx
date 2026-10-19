@@ -2,6 +2,7 @@ import { ShieldAlert, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePosts } from '../../hooks/usePosts';
 import type { Post, RiskLevel } from '../../types';
+import { UpvoteBadge } from './UpvoteBadge';
 
 /** Only reports created within this window count as "recent". */
 const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -56,8 +57,12 @@ function RecentRow({ post }: { post: Post }) {
       <p className="mt-1.5 line-clamp-2 text-sm leading-snug text-scam-text">
         {post.title}
       </p>
-      <p className="mt-1 text-xs text-scam-muted">
-        {post.likeCount} confirmed · {post.replyCount} comments
+      <p className="mt-1 flex items-center gap-1.5 text-xs text-scam-muted">
+        <UpvoteBadge count={post.likeCount} className="text-scam-muted" />
+        <span>
+          · <span className="sr-nums">{post.replyCount}</span>{' '}
+          {post.replyCount === 1 ? 'comment' : 'comments'}
+        </span>
       </p>
     </Link>
   );

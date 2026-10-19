@@ -24,7 +24,11 @@ class _FakeEvaluator implements ScamEvaluator {
   Future<void> dispose() async {}
 
   @override
-  Future<ScamVerdict> evaluate(NotificationRecord record) async => _verdict;
+  Future<ScamVerdict> evaluate(
+    NotificationRecord record, {
+    List<String> priorMessages = const [],
+  }) async =>
+      _verdict;
 }
 
 NotificationRecord _record() => NotificationRecord(
@@ -516,6 +520,59 @@ void main() {
       final hints = hintsFor('Alex', 'hey are we still on for dinner?');
       // The render always ends with a signals=N count; a clean message has none.
       expect(hints.render(), 'sender=name, signals=0');
+    });
+
+    test('chat apps get no sender hint and no contact lookup', () async {
+      for (final package in [
+        'com.whatsapp',
+        'org.telegram.messenger',
+        'com.instagram.android',
+        'com.discord',
+      ]) {
+        final hints = await ScamHintBuilder.fromRecord(
+          NotificationRecord(
+            packageName: package,
+            appLabel: package,
+            title: 'amelia',
+            content: 'Liked your message: "I am so cooked gng"',
+            postedAt: DateTime(2026, 1, 1),
+          ),
+        );
+        final rendered = hints.render();
+        expect(rendered, isNot(contains('sender=')), reason: package);
+        expect(rendered, 'signals=0', reason: package);
+        expect(hints.strongSignalCount, 0, reason: package);
+        expect(hints.looksTrivial(), isTrue, reason: package);
+      }
+    });
+
+    test('chat app sender never counts as a strong signal', () async {
+      final hints = await ScamHintBuilder.fromRecord(
+        NotificationRecord(
+          packageName: 'org.telegram.messenger',
+          appLabel: 'Telegram',
+          title: '+44 7700 900123',
+          content: 'hi',
+          postedAt: DateTime(2026, 1, 1),
+        ),
+      );
+      expect(hints.render(), 'signals=0');
+      expect(hints.strongSignalCount, 0);
+      expect(hints.shouldAlert('other_scam', 0.95), isFalse);
+    });
+
+    test('sms notifications keep their sender hint', () async {
+      final hints = await ScamHintBuilder.fromRecord(
+        NotificationRecord(
+          packageName: 'com.google.android.apps.messaging',
+          appLabel: 'Google Messages',
+          // Phone-shaped, so no contacts plugin call is needed.
+          title: '+65 8123 4567',
+          content: 'hey are we still on for dinner?',
+          postedAt: DateTime(2026, 1, 1),
+        ),
+      );
+      expect(hints.render(), 'sender=unsaved_local, signals=0');
     });
 
     test('a saved contact outranks a phone-looking sender', () {

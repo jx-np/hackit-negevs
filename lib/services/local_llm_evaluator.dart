@@ -48,6 +48,13 @@ class LocalLlmEvaluator implements ScamEvaluator {
   /// the classifier reads the same short excerpt either way.
   static const int _maxInputChars = 4000;
 
+  /// Per-turn cap for the prior messages in a multi-turn thread. The current
+  /// message is sent in full (up to [_inputCharCap]); earlier turns only need
+  /// to carry the gist (who the sender is, what they were steering toward), so
+  /// they are clipped hard to keep the added prefill — the binding real-time
+  /// cost on GPU — to roughly 25 tokens per turn.
+  static const int _priorTurnChars = 70;
+
   final GemmaModelManager _models;
 
   InferenceModel? _model;
@@ -146,7 +153,11 @@ class LocalLlmEvaluator implements ScamEvaluator {
   }
 
   @override
-  Future<ScamVerdict> evaluate(NotificationRecord record) async {
+  Future<ScamVerdict> evaluate(
+    NotificationRecord record, {
+    List<String>? priorMessages,
+    int? exampleCount,
+  }) async {
     try {
       await warmUp();
       final model = _model!;
@@ -157,7 +168,12 @@ class LocalLlmEvaluator implements ScamEvaluator {
         maxOutputTokens: _outputTokenCap,
       );
       try {
-        final prompt = await _fittedPrompt(session, record);
+        final prompt = await _fittedPrompt(
+          session,
+          record,
+          priorMessages,
+          exampleCount,
+        );
         await session.addQueryChunk(Message(text: prompt, isUser: true));
         final buffer = StringBuffer();
         var produced = 0;
@@ -202,16 +218,27 @@ class LocalLlmEvaluator implements ScamEvaluator {
   Future<String> _fittedPrompt(
     InferenceModelSession session,
     NotificationRecord record,
+    List<String>? priorMessages,
+    int? exampleCount,
   ) async {
     final budget = _inputTokenBudget;
     final message = _truncate(record.content, _inputCharCap);
     final hints = (await ScamHintBuilder.fromRecord(record)).render();
+    // Earlier turns only carry context, so each is clipped hard to keep the
+    // added prefill small. Blank turns are dropped so a rolled-up or empty
+    // prior ("3 new messages") does not waste a line.
+    final prior = (priorMessages ?? const <String>[])
+        .map((m) => _truncate(m.trim(), _priorTurnChars))
+        .where((m) => m.isNotEmpty)
+        .toList();
     String build(String text) => buildScamPrompt(
           compact: true,
           appLabel: record.appLabel,
           sender: record.title,
           message: text,
           hints: hints,
+          priorMessages: prior,
+          examples: exampleCount,
         );
     final prompt = build(message);
     final tokens = await _countTokens(session, prompt);

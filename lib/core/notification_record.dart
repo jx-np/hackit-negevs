@@ -62,6 +62,16 @@ class NotificationRecord {
     return parts.join('\n');
   }
 
+  /// Stable per-conversation identity used to group a sender's recent messages
+  /// into a thread. Prefers the Android notification [key] (package|tag|id),
+  /// which stays constant as an app updates the same conversation's
+  /// notification and does not depend on the display title — so it survives a
+  /// masked sender such as "Unknown sender" that would otherwise collapse every
+  /// unknown-sender chat into one bogus thread. Falls back to package+title
+  /// only when the key is absent.
+  String get conversationKey =>
+      key.isNotEmpty ? key : '$packageName|$title';
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'key': key,

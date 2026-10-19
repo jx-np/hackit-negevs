@@ -27,6 +27,24 @@ const Map<String, String> kMessagingApps = {
   'com.google.android.apps.dynamite': 'Google Chat',
 };
 
+/// Packages whose notification title is an SMS sender (a phone number or a
+/// carrier alphanumeric sender ID), so the title can be matched against the
+/// device contacts and described as a `sender=` hint. Chat apps are excluded
+/// because their title is the other user's display name, which has no phone
+/// number behind it and is never in the contacts.
+const Set<String> kSmsPackageNames = {
+  'com.google.android.apps.messaging',
+  'com.samsung.android.messaging',
+  'com.android.mms',
+  'com.android.messaging',
+  'com.oneplus.mms',
+  'com.miui.mms',
+  'com.motorola.messaging',
+  'com.textra',
+};
+
+bool isSmsApp(String packageName) => kSmsPackageNames.contains(packageName);
+
 bool isMessagingApp(String packageName) {
   if (kMessagingApps.containsKey(packageName)) return true;
   final lower = packageName.toLowerCase();

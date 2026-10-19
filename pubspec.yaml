@@ -53,6 +53,9 @@ dependencies:
   flutter_edge_ai_builtin_ai: ^0.3.5
   flutter_edge_ai_mediapipe: ^1.2.2
   flutter_edge_ai_litertlm: ^1.13.2
+  # Runs GGUF files (e.g. the fine-tuned Qwen3.5-4B) through llama.cpp on
+  # Android. Pinned because the native runtime it downloads is version-matched.
+  llamadart: 0.15.0
   http: ^1.6.0
   http_parser: ^4.1.2
   flutter_secure_storage: ^9.2.2
@@ -107,6 +110,15 @@ hooks:
   user_defines:
     flutter_edge_ai_litertlm:
       qualcomm_npu: true
+    llamadart:
+      # Only bundle llama.cpp: naming litert_lm next to flutter_edge_ai_litertlm
+      # fails the build.
+      llamadart_native_runtimes: [llama_cpp]
+      # CPU only on Android: the Vulkan backend is experimental and produces
+      # wrong output/crashes on several GPUs.
+      llamadart_native_backends:
+        platforms:
+          android-arm64: [cpu]
 
 
   # To add assets to your application, add an assets section, like this:

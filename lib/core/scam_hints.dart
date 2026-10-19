@@ -7,6 +7,7 @@
 library;
 
 import 'contact_directory.dart';
+import 'messaging_apps.dart';
 import 'notification_record.dart';
 
 /// The classification of a notification sender.
@@ -55,10 +56,18 @@ class ScamHints {
     required this.brandMentioned,
     required this.callbackRequest,
     required this.legalThreat,
+    this.includeSender = true,
   });
 
   final SenderType senderType;
   final LinkType linkType;
+
+  /// Whether [senderType] describes the sender of an SMS-like message. False
+  /// for chat apps (Telegram, WhatsApp, Instagram, ...), where the notification
+  /// title is a display name rather than a phone number or carrier sender ID.
+  /// In that case no `sender=` token is rendered and the sender type never
+  /// counts as a corroborating signal.
+  final bool includeSender;
 
   /// "send me the OTP" — an ask for a secret code.
   final bool asksForCode;
@@ -84,9 +93,12 @@ class ScamHints {
   final bool legalThreat;
 
   /// Compact string that goes into the prompt as `$hints`. Only true signals
-  /// are listed, so an ordinary message renders just its sender type.
+  /// are listed, so an ordinary message renders just its sender type. Chat
+  /// apps render no sender token at all, leaving `signals=0` for an ordinary
+  /// message; the prompt treats a missing sender token as "chat app".
   String render() {
-    final parts = <String>['sender=${senderType.wire}'];
+    final parts = <String>[];
+    if (includeSender) parts.add('sender=${senderType.wire}');
     if (linkType != LinkType.none) parts.add('link=${linkType.wire}');
     if (asksForCode) parts.add('asks_for_code=yes');
     if (deliversCode) parts.add('delivers_code=yes');
@@ -113,7 +125,7 @@ class ScamHints {
         callbackRequest,
         legalThreat,
         linkType == LinkType.shortened,
-        senderType == SenderType.unsavedInternational,
+        includeSender && senderType == SenderType.unsavedInternational,
       ].where((signal) => signal).length;
 
   /// Whether a verdict should actually raise an alert. The model's label and
@@ -127,9 +139,12 @@ class ScamHints {
   }
 
   /// True when there is nothing suspicious at all, so the caller may skip the
-  /// model entirely and treat the message as not a scam.
+  /// model entirely and treat the message as not a scam. Chat apps have no
+  /// meaningful sender type, so a display name — or a phone-number-shaped
+  /// display name — counts as known and does not block the shortcut.
   bool looksTrivial() =>
-      (senderType == SenderType.savedContact ||
+      (!includeSender ||
+          senderType == SenderType.savedContact ||
           senderType == SenderType.name) &&
       linkType == LinkType.none &&
       !asksForCode &&
@@ -206,11 +221,15 @@ class ScamHintBuilder {
 
   /// Computes hints for a message. [isSavedContact] comes from the device
   /// contacts; [homeCountryCode] marks which `+` prefix counts as local.
+  /// [isSmsSender] is false for chat apps, whose notification title is a
+  /// display name: the sender hint is then omitted entirely. It defaults to
+  /// true so direct callers keep the SMS behaviour.
   static ScamHints build({
     required String sender,
     required String message,
     required bool isSavedContact,
     String homeCountryCode = '+65',
+    bool isSmsSender = true,
   }) {
     final senderType = _senderType(
       sender: sender,
@@ -249,6 +268,7 @@ class ScamHintBuilder {
       brandMentioned: _brands.hasMatch(message),
       callbackRequest: _callback.hasMatch(message),
       legalThreat: _legalThreat.hasMatch(message),
+      includeSender: isSmsSender,
     );
   }
 
@@ -279,17 +299,23 @@ class ScamHintBuilder {
   /// matches a contact name, or a number that maps to a saved contact, counts
   /// as saved. Contact lookup failures (no permission, etc.) degrade to
   /// "not saved" rather than throwing.
+  ///
+  /// Only SMS-style apps get a sender hint. For a chat app the title is the
+  /// other user's display name, so the contacts are not consulted at all and
+  /// no `sender=` token is produced.
   static Future<ScamHints> fromRecord(
     NotificationRecord record, {
     String homeCountryCode = '+65',
   }) async {
+    final isSms = isSmsApp(record.packageName);
     final sender = record.title.trim();
-    final isSaved = await _isSavedContact(sender);
+    final isSaved = isSms ? await _isSavedContact(sender) : false;
     return build(
       sender: sender,
       message: record.content,
       isSavedContact: isSaved,
       homeCountryCode: homeCountryCode,
+      isSmsSender: isSms,
     );
   }
 

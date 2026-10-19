@@ -112,6 +112,8 @@ object NotificationHelper {
         confidence: Double,
         appLabel: String,
         notificationKey: String?,
+        text: String = message,
+        reason: String = "",
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val mgr = notificationManager(context) ?: return
@@ -142,6 +144,22 @@ object NotificationHelper {
         }
         val reportPending = PendingIntent.getActivity(context, 1003, reportIntent, piFlags)
 
+        // Title is the detected UI label; the body carries the notification
+        // itself (sender, then its text) plus the model's reason.
+        val body = buildString {
+            append(sender)
+            if (text.isNotEmpty()) {
+                append('\n')
+                append(text)
+            }
+            if (reason.isNotEmpty()) {
+                append("\nWhy flagged: ")
+                append(reason)
+            }
+            append("\n$appLabel · ${(confidence * 100).toInt()}% confidence")
+        }
+        val preview = if (text.isEmpty()) sender else "$sender · ${text.take(80)}"
+
         val builder: Notification.Builder =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 Notification.Builder(context, SCAM_ALERT_CHANNEL_ID)
@@ -153,12 +171,10 @@ object NotificationHelper {
         builder
             .setSmallIcon(R.drawable.ic_call_notification)
             .setContentTitle(headline)
-            .setContentText("$sender · ${message.take(80)}")
+            .setContentText(preview)
             .setStyle(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    Notification.BigTextStyle().bigText(
-                        "$sender · ${(confidence * 100).toInt()}% confidence\n$message",
-                    )
+                    Notification.BigTextStyle().bigText(body)
                 } else {
                     null
                 },

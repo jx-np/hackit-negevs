@@ -213,6 +213,10 @@ class ScamShieldService : Service() {
         val confidence = (arguments["confidence"] as? Number)?.toDouble() ?: 0.0
         val sender = (arguments["sender"] as? String)?.takeIf { it.isNotBlank() } ?: appLabel
         val notificationKey = arguments["notificationKey"] as? String
+        val reason = arguments["reason"] as? String ?: ""
+        // `text` is the notification text alone. Older callers only send
+        // `message` (sender + text), so fall back to it when `text` is absent.
+        val text = (arguments["text"] as? String)?.takeIf { it.isNotBlank() } ?: message
         NotificationHelper.showScamAlert(
             this,
             sender,
@@ -221,6 +225,8 @@ class ScamShieldService : Service() {
             confidence,
             appLabel,
             notificationKey,
+            text,
+            reason,
         )
         if (!Settings.canDrawOverlays(this)) {
             updateStatus("Overlay permission missing")
@@ -233,7 +239,8 @@ class ScamShieldService : Service() {
             notificationKey = notificationKey,
             headline = headline,
             message = message,
-            reason = arguments["reason"] as? String ?: "",
+            bodyText = text,
+            reason = reason,
             confidence = confidence,
             escalated = arguments["escalated"] as? Boolean ?: false,
         )
@@ -272,6 +279,7 @@ object ScamOverlayController {
         notificationKey: String?,
         headline: String,
         message: String,
+        bodyText: String,
         reason: String,
         confidence: Double,
         escalated: Boolean,
@@ -304,18 +312,12 @@ object ScamOverlayController {
             }
         }
 
+        // Title: the detected UI label (e.g. "Asks for a payment").
         card.addView(TextView(context).apply {
-            text = "⚠ Possible scam"
-            textSize = 24f
+            text = "⚠ $headline"
+            textSize = 22f
             setTextColor(Color.parseColor("#B00020"))
             setTypeface(typeface, Typeface.BOLD)
-        })
-
-        card.addView(TextView(context).apply {
-            text = headline
-            textSize = 18f
-            setTextColor(Color.parseColor("#111111"))
-            setPadding(0, dp(8), 0, 0)
         })
 
         card.addView(TextView(context).apply {
@@ -330,21 +332,33 @@ object ScamOverlayController {
             orientation = LinearLayout.VERTICAL
         }
 
-        if (message.isNotEmpty()) {
+        // Body: the notification itself — sender, then its text, then the
+        // model's reason directly beneath as one section.
+        if (sender.isNotEmpty()) {
             scrollBody.addView(TextView(context).apply {
-                text = message
+                text = sender
+                textSize = 15f
+                setTextColor(Color.parseColor("#111111"))
+                setTypeface(typeface, Typeface.BOLD)
+                setPadding(0, dp(12), 0, 0)
+            })
+        }
+
+        if (bodyText.isNotEmpty()) {
+            scrollBody.addView(TextView(context).apply {
+                text = bodyText
                 textSize = 15f
                 setTextColor(Color.parseColor("#333333"))
-                setPadding(0, dp(12), 0, 0)
+                setPadding(0, dp(4), 0, 0)
             })
         }
 
         if (reason.isNotEmpty()) {
             scrollBody.addView(TextView(context).apply {
-                text = "Why: $reason"
+                text = "Why flagged: $reason"
                 textSize = 14f
                 setTextColor(Color.parseColor("#555555"))
-                setPadding(0, dp(12), 0, 0)
+                setPadding(0, dp(6), 0, 0)
             })
         }
 
@@ -371,6 +385,7 @@ object ScamOverlayController {
                 val intent = Intent(context, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                     putExtra(NotificationHelper.EXTRA_REPORT_SUBJECT, sender)
+                    // Report keeps the full body (sender + text) as content.
                     putExtra(NotificationHelper.EXTRA_REPORT_CONTENT, message)
                     putExtra(NotificationHelper.EXTRA_REPORT_SOURCE, "notification")
                     putExtra(NotificationHelper.EXTRA_REPORT_APP, appLabel)

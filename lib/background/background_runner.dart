@@ -11,12 +11,14 @@ import '../core/model_catalog.dart';
 import '../core/notification_record.dart';
 import '../core/scam_hints.dart';
 import '../core/scam_verdict.dart';
+import '../services/gguf_llm_evaluator.dart';
 import '../services/local_llm_evaluator.dart';
 import '../services/model_manager.dart';
 import '../services/model_store.dart';
 import '../services/notification_log.dart';
 import '../services/notification_stream.dart';
 import '../services/protection_settings.dart';
+import '../services/scam_evaluator.dart';
 import '../services/scamshield_channels.dart';
 
 class BackgroundRunner {
@@ -29,8 +31,42 @@ class BackgroundRunner {
   final GemmaModelManager _models;
   final NotificationLog _log;
 
-  late final LocalLlmEvaluator _local =
+  /// The Gemma / LiteRT-LM evaluator. Always constructed (it owns the
+  /// flutter_edge_ai engine registration) but only used when the selected spec
+  /// is not a `.gguf` file.
+  late final LocalLlmEvaluator _edge =
       LocalLlmEvaluator(_models, settings: _settings);
+
+  /// The GGUF evaluator, built on first use from the currently selected spec
+  /// and dropped again whenever the evaluators are disposed. Kept alongside
+  /// [_edge] rather than replacing it so switching back to a Gemma model does
+  /// not lose the registered flutter_edge_ai engine.
+  GgufLlmEvaluator? _gguf;
+
+  /// The evaluator matching the loaded spec's file type, so the debug batch,
+  /// live notifications and the settings test path all agree on the runtime.
+  ScamEvaluator get _local {
+    final spec = _models.spec;
+    final path = spec.filePath;
+    if (spec.isGguf && path != null && path.isNotEmpty) {
+      return _gguf ??= GgufLlmEvaluator(
+        modelPath: path,
+        contextTokens: spec.contextTokens,
+        thinking: spec.thinking,
+      );
+    }
+    return _edge;
+  }
+
+  /// Releases both runtimes. The GGUF engine holds ~3 GB of native weights, so
+  /// it must be dropped on model switch and on idle unload too, not only at
+  /// shutdown.
+  Future<void> _disposeEvaluators() async {
+    await _edge.dispose();
+    final gguf = _gguf;
+    _gguf = null;
+    await gguf?.dispose();
+  }
 
   StreamSubscription<IncomingNotification>? _subscription;
   final Map<String, _NotificationFingerprint> _lastNotification =
@@ -73,6 +109,18 @@ class BackgroundRunner {
   static const int _maxCatchUp = 12;
   static const Duration _catchUpWindow = Duration(hours: 24);
 
+  /// Multi-turn context window: earlier messages from the same conversation
+  /// within this span are fed into the prompt so a slow-burn scam spread across
+  /// several messages is judged together. Older messages are ignored — a scam's
+  /// ask and pressure arrive close together, and a wider window only adds
+  /// prefill cost and risks pulling in an unrelated earlier chat.
+  static const Duration _threadWindow = Duration(hours: 6);
+
+  /// Most prior messages fed into the multi-turn prompt. Capped so a long,
+  /// chatty thread cannot blow up prefill time; the latest message is always
+  /// the one classified, these are only context.
+  static const int _maxThreadTurns = 4;
+
   Future<void> start() async {
     if (_running) return;
     ScamShieldChannels.control.setMethodCallHandler(_onControl);
@@ -92,7 +140,7 @@ class BackgroundRunner {
     _cancelIdleUnload();
     await _subscription?.cancel();
     _subscription = null;
-    await _local.dispose();
+    await _disposeEvaluators();
     _modelReady = false;
   }
 
@@ -119,12 +167,20 @@ class BackgroundRunner {
       if (_busy) {
         _pendingModelSwitch = true;
       } else {
-        await _local.dispose();
+        await _disposeEvaluators();
       }
       _modelReady = false;
     }
     _models.spec = spec;
-    _modelInstalled = await _models.isInstalled();
+    if (spec.isGguf) {
+      // GGUF files are read in place by llamadart, so the flutter_edge_ai
+      // bookkeeping (ModelStore, registerFromFile, bundled install) does not
+      // apply — and running it would report the file as uninstalled.
+      _modelInstalled = await _installedFor(spec);
+      _modelReady = false;
+      return;
+    }
+    _modelInstalled = await _installedFor(spec);
     _modelReady = false;
     try {
       if (_models.isBundled) {
@@ -143,6 +199,17 @@ class BackgroundRunner {
     } catch (error) {
       _setStatus('Model setup failed: $error');
     }
+  }
+
+  /// Whether the selected model's weights are actually available. A GGUF is
+  /// just a file at the picked path; everything else goes through the
+  /// flutter_edge_ai model store.
+  Future<bool> _installedFor(ScamModelSpec spec) async {
+    if (spec.isGguf) {
+      final path = spec.filePath;
+      return path != null && path.isNotEmpty && await File(path).exists();
+    }
+    return _models.isInstalled();
   }
 
   Future<void> _warmUp() async {
@@ -321,9 +388,16 @@ class BackgroundRunner {
         await _warmUp();
       }
 
+      // Pull a short rolling window of earlier messages from the SAME
+      // conversation so a slow-burn, multi-turn scam — where the ask and the
+      // pressure are spread across several messages — is judged in context
+      // rather than one message at a time. Empty for a first/one-off message,
+      // which then keeps today's single-message prompt cost.
+      final priorMessages = await _recentThread(id, record);
+
       ScamVerdict verdict;
       try {
-        verdict = await _local.evaluate(record);
+        verdict = await _local.evaluate(record, priorMessages: priorMessages);
       } catch (error) {
         // A failed on-device evaluation must not escalate off-device; surface
         // it as an inconclusive verdict instead.
@@ -345,10 +419,47 @@ class BackgroundRunner {
       _wakeLock('releaseWakeLock');
       if (_pendingModelSwitch) {
         _pendingModelSwitch = false;
-        unawaited(_local.dispose());
+        unawaited(_disposeEvaluators());
       }
       _scheduleIdleUnload();
     }
+  }
+
+  /// Earlier messages from the same conversation as [record], oldest first,
+  /// for the multi-turn prompt. Groups by [NotificationRecord.conversationKey]
+  /// (the stable Android notification key, falling back to package|sender),
+  /// keeps only entries within [_threadWindow], excludes the current message
+  /// ([currentId]) and returns at most [_maxThreadTurns] message bodies.
+  ///
+  /// Returns an empty list for a first or one-off message, so the evaluator
+  /// falls back to the single-message prompt at its usual cost — the
+  /// multi-turn path only fires when there is real prior context.
+  Future<List<String>> _recentThread(
+    String currentId,
+    NotificationRecord record,
+  ) async {
+    final key = record.conversationKey;
+    final List<LoggedNotification> entries;
+    try {
+      entries = await _log.all();
+    } catch (error) {
+      _trace('thread read failed: $error');
+      return const [];
+    }
+    final cutoff = DateTime.now().subtract(_threadWindow);
+    // _log.all() is newest-first. Collect the matching earlier messages, then
+    // reverse to oldest-first for the prompt.
+    final prior = <String>[];
+    for (final entry in entries) {
+      if (entry.id == currentId) continue;
+      if (entry.record.conversationKey != key) continue;
+      if (entry.capturedAt.isBefore(cutoff)) continue;
+      final text = entry.record.content.trim();
+      if (text.isEmpty) continue;
+      prior.add(text);
+      if (prior.length >= _maxThreadTurns) break;
+    }
+    return prior.reversed.toList();
   }
 
   void _cancelIdleUnload() {
@@ -368,7 +479,7 @@ class BackgroundRunner {
       _scheduleIdleUnload();
       return;
     }
-    await _local.dispose();
+    await _disposeEvaluators();
     if (_modelReady) {
       _modelReady = false;
       _setStatus('Model unloaded while idle');
@@ -388,6 +499,10 @@ class BackgroundRunner {
         'sender': record.title,
         'notificationKey': record.key,
         'headline': verdict.label.title,
+        // The notification text on its own. The overlay renders `sender`
+        // separately, so passing `body` (sender + text) would duplicate the
+        // name. `message` stays the full body for the report hand-off.
+        'text': record.content,
         'message': record.body,
         'reason': verdict.reason,
         'confidence': verdict.confidence,
@@ -408,10 +523,10 @@ class BackgroundRunner {
         await stop();
         return _statusMap();
       case 'status':
-        _modelInstalled = await _models.isInstalled();
+        _modelInstalled = await _installedFor(_models.spec);
         return _statusMap();
       case 'warmUp':
-        _modelInstalled = await _models.isInstalled();
+        _modelInstalled = await _installedFor(_models.spec);
         await _warmUp();
         return _statusMap();
       case 'syncSettings':
@@ -509,17 +624,50 @@ class BackgroundRunner {
       }
 
       entry['input'] = record.toJson();
+      // Optional per-item prior turns. When a measurement input carries a
+      // `priorMessages` list, the message is judged twice — once on its own
+      // and once with that earlier context — so a single batch run yields a
+      // paired single-vs-multi comparison on the same message, plus the prefill
+      // cost of each path. Absent the field, behaviour is unchanged. An empty
+      // list is a deliberate control that still runs the multi-turn path.
+      final prior = _priorFromItem(item);
+      if (prior != null) {
+        entry['prior_messages'] = prior;
+      }
+      // Optional per-item cap on how many worked examples the prompt carries,
+      // read from an input's `examples` field. Absent the field the default set
+      // is used, so behaviour is unchanged; 0 measures the instructions alone.
+      final exampleCount = _exampleCountFromItem(item);
+      if (exampleCount != null) {
+        entry['examples'] = exampleCount;
+      }
       _setStatus('Batch ${i + 1}/${items.length}');
 
       _busy = true;
       final started = DateTime.now();
       try {
         final hints = await ScamHintBuilder.fromRecord(record);
-        final verdict = await _local.evaluate(record);
-        final elapsedMs = DateTime.now().difference(started).inMilliseconds;
-        entry['verdict'] = verdict.toJson();
+
+        final singleStarted = DateTime.now();
+        final single =
+            await _evaluateForBatch(record, exampleCount: exampleCount);
+        entry['verdict'] = single.toJson();
+        entry['timing_ms'] =
+            DateTime.now().difference(singleStarted).inMilliseconds;
+
+        if (prior != null) {
+          final multiStarted = DateTime.now();
+          final multi = await _evaluateForBatch(
+            record,
+            priorMessages: prior,
+            exampleCount: exampleCount,
+          );
+          entry['verdict_multi'] = multi.toJson();
+          entry['timing_multi_ms'] =
+              DateTime.now().difference(multiStarted).inMilliseconds;
+        }
+
         entry['hints'] = _hintsToJson(hints);
-        entry['timing_ms'] = elapsedMs;
       } catch (error) {
         entry['error'] = 'evaluation failed: $error';
         entry['timing_ms'] = DateTime.now().difference(started).inMilliseconds;
@@ -556,6 +704,61 @@ class BackgroundRunner {
     _setStatus('Batch done: ${results.length} message(s)');
     _scheduleIdleUnload();
     return {'ok': true, 'count': results.length, 'outputPath': outputPath};
+  }
+
+  /// Evaluates [record] through whichever on-device runtime is selected, with
+  /// the batch harness's prompt-sizing knob.
+  ///
+  /// [ScamEvaluator] only carries the multi-turn argument; `exampleCount` (how
+  /// many worked examples the prompt carries) is exposed by the two on-device
+  /// evaluators alone, so it is dispatched on the concrete type here. Both
+  /// branches build the same prompt shape, which is what makes a GGUF run
+  /// comparable with the Gemma baseline.
+  Future<ScamVerdict> _evaluateForBatch(
+    NotificationRecord record, {
+    List<String> priorMessages = const [],
+    int? exampleCount,
+  }) {
+    final evaluator = _local;
+    if (evaluator is GgufLlmEvaluator) {
+      return evaluator.evaluate(
+        record,
+        priorMessages: priorMessages,
+        exampleCount: exampleCount,
+      );
+    }
+    return _edge.evaluate(
+      record,
+      priorMessages: priorMessages,
+      exampleCount: exampleCount,
+    );
+  }
+
+  /// Optional per-item prior turns for multi-turn measurement, read from a
+  /// batch input's `priorMessages` array. Returns null when the field is absent
+  /// (judge the message alone) or the cleaned list when it is present — an
+  /// empty list is a deliberate control that still runs the multi-turn path
+  /// with no context. Blank entries are dropped.
+  List<String>? _priorFromItem(dynamic item) {
+    if (item is! Map) return null;
+    final raw = item['priorMessages'];
+    if (raw is! List) return null;
+    return raw
+        .map((e) => e?.toString().trim() ?? '')
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  /// Optional per-item cap on how many worked examples the prompt carries, read
+  /// from a batch input's `examples` field. Returns null when the field is
+  /// absent (use the default set), else the non-negative count — 0 measures the
+  /// instructions with no examples at all.
+  int? _exampleCountFromItem(dynamic item) {
+    if (item is! Map) return null;
+    final raw = item['examples'];
+    if (raw is int) return raw < 0 ? 0 : raw;
+    if (raw is num) return raw.toInt().clamp(0, 1 << 20);
+    return null;
   }
 
   /// Serializes the full set of computed hints for a batch result, so a run can

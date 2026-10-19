@@ -134,7 +134,12 @@ class ModelController extends ChangeNotifier {
         sizeMb: sizeBytes ~/ (1024 * 1024),
       );
       _manager.spec = spec;
-      await _manager.registerFromFile(path);
+      // A GGUF is loaded in place by llamadart, so it is never registered with
+      // flutter_edge_ai (whose install path has no GGUF engine and would
+      // reject the file).
+      if (!spec.isGguf) {
+        await _manager.registerFromFile(path);
+      }
       customModelSpec = spec;
       _spec = spec;
       _installed = true;
@@ -185,6 +190,21 @@ class ModelController extends ChangeNotifier {
     _error = '';
     notifyListeners();
     try {
+      final spec = _spec;
+      // A picked GGUF needs no registration: llamadart reads the file in place
+      // and flutter_edge_ai has no engine for it.
+      if (spec.isGguf) {
+        final path = spec.filePath;
+        if (path == null || !await File(path).exists()) {
+          throw Exception(
+            'That file is no longer on the device. Pick it again.',
+          );
+        }
+        _installed = true;
+        _persistent = true;
+        _progress = 100;
+        return;
+      }
       final path = await ModelStore.pathFor(_spec);
       if (path == null) throw Exception('Could not locate the stored model');
       await _manager.registerFromFile(path);
@@ -226,7 +246,16 @@ class ModelController extends ChangeNotifier {
 
   Future<void> refreshInstalled() async {
     try {
-      _installed = await _manager.isInstalled();
+      final spec = _spec;
+      // The flutter_edge_ai model store knows nothing about a picked GGUF, so
+      // its existence is the file's own.
+      if (spec.isGguf) {
+        final path = spec.filePath;
+        _installed =
+            path != null && path.isNotEmpty && await File(path).exists();
+      } else {
+        _installed = await _manager.isInstalled();
+      }
     } catch (_) {
       _installed = false;
     }

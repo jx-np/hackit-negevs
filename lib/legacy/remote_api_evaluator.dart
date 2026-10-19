@@ -60,7 +60,10 @@ class RemoteApiEvaluator implements ScamEvaluator {
   Future<void> warmUp() async {}
 
   @override
-  Future<ScamVerdict> evaluate(NotificationRecord record) async {
+  Future<ScamVerdict> evaluate(
+    NotificationRecord record, {
+    List<String>? priorMessages,
+  }) async {
     if (!isConfigured) {
       return const ScamVerdict(
         label: ScamLabel.unsure,

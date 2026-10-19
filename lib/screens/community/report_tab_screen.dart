@@ -73,6 +73,24 @@ class _ImageUpload {
   /// an edited re-upload is trusted and not re-checked.
   bool reuploading = false;
 
+  /// The server's redacted derivative of this upload, downloaded from the
+  /// owner-only `GET /uploads/{upload_id}/redacted-image` once [status] is
+  /// [_UploadStatus.ready]. This is what the user actually reviews and edits —
+  /// never the raw local [file], which still contains the un-redacted PII.
+  /// Null until the derivative has been fetched (or if that fetch failed).
+  File? redactedFile;
+
+  /// In-flight redacted-image download, tracked so concurrent callers (the
+  /// on-ready prefetch and a tap-to-edit) share one request instead of hitting
+  /// the owner-only endpoint twice. Cleared on failure so a later attempt can
+  /// retry.
+  Future<File?>? redactedFuture;
+
+  /// The image shown in the grid and opened in the editor: the server-redacted
+  /// derivative when it has landed, otherwise the local file (still uploading /
+  /// processing, or the derivative fetch failed).
+  File get displayFile => redactedFile ?? File(file.path);
+
   /// True once the upload has a server-side id that is safe to attach to a
   /// post. A re-uploading image is NOT ready: its edited bytes are still in
   /// flight and [uploadId] still points at the stale pre-edit upload, so
@@ -266,6 +284,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
 
   void _removePhoto(_ImageUpload image) {
     image.pollTimer?.cancel();
+    // Also drop the server-side upload, so its raw + redacted blobs are purged
+    // now instead of lingering until the 24 h retention reaper. Best-effort:
+    // the local removal must never be blocked by a failed delete.
+    unawaited(_discardUpload(image.uploadId));
     setState(() {
       _images.remove(image);
       // Changing the image set invalidates the review confirmation.
@@ -285,7 +307,13 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   Future<void> _startUpload(_ImageUpload image) async {
     try {
       final Upload upload = await _detection.uploadImage(File(image.file.path));
-      if (!mounted || !_images.contains(image)) return;
+      // If the image was removed (or the screen went away) while the bytes were
+      // still in flight, nothing will ever reference this upload — purge it
+      // rather than leaving an orphan to expire on its own.
+      if (!mounted || !_images.contains(image)) {
+        unawaited(_discardUpload(upload.uploadId));
+        return;
+      }
       setState(() {
         image.uploadId = upload.uploadId;
         // Uploaded, but wait in the check queue rather than polling now.
@@ -371,6 +399,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       if (progress.isReady) {
         image.pollTimer?.cancel();
         setState(() => image.status = _UploadStatus.ready);
+        // Fetch the server-redacted derivative now so the grid (and the editor)
+        // show the censored image rather than the raw local file. Best-effort:
+        // a failure leaves the original on screen and a tap-to-edit retries.
+        unawaited(_ensureRedacted(image));
         // Slot freed — let the next queued image start its check.
         _processNextCheck();
       } else if (progress.isFailed) {
@@ -403,6 +435,78 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     }
   }
 
+  /// Ensures [image]'s server-redacted derivative is on disk and returns it,
+  /// downloading it once if needed. Concurrent calls for the same image share a
+  /// single in-flight request. Returns null if the derivative can't be fetched.
+  Future<File?> _ensureRedacted(_ImageUpload image) {
+    final File? already = image.redactedFile;
+    if (already != null) return Future<File?>.value(already);
+    final Future<File?>? inFlight = image.redactedFuture;
+    if (inFlight != null) return inFlight;
+    final Future<File?> future = _downloadRedacted(image);
+    image.redactedFuture = future;
+    return future;
+  }
+
+  /// Downloads [image]'s redacted derivative from the owner-only
+  /// `GET /uploads/{id}/redacted-image` and caches it to a temp file. The
+  /// in-flight marker is cleared on failure so a later attempt can retry.
+  Future<File?> _downloadRedacted(_ImageUpload image) async {
+    final String? uploadId = image.uploadId;
+    if (uploadId == null) return null;
+    try {
+      final Uint8List bytes = await _detection.fetchRedactedImage(uploadId);
+      // The image may have been removed or re-uploaded (new id) while we
+      // waited; a stale derivative must never be shown against a new upload.
+      if (!mounted || !_images.contains(image) || image.uploadId != uploadId) {
+        return null;
+      }
+      final String path =
+          '${Directory.systemTemp.path}/scamwatch_redacted_$uploadId.jpg';
+      final File file = await File(path).writeAsBytes(bytes, flush: true);
+      if (!mounted || !_images.contains(image) || image.uploadId != uploadId) {
+        return null;
+      }
+      setState(() => image.redactedFile = file);
+      return file;
+    } on ApiException catch (e) {
+      // Non-fatal: the grid keeps showing the local original and a tap-to-edit
+      // re-attempts the download.
+      debugPrint(
+        'Redacted image fetch failed for upload $uploadId: '
+        '${e.statusCode} ${e.code} ${e.message}',
+      );
+      image.redactedFuture = null;
+      return null;
+    } catch (error) {
+      // Any non-API failure (e.g. a disk error writing the cache) is equally
+      // non-fatal — surface it and let a later tap retry.
+      debugPrint('Redacted image fetch failed for upload $uploadId: $error');
+      image.redactedFuture = null;
+      return null;
+    }
+  }
+
+  /// Best-effort server-side cleanup of an upload the user is done with: the
+  /// owner-only `DELETE /uploads/{id}` purges its raw + redacted blobs.
+  ///
+  /// Never surfaced to the user — a failed delete (already gone, offline) is
+  /// only logged, since the blobs expire on their own after 24 h anyway. Pass
+  /// null for an image that never got a server id; it's then a no-op.
+  Future<void> _discardUpload(String? uploadId) async {
+    if (uploadId == null) return;
+    try {
+      await _detection.deleteUpload(uploadId);
+    } on ApiException catch (e) {
+      debugPrint(
+        'Discarding upload $uploadId failed: '
+        '${e.statusCode} ${e.code} ${e.message}',
+      );
+    } catch (error) {
+      debugPrint('Discarding upload $uploadId failed: $error');
+    }
+  }
+
   /// Handles a failed (or timed-out) detection check: retry the upload once
   /// automatically, then leave the image in the grid marked [_UploadStatus.failed]
   /// so the user can see it and decide at submit time whether to retry again or
@@ -420,6 +524,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         image.status = _UploadStatus.uploading;
         image.pollDeadline = null;
         image.failureReason = null;
+        // The retry re-uploads from scratch (a new id), so any redacted
+        // derivative tied to the previous upload is stale.
+        image.redactedFile = null;
+        image.redactedFuture = null;
       });
       unawaited(_startUpload(image));
       // This image left the check slot (back to uploading). Let the driver
@@ -452,6 +560,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         image.status = _UploadStatus.uploading;
         image.pollDeadline = null;
         image.failureReason = null;
+        // Re-upload gets a new id; discard any derivative from the failed one.
+        image.redactedFile = null;
+        image.redactedFuture = null;
       }
     });
     for (final _ImageUpload image in failed) {
@@ -480,7 +591,19 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     // stable to show in the editor.
     if (image.status != _UploadStatus.ready || image.reuploading) return;
 
-    final Uint8List bytes = await File(image.file.path).readAsBytes();
+    // Edit the *redacted* derivative the server produced, not the raw local
+    // file — otherwise the editor would show (and later re-upload) the
+    // un-censored PII. Fetch it on demand if the on-ready prefetch hasn't
+    // landed yet.
+    final File? redacted = await _ensureRedacted(image);
+    if (!mounted) return;
+    if (redacted == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.reportTabEditorLoadFailed)),
+      );
+      return;
+    }
+    final Uint8List bytes = await redacted.readAsBytes();
     if (!mounted) return;
 
     final Uint8List? edited = await Navigator.push<Uint8List>(
@@ -504,6 +627,12 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       _reviewed = false;
     });
 
+    // Tracks the upload this edit supersedes. Hoisted so the failure path knows
+    // the image may no longer be pointing at a live upload.
+    String? replacedUploadId;
+    // The downscaled edited bytes, kept so a failed re-upload can resume from
+    // them instead of falling back to the pre-edit original.
+    File? editedFile;
     try {
       // The editor bakes a thin uniform (white) border into the merged JPEG;
       // crop it off before anything else so the re-upload matches the original
@@ -512,16 +641,31 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       // Downscale to 720p and strip metadata from the edited bytes too, so an
       // edited re-upload gets the same privacy/size treatment as a fresh pick.
       final File shrunk = await ImageDownscaler.process(trimmed);
+      editedFile = shrunk;
+      // Delete the upload this edit replaces *before* creating its replacement,
+      // so the old raw + redacted blobs are purged now rather than lingering
+      // until the 24 h retention reaper. Best-effort: an already-gone (404) or
+      // transiently failing delete must not block the edit.
+      replacedUploadId = image.uploadId;
+      await _discardUpload(replacedUploadId);
       final Upload up = await _detection.uploadImage(
         shrunk,
         requireAuth: true,
       );
-      if (!mounted) return;
-      if (!_images.contains(image)) return;
+      if (!mounted || !_images.contains(image)) {
+        // The image (or the whole form) went away while the edited bytes were
+        // uploading — purge the fresh upload instead of orphaning it.
+        unawaited(_discardUpload(up.uploadId));
+        return;
+      }
       setState(() {
         // Point the thumbnail at the edited file and attach the new upload.
         image.file = XFile(shrunk.path);
         image.uploadId = up.uploadId;
+        // The edit is a brand-new upload with its own redacted derivative;
+        // drop the stale one so the grid/editor refetch for the new id.
+        image.redactedFile = null;
+        image.redactedFuture = null;
         // The edit produced a brand-new upload the server still has to redact.
         // Its `upload_id` is NOT valid for a post until `GET /uploads/{id}`
         // reports `ready` (POST /community/posts rejects a not-yet-redacted
@@ -539,7 +683,29 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     } on ApiException catch (e) {
       debugPrint('Edited image re-upload failed: ${e.message}');
       if (!mounted) return;
-      setState(() => image.reuploading = false);
+      final File? shrunk = editedFile;
+      if (replacedUploadId != null) {
+        // The superseded upload has already been deleted, so leaving this image
+        // on its stale id would attach a dead `upload_id` to the post. Keep the
+        // user's edit instead and re-enter the normal upload flow with it; the
+        // retry-once path in [_startUpload]/[_markFailed] covers a second
+        // failure.
+        setState(() {
+          if (shrunk != null) image.file = XFile(shrunk.path);
+          image.uploadId = null;
+          image.redactedFile = null;
+          image.redactedFuture = null;
+          image.status = _UploadStatus.uploading;
+          image.pollDeadline = null;
+          image.failureReason = null;
+          image.reuploading = false;
+        });
+        unawaited(_startUpload(image));
+      } else {
+        // Nothing was deleted — the pre-edit upload is still valid, so just drop
+        // the "saving" overlay and leave the image as it was.
+        setState(() => image.reuploading = false);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.reportTabEditorSaveFailed)),
       );
@@ -1413,8 +1579,8 @@ class _PhotoThumbnail extends StatelessWidget {
           ClipRRect(
             borderRadius: tokens.radii.mdRadius,
             child: Image.file(
-              File(image.file.path),
-              key: ValueKey<String>(image.file.path),
+              image.displayFile,
+              key: ValueKey<String>(image.displayFile.path),
               fit: BoxFit.cover,
               gaplessPlayback: true,
             ),

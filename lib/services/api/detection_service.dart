@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
@@ -227,6 +228,27 @@ class DetectionService {
   /// Auth headers for loading [uploadRedactedImageUrl] from `Image.network`,
   /// since the redacted image is owner-only.
   Future<Map<String, String>> redactedImageHeaders() => _client.authHeaders();
+
+  /// Downloads an upload's redacted derivative bytes from the owner-only
+  /// `GET /uploads/{id}/redacted-image` (Cache-Control: private, no-store).
+  ///
+  /// This is the PII-censored copy the server produced — the image the user
+  /// should actually review and edit — as opposed to the raw local upload,
+  /// which still contains the un-redacted text. Needs a bearer token; throws
+  /// [ApiException] (e.g. `404`) when the derivative isn't available yet.
+  Future<Uint8List> fetchRedactedImage(String uploadId) =>
+      _client.getBytes('/uploads/$uploadId/redacted-image');
+
+  /// Cancels an upload and purges its stored raw + redacted blobs via the
+  /// owner-only `DELETE /uploads/{id}` (`204`, no body).
+  ///
+  /// Used when an edit supersedes an upload: the old upload is deleted before
+  /// its replacement is created, so nothing is left to expire on its own.
+  /// Throws [ApiException] — notably `404` when the upload is already gone (or
+  /// isn't the caller's) and `401` when unauthenticated.
+  Future<void> deleteUpload(String uploadId) async {
+    await _client.delete('/uploads/$uploadId');
+  }
 
   Future<Paginated<DetectionResult>> history({
     int? limit,

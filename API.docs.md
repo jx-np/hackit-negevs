@@ -427,9 +427,9 @@ caller's own vote (`1`, `-1`, or `0`; always `0` for anonymous callers) — the
 same shape as post detail (§6), so the card can render the current score and
 highlight the user's vote without opening the post.
 
-Posts that have not yet been assigned a scam category by the classifier are
-excluded from the public feed and search for everyone except their author (who
-sees them with `"category": null`).
+Every post is assigned a scam category by the classifier; when no real category
+can be determined it falls back to the catch-all `other` category, so a post is
+never left unclassified (`"category"` is always present in the response).
 
 `is_mine` is `true` when the post was authored by the authenticated caller, and
 `false` otherwise (always `false` for anonymous callers). Posts are published
@@ -477,8 +477,8 @@ Response `200`:
 }
 ```
 `my_vote` is `1`, `-1`, or `0` (and `0` for anonymous callers). `category` is
-`null` until the classifier assigns one; an unclassified post is only returned to
-its author (and moderators). `404` if the post is
+always present: the classifier's prediction, or the catch-all `other` category
+when none resolves. `404` if the post is
 deleted/hidden/removed (moderators/admins can still see those).
 
 `redacted_image_urls` lists every redacted screenshot attached to the post, in
@@ -528,12 +528,13 @@ publishing.
 
 The scam category **and tags** are **not** client-supplied: both are assigned
 by the backend classifier. Neither `scam_type` nor `tags` is accepted in the
-request body (unknown fields are rejected with `422`). Until a category has
-been assigned the post is *unclassified*: `"category": null`, and it appears
-only in `GET /me/posts` and to its own author — it is excluded from the public
-feed, search, other users' post detail, and cannot be voted on or flagged. Tags
-predicted by the classifier that do not resolve to known tag slugs are silently
-dropped; a bad tag prediction never fails the publish.
+request body (unknown fields are rejected with `422`). A post is always
+classified and always tagged: when the classifier yields nothing usable (no
+prediction, an unknown slug, or an outage) the server falls back to the
+catch-all `other` category and `other` tag rather than leaving the post
+unclassified. Predicted tag slugs that do not resolve to known tags are silently
+dropped before the fallback is applied; a bad prediction never fails the
+publish.
 
 Response `201`: post detail (same shape as `GET /community/posts/{id}`).
 Errors: `422` (missing confirmation, empty title/body, or any

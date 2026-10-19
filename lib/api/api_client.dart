@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -150,6 +151,61 @@ class ApiClient {
     }
 
     return _handle(response, requestId, auth: auth);
+  }
+
+  /// Fetches a raw, non-JSON response body — e.g. the owner-only redacted
+  /// screenshot streamed as image bytes, which can't be decoded as JSON.
+  /// Applies the same auth, 401-refresh retry, and error handling as [_send],
+  /// but returns the undecoded [Uint8List] instead of an [ApiResponse]. A
+  /// non-2xx still throws an [ApiException] built from the (JSON) error body.
+  Future<Uint8List> getBytes(
+    String path, {
+    bool auth = true,
+    bool isRetry = false,
+  }) async {
+    final uri = ApiConfig.uri(path);
+    final headers = <String, String>{'Accept': '*/*'};
+    if (auth) {
+      final token = await _tokens.accessToken();
+      if (token != null && token.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $token';
+      }
+    }
+
+    http.Response response;
+    try {
+      final request = http.Request('GET', uri)..headers.addAll(headers);
+      final streamed = await _http.send(request).timeout(_timeout);
+      response = await http.Response.fromStream(streamed);
+    } catch (error) {
+      throw ApiException.network(error);
+    }
+
+    final requestId = response.headers['x-request-id'];
+
+    if (response.statusCode == 401 &&
+        auth &&
+        !isRetry &&
+        onRefresh != null) {
+      final refreshed = await onRefresh!.call();
+      if (refreshed) {
+        return getBytes(path, auth: auth, isRetry: true);
+      }
+      await onUnauthorized?.call();
+    }
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final Object? parsed =
+          _decode(utf8.decode(response.bodyBytes, allowMalformed: true));
+      throw ApiException.fromResponse(
+        response.statusCode,
+        parsed is Map<String, dynamic>
+            ? parsed
+            : {'request_id': requestId},
+      );
+    }
+
+    return response.bodyBytes;
   }
 
   Future<ApiResponse> _send(

@@ -133,6 +133,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t re-upload the edited image. Try again.';
 
   @override
+  String get reportTabEditorLoadFailed =>
+      'Couldn\'t load the image to edit. Try again.';
+
+  @override
   String get reportTabViewPost => 'View your post';
 
   @override

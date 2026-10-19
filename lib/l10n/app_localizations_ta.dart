@@ -138,6 +138,10 @@ class AppLocalizationsTa extends AppLocalizations {
       'திருத்தப்பட்ட படத்தை மீண்டும் பதிவேற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.';
 
   @override
+  String get reportTabEditorLoadFailed =>
+      'Couldn\'t load the image to edit. Try again.';
+
+  @override
   String get reportTabViewPost => 'உங்கள் இடுகையைப் பார்';
 
   @override

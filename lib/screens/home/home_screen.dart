@@ -309,10 +309,12 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
         ? _deriveProtectionState(enabled: _enabled, status: _status)
         : _ProtectionState.loading;
 
-    // Colour, icon, and copy for each state. Strong colours are reserved for
-    // "on" (green) and "problem" (red) so they keep their meaning.
-    final Color background;
-    final Color foreground;
+    // Every state sits on the standard card surface (white in light mode, the
+    // dark card in dark mode) so the card matches the rest of the app. The
+    // state colour is carried only by the badge, the pill stats, and the
+    // action button.
+    final foreground = scheme.onSurface;
+
     final Color accent;
     final IconData icon;
     final String title;
@@ -320,37 +322,49 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
     switch (state) {
       case _ProtectionState.loading:
       case _ProtectionState.starting:
-        background = scheme.surfaceContainerHighest;
-        foreground = scheme.onSurface;
         accent = scheme.primary;
         icon = LucideIcons.shield;
         title = l10n.homeStatusStartingTitle;
         body = l10n.homeStatusStartingBody;
       case _ProtectionState.on:
-        background = risk.safeContainer;
-        foreground = risk.onSafeContainer;
         accent = risk.safe;
         icon = LucideIcons.shieldCheck;
         title = l10n.safetyProtectedOn;
         body = l10n.homeStatusOnBody;
       case _ProtectionState.off:
-        background = risk.warningContainer;
-        foreground = risk.onWarningContainer;
-        accent = risk.warning;
+        // "Off" is not an alarm: the user just hasn't switched protection on
+        // yet, so the badge and button use the brand primary.
+        accent = scheme.primary;
         icon = LucideIcons.shieldOff;
         title = l10n.safetyProtectedOff;
         body = l10n.homeStatusOffBody;
       case _ProtectionState.problem:
-        background = risk.dangerContainer;
-        foreground = risk.onDangerContainer;
         accent = risk.danger;
         icon = LucideIcons.shieldAlert;
         title = l10n.homeStatusProblemTitle;
         body = l10n.homeStatusProblemBody;
     }
 
+    // Stat panels. Light mode's token containers are very pale, so they barely
+    // separate from the white card; deepen the tint there. Dark mode keeps the
+    // token container, which already reads against the dark card.
+    Color panelFill(Color accent, Color container) =>
+        theme.brightness == Brightness.light
+        ? Color.alphaBlend(accent.withValues(alpha: 0.16), container)
+        : container;
+
+    // Anything raised is worth a second look, so the alerts panel turns red as
+    // soon as its count leaves zero.
+    final hasAlerts = _status.alertsRaised > 0;
+    final alertsAccent = hasAlerts ? risk.danger : risk.safe;
+    final alertsContainer = hasAlerts
+        ? risk.dangerContainer
+        : risk.safeContainer;
+    final alertsForeground = hasAlerts
+        ? risk.onDangerContainer
+        : risk.onSafeContainer;
+
     return AppCard(
-      color: background,
       raised: true,
       onTap: widget.onOpen,
       child: Column(
@@ -403,7 +417,8 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
                     icon: LucideIcons.messageSquareText,
                     value: '${_status.evaluated}',
                     label: l10n.protectionChecked,
-                    color: foreground,
+                    background: panelFill(risk.safe, risk.safeContainer),
+                    foreground: risk.onSafeContainer,
                   ),
                 ),
                 SizedBox(width: tokens.space.md),
@@ -412,7 +427,8 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
                     icon: LucideIcons.triangleAlert,
                     value: '${_status.alertsRaised}',
                     label: l10n.protectionAlerts,
-                    color: foreground,
+                    background: panelFill(alertsAccent, alertsContainer),
+                    foreground: alertsForeground,
                   ),
                 ),
               ],
@@ -430,8 +446,8 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
   }
 }
 
-/// The round shield badge at the start of the status card, with a soft glow
-/// in the state's accent colour. Shows a thin ring spinner while starting.
+/// The round shield badge at the start of the status card: a flat, tinted
+/// circle with no glow, plus a thin ring spinner while starting.
 class _StatusBadge extends StatelessWidget {
   const _StatusBadge({
     required this.icon,
@@ -451,13 +467,6 @@ class _StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.16),
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: 0.25),
-            blurRadius: 24,
-            spreadRadius: 2,
-          ),
-        ],
       ),
       child: Icon(icon, size: 38, color: accent),
     );
@@ -478,19 +487,23 @@ class _StatusBadge extends StatelessWidget {
 }
 
 /// One number on the status card ("Checked 42", "Alerts 3"). The value is
-/// the biggest thing so it reads before the label.
+/// the biggest thing so it reads before the label. Sits in a soft tinted
+/// panel so it reads as a distinct block on the standard card surface in both
+/// light and dark mode.
 class _StatusStat extends StatelessWidget {
   const _StatusStat({
     required this.icon,
     required this.value,
     required this.label,
-    required this.color,
+    required this.background,
+    required this.foreground,
   });
 
   final IconData icon;
   final String value;
   final String label;
-  final Color color;
+  final Color background;
+  final Color foreground;
 
   @override
   Widget build(BuildContext context) {
@@ -507,12 +520,12 @@ class _StatusStat extends StatelessWidget {
             vertical: tokens.space.md,
           ),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.55),
+            color: background,
             borderRadius: tokens.radii.mdRadius,
           ),
           child: Row(
             children: [
-              Icon(icon, size: 24, color: color.withValues(alpha: 0.8)),
+              Icon(icon, size: 24, color: foreground),
               SizedBox(width: tokens.space.md),
               Expanded(
                 child: Column(
@@ -521,7 +534,7 @@ class _StatusStat extends StatelessWidget {
                     Text(
                       value,
                       style: theme.textTheme.headlineSmall?.copyWith(
-                        color: color,
+                        color: foreground,
                         fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -530,7 +543,7 @@ class _StatusStat extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: color.withValues(alpha: 0.8),
+                        color: foreground,
                       ),
                     ),
                   ],
@@ -560,30 +573,40 @@ class _StatusButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final labelStyle = Theme.of(context).textTheme.titleLarge;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final risk = context.tokens.risk;
+    final labelStyle = theme.textTheme.titleLarge;
     const size = Size.fromHeight(60);
 
     switch (state) {
       case _ProtectionState.off:
       case _ProtectionState.problem:
+        final isOff = state == _ProtectionState.off;
+        final foreground = isOff ? scheme.onPrimary : Colors.white;
+        // Dark mode's danger token is a light salmon meant for text and icons;
+        // as a full button fill it glares against the dark card. Pull it 35%
+        // toward the deep danger container for a solid red that still reads as
+        // "danger". Light mode's danger token is already dark enough to fill.
+        final fill = isOff || theme.brightness == Brightness.light
+            ? accent
+            : Color.lerp(risk.danger, risk.dangerContainer, 0.40)!;
         return FilledButton.icon(
           onPressed: onPressed,
           style: FilledButton.styleFrom(
             minimumSize: size,
-            backgroundColor: accent,
-            foregroundColor: Colors.white,
+            backgroundColor: fill,
+            foregroundColor: foreground,
           ),
           icon: Icon(
-            state == _ProtectionState.off
-                ? LucideIcons.shieldCheck
-                : LucideIcons.wrench,
+            isOff ? LucideIcons.shieldCheck : LucideIcons.wrench,
             size: 24,
           ),
+          // The label style carries its own colour, so it must be told to
+          // follow the button's foreground rather than the body text colour.
           label: Text(
-            state == _ProtectionState.off
-                ? l10n.safetyTurnOn
-                : l10n.homeStatusFix,
-            style: labelStyle,
+            isOff ? l10n.safetyTurnOn : l10n.homeStatusFix,
+            style: labelStyle?.copyWith(color: foreground),
           ),
         );
       case _ProtectionState.loading:
@@ -595,7 +618,6 @@ class _StatusButton extends StatelessWidget {
             minimumSize: size,
             foregroundColor: accent,
             side: BorderSide(color: accent.withValues(alpha: 0.6), width: 1.5),
-            backgroundColor: Colors.white.withValues(alpha: 0.4),
           ),
           icon: const Icon(LucideIcons.arrowRight, size: 24),
           label: Text(l10n.homeStatusOpen, style: labelStyle),

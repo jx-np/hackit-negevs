@@ -136,6 +136,10 @@ class AppLocalizationsMs extends AppLocalizations {
       'Tidak dapat memuat naik semula imej yang disunting. Cuba lagi.';
 
   @override
+  String get reportTabEditorLoadFailed =>
+      'Couldn\'t load the image to edit. Try again.';
+
+  @override
   String get reportTabViewPost => 'Lihat siaran anda';
 
   @override

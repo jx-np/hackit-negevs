@@ -324,6 +324,12 @@ abstract class AppLocalizations {
   /// **'Couldn\'t re-upload the edited image. Try again.'**
   String get reportTabEditorSaveFailed;
 
+  /// No description provided for @reportTabEditorLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the image to edit. Try again.'**
+  String get reportTabEditorLoadFailed;
+
   /// No description provided for @reportTabViewPost.
   ///
   /// In en, this message translates to:

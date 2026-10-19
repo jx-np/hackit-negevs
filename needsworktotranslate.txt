@@ -1,1 +1,13 @@
-{}
+{
+  "ms": [
+    "reportTabEditorLoadFailed"
+  ],
+
+  "ta": [
+    "reportTabEditorLoadFailed"
+  ],
+
+  "zh": [
+    "reportTabEditorLoadFailed"
+  ]
+}

@@ -128,6 +128,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportTabEditorSaveFailed => '无法重新上传编辑后的图片。请重试。';
 
   @override
+  String get reportTabEditorLoadFailed =>
+      'Couldn\'t load the image to edit. Try again.';
+
+  @override
   String get reportTabViewPost => '查看你的帖子';
 
   @override

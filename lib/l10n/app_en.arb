@@ -43,6 +43,7 @@
   "reportTabReuploading": "Re-uploading edited image...",
   "reportTabPosting": "Posting...",
   "reportTabEditorSaveFailed": "Couldn't re-upload the edited image. Try again.",
+  "reportTabEditorLoadFailed": "Couldn't load the image to edit. Try again.",
   "reportTabViewPost": "View your post",
 
   "homeTitle": "Home",

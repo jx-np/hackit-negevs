@@ -311,7 +311,7 @@ class _HomePageState extends State<HomePage> {
       const CallHistoryScreen(),
       const SafetyScreen(),
       AuthGate(child: ReportTabScreen(client: client)),
-      MyProfileScreen(client: client),
+      MyProfileScreen(client: client, visible: _currentIndex == 4),
     ];
     // The tour overlay wraps the whole Scaffold so its scrim also covers the
     // bottom nav bar (accidental taps can't switch tabs mid-tour).

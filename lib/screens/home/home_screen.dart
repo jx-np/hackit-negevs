@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'package:scamwatch_mobile_app/api/api_client.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:scamwatch_mobile_app/models/api/news_models.dart';
 import 'package:scamwatch_mobile_app/services/api/news_service.dart';
@@ -635,9 +636,8 @@ class _StatusButton extends StatelessWidget {
 const double _kNewsCardHeight = 300;
 
 /// A swipeable set of scam-alert cards. Fetches articles from [NewsService]
-/// (currently backed by sample data) and shows loading, error-with-retry, and
-/// empty states. Big previous/next buttons sit under the cards for anyone
-/// who finds swiping awkward.
+/// and shows loading, error-with-retry, and empty states. Big previous/next
+/// buttons sit under the cards for anyone who finds swiping awkward.
 class _NewsBanner extends StatefulWidget {
   const _NewsBanner();
 
@@ -647,7 +647,8 @@ class _NewsBanner extends StatefulWidget {
 
 class _NewsBannerState extends State<_NewsBanner> {
   final PageController _controller = PageController();
-  final NewsService _service = NewsService();
+
+  late final NewsService _service;
 
   late Future<List<NewsArticle>> _future;
   int _page = 0;
@@ -655,6 +656,7 @@ class _NewsBannerState extends State<_NewsBanner> {
   @override
   void initState() {
     super.initState();
+    _service = NewsService(context.read<ApiClient>());
     _future = _service.fetchNews();
   }
 

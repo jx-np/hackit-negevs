@@ -29,9 +29,18 @@ import 'package:scamwatch_mobile_app/widgets/ui/empty_state.dart';
 /// the app bar. The screen leans elderly-friendly: big text, generous spacing,
 /// and large tap targets.
 class MyProfileScreen extends StatefulWidget {
-  const MyProfileScreen({super.key, required this.client});
+  const MyProfileScreen({
+    super.key,
+    required this.client,
+    this.visible = true,
+  });
 
   final ApiClient client;
+
+  /// Whether this tab is currently the one on screen. The bottom-nav shell keeps
+  /// every tab mounted, so this is how the screen knows when it is actually
+  /// visible. Used to defer thumbnail loading (see [_MyProfileScreenState]).
+  final bool visible;
 
   @override
   State<MyProfileScreen> createState() => _MyProfileScreenState();
@@ -47,7 +56,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   /// First-image preview URL per post id, for the small thumbnail on each card.
   /// Only populated for the few newest posts (see [_kPreviewCount]) because the
   /// `/me/posts` list response carries no image URLs — we fetch each post's
-  /// detail to learn its images, which is costly, so we cap it.
+  /// detail to learn its images, which is costly, so we cap it and defer it
+  /// until the profile tab is actually visible (see [_previewsLoaded]).
   Map<String, String> _previewUrls = const {};
 
   /// Auth headers for loading owner-only redacted post images via
@@ -61,6 +71,16 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
 
   /// How many of the newest posts get a thumbnail preview.
   static const int _kPreviewCount = 3;
+
+  /// Whether the newest posts' details (thumbnails and tags) have been fetched.
+  /// The profile tab is mounted from app start even though it is not visible,
+  /// so this is only set once the tab is first shown. Until then no per-post
+  /// detail requests are made and no post images are downloaded.
+  bool _previewsLoaded = false;
+
+  /// Guards against overlapping preview fetches when the tab is opened and
+  /// closed repeatedly while a fetch is still in flight.
+  bool _previewsLoading = false;
 
   /// Post IDs with a vote request in flight. Used to disable that card's vote
   /// buttons so a double-tap can't fire two reaction calls at once.
@@ -88,8 +108,9 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       auth.addListener(_onAuthChanged);
       _wasSignedIn = auth.isSignedIn;
       if (_wasSignedIn) {
-        // Initial open: load the list and the newest previews.
-        _load(fetchPreviews: true);
+        // The list is cheap and the header shows the post count, so load it
+        // right away. Thumbnails are deferred until the tab is visible.
+        _load(fetchPreviews: false);
       }
     }
     final signal = context.read<PostsRefreshSignal>();
@@ -98,6 +119,17 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       _postsSignal = signal;
       _handledRevision = signal.revision;
       signal.addListener(_onPostsSignal);
+    }
+  }
+
+  @override
+  void didUpdateWidget(MyProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The bottom-nav shell keeps this tab mounted offstage, so the first
+    // transition to visible is the moment it is safe to spend bandwidth on
+    // post thumbnails.
+    if (!oldWidget.visible && widget.visible) {
+      _loadPreviewsIfVisible();
     }
   }
 
@@ -113,13 +145,14 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     if (signedIn == _wasSignedIn) return;
     _wasSignedIn = signedIn;
     if (signedIn) {
-      _load(fetchPreviews: true);
+      _load(fetchPreviews: false);
     } else if (mounted) {
       setState(() {
         _posts = const [];
         _previewUrls = const {};
         _imageHeaders = const {};
         _postTags = const {};
+        _previewsLoaded = false;
         _error = null;
         _loading = false;
       });
@@ -136,11 +169,20 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     _load();
   }
 
+  /// Loads previews once the tab is visible, but only the first time (or for a
+  /// list that arrived after the tab was already opened). No-op while hidden.
+  void _loadPreviewsIfVisible() {
+    if (!widget.visible || !_wasSignedIn) return;
+    if (_previewsLoaded || _previewsLoading) return;
+    if (_posts.isEmpty) return;
+    _loadPreviews(_posts);
+  }
+
   /// Loads the posts list. When [fetchPreviews] is true, also fetches the
   /// newest few posts' detail to learn their first image and show an 86px
   /// thumbnail on the card. The `/me/posts` list carries no image URLs, so
-  /// previews cost one detail request per post — we only pay that on initial
-  /// open and pull-to-refresh, and only for the [_kPreviewCount] newest posts.
+  /// previews cost one detail request per post — pull-to-refresh and edits
+  /// refresh them, while the first view of the tab loads them lazily.
   Future<void> _load({bool fetchPreviews = false}) async {
     setState(() {
       _loading = true;
@@ -155,6 +197,8 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       });
       if (fetchPreviews) {
         await _loadPreviews(page.items);
+      } else {
+        _loadPreviewsIfVisible();
       }
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -171,30 +215,40 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
   /// both from each post's detail. Posts without an image simply get no preview
   /// entry. Failures per post are ignored so one bad post never blocks the rest.
   Future<void> _loadPreviews(List<FeedPost> posts) async {
+    if (_previewsLoading) return;
     final newest = posts.take(_kPreviewCount).toList(growable: false);
-    if (newest.isEmpty) return;
-    final headers = await widget.client.authHeaders();
-    final previews = <String, String>{};
-    final tags = <String, List<ScamTag>>{};
-    for (final post in newest) {
-      try {
-        final detail = await _community.post(post.postId);
-        if (detail.imageUrls.isNotEmpty) {
-          previews[post.postId] = detail.imageUrls.first;
-        }
-        if (detail.tags.isNotEmpty) {
-          tags[post.postId] = detail.tags;
-        }
-      } on ApiException {
-        // Ignore: a post whose detail fails just shows no thumbnail or tags.
-      }
+    if (newest.isEmpty) {
+      _previewsLoaded = true;
+      return;
     }
-    if (!mounted) return;
-    setState(() {
-      _previewUrls = previews;
-      _imageHeaders = headers;
-      _postTags = tags;
-    });
+    _previewsLoading = true;
+    try {
+      final headers = await widget.client.authHeaders();
+      final previews = <String, String>{};
+      final tags = <String, List<ScamTag>>{};
+      for (final post in newest) {
+        try {
+          final detail = await _community.post(post.postId);
+          if (detail.imageUrls.isNotEmpty) {
+            previews[post.postId] = detail.imageUrls.first;
+          }
+          if (detail.tags.isNotEmpty) {
+            tags[post.postId] = detail.tags;
+          }
+        } on ApiException {
+          // Ignore: a post whose detail fails just shows no thumbnail or tags.
+        }
+      }
+      _previewsLoaded = true;
+      if (!mounted) return;
+      setState(() {
+        _previewUrls = previews;
+        _imageHeaders = headers;
+        _postTags = tags;
+      });
+    } finally {
+      _previewsLoading = false;
+    }
   }
 
   /// Tags to show on a post card. Prefers the tags the list endpoint returned,

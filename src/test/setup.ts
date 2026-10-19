@@ -1,10 +1,15 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
+import { installEventSourceStub, resetEventSources } from './mockEventSource';
+
+// jsdom doesn't implement EventSource; the live discussion stream needs one.
+installEventSourceStub();
 
 // Clean up the DOM after every test.
 afterEach(() => {
   cleanup();
+  resetEventSources();
 });
 
 // jsdom doesn't implement matchMedia; provide a stub for AppearanceContext.

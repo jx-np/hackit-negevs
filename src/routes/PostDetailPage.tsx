@@ -27,6 +27,7 @@ import { UpvoteBadge } from '../components/forum/UpvoteBadge';
 import { useAuth } from '../context/AuthContext';
 import { useSavedFeeds } from '../context/SavedFeedsContext';
 import { usePost } from '../hooks/usePost';
+import { usePostCommentsStream } from '../hooks/usePostCommentsStream';
 import { useIsMyPost } from '../hooks/useIsMyPost';
 import { useAuthorName } from '../hooks/useAuthorName';
 import { useReaction } from '../hooks/useReaction';
@@ -91,6 +92,9 @@ export function PostDetailPage() {
   // posts so the owner-only menu actions match the feed card.
   const isMine = useIsMyPost(id);
   const authorName = useAuthorName(post?.author.name ?? '', isMine);
+  // Live discussion stream: new comments (and the NegevAI bot's replies) arrive
+  // over SSE, so the user sees them without reloading the page.
+  const stream = usePostCommentsStream(id);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isSaved, toggleSave } = useSavedFeeds();
@@ -390,7 +394,12 @@ export function PostDetailPage() {
                 {post.replyCount === 1 ? 'comment' : 'comments'}
               </h2>
               <div className="mb-5">
-                <CommentList postId={post.id} />
+                <CommentList
+                  postId={post.id}
+                  liveComments={stream.comments}
+                  pendingReplies={stream.pendingReplies}
+                  streamStatus={stream.status}
+                />
               </div>
               <CommentBox postId={post.id} />
             </motion.aside>

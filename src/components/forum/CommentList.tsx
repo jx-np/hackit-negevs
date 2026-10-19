@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowBigUp, Check, CircleMinus, CirclePlus, CornerDownRight, Flag, MessageCircle, MoreVertical, Pencil, Reply, Send, Trash2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ArrowBigUp, Bot, Check, CircleMinus, CirclePlus, CornerDownRight, Flag, Loader2, MessageCircle, MoreVertical, Pencil, Radio, Reply, Send, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useComments } from '../../hooks/useComments';
 import { useCommentLike } from '../../hooks/useCommentLike';
 import { useAuth } from '../../context/AuthContext';
+import { mergeComments } from '../../lib/comments';
+import { BOT_THINKING_LABEL } from '../../lib/bot';
 import {
   createComment,
   deleteComment,
@@ -12,10 +14,23 @@ import {
   updateComment,
 } from '../../api/comments';
 import { ApiError } from '../../api/client';
-import type { Comment, FlagReason } from '../../types';
+import type { Comment, FlagReason, StreamStatus } from '../../types';
 
 interface CommentListProps {
   postId: string;
+  /**
+   * Comments announced live over the post's SSE stream. They are merged with
+   * the fetched thread (de-duplicated by id) so new replies appear without a
+   * page reload.
+   */
+  liveComments?: Comment[];
+  /**
+   * `trigger_comment_id`s of AI-bot requests the bot is still answering. The
+   * matching comment shows a "thinking" indicator.
+   */
+  pendingReplies?: string[];
+  /** Connection state of the live stream, shown as a small status pill. */
+  streamStatus?: StreamStatus;
 }
 
 const COMMENT_REPORT_REASONS: { label: string; reason: FlagReason }[] = [
@@ -160,6 +175,7 @@ function CommentItem({
   depth = 0,
   childrenByParent,
   defaultOpen = false,
+  pendingReplies,
 }: {
   comment: Comment;
   postId: string;
@@ -169,6 +185,8 @@ function CommentItem({
   // opens at once: descendants initialize expanded instead of re-folding
   // behind their own "Continue this thread" button. Collapsing stays local.
   defaultOpen?: boolean;
+  /** Ids of comments whose AI-bot request is still being answered. */
+  pendingReplies?: Set<string>;
 }) {
   const isReply = depth > 0;
   // Reddit-style nesting: replies are visually indented, but the indent is
@@ -347,7 +365,11 @@ function CommentItem({
         <div className="min-w-0 flex-1 pb-1">
           <div className="relative flex flex-wrap items-center gap-x-2 pr-9">
             <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-scam-750 text-[10px] font-semibold text-scam-muted">
-              {initials(comment.authorLabel)}
+              {comment.isBot ? (
+                <Bot size={13} aria-hidden="true" />
+              ) : (
+                initials(comment.authorLabel)
+              )}
             </span>
             <button
               type="button"
@@ -356,6 +378,20 @@ function CommentItem({
             >
               {comment.authorLabel}
             </button>
+            {comment.isBot && (
+              <span
+                title="AI-generated reply"
+                className="inline-flex items-center gap-1 rounded-full border border-trust-400/40 bg-trust-400/10 px-1.5 py-px text-[10px] font-semibold uppercase tracking-wide text-trust-300"
+              >
+                AI
+              </span>
+            )}
+            {pendingReplies?.has(comment.id) && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-trust-400">
+                <Loader2 size={11} className="animate-spin" aria-hidden="true" />
+                {BOT_THINKING_LABEL}
+              </span>
+            )}
             <span className="text-xs text-scam-dim">· {timeAgo(comment.createdAt)}</span>
             {comment.updatedAt !== comment.createdAt && !removed && (
               <span className="text-xs text-scam-dim">(edited)</span>
@@ -618,6 +654,7 @@ function CommentItem({
                     // subtree at once.
                     defaultOpen={defaultOpen || expandAll}
                     childrenByParent={childrenByParent}
+                    pendingReplies={pendingReplies}
                   />
                 ))}
               </div>
@@ -631,8 +668,17 @@ function CommentItem({
 /**
  * Fetches and renders a post's discussion thread. Top-level comments are shown
  * oldest-first with their replies nested recursively beneath (via parent_id).
+ *
+ * When `liveComments` are supplied (the dedicated post page subscribes to the
+ * post's SSE stream) they are merged into the thread, so new replies — e.g.
+ * the `@help` (NegevAI) bot's answer — show up without a reload.
  */
-export function CommentList({ postId }: CommentListProps) {
+export function CommentList({
+  postId,
+  liveComments,
+  pendingReplies,
+  streamStatus,
+}: CommentListProps) {
   const {
     data,
     isLoading,
@@ -642,6 +688,10 @@ export function CommentList({ postId }: CommentListProps) {
     isFetchingNextPage,
     fetchNextPage,
   } = useComments(postId);
+
+  const fetched = data?.pages.flatMap((p) => p.comments) ?? [];
+  const comments = mergeComments(fetched, liveComments);
+  const pendingReplyIds = useMemo(() => new Set(pendingReplies ?? []), [pendingReplies]);
 
   if (isLoading) {
     return (
@@ -667,12 +717,13 @@ export function CommentList({ postId }: CommentListProps) {
     );
   }
 
-  const comments = data?.pages.flatMap((p) => p.comments) ?? [];
-
   if (comments.length === 0) {
     return (
-      <div className="flex items-center gap-2 py-4 text-sm text-scam-muted">
-        <MessageCircle size={16} /> No comments yet — be the first to reply.
+      <div className="flex flex-col gap-2 py-4 text-sm text-scam-muted">
+        <div className="flex items-center gap-2">
+          <MessageCircle size={16} /> No comments yet — be the first to reply.
+        </div>
+        {streamStatus && <StreamStatusPill status={streamStatus} />}
       </div>
     );
   }
@@ -693,12 +744,15 @@ export function CommentList({ postId }: CommentListProps) {
 
   return (
     <div className="space-y-5">
+      {streamStatus && <StreamStatusPill status={streamStatus} />}
+
       {topLevel.map((comment) => (
         <CommentItem
           key={comment.id}
           comment={comment}
           postId={postId}
           childrenByParent={childrenByParent}
+          pendingReplies={pendingReplyIds}
         />
       ))}
 
@@ -713,5 +767,30 @@ export function CommentList({ postId }: CommentListProps) {
         </button>
       )}
     </div>
+  );
+}
+
+/** Small pill describing the state of the post's live discussion stream. */
+function StreamStatusPill({ status }: { status: StreamStatus }) {
+  if (status === 'live') {
+    return (
+      <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-trust-400/30 bg-trust-400/10 px-2 py-0.5 text-[11px] font-medium text-trust-300">
+        <Radio size={11} className="animate-pulse" aria-hidden="true" />
+        Live updates on
+      </span>
+    );
+  }
+  if (status === 'connecting') {
+    return (
+      <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-scam-line bg-scam-850 px-2 py-0.5 text-[11px] font-medium text-scam-muted">
+        <Loader2 size={11} className="animate-spin" aria-hidden="true" />
+        Connecting to live updates…
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-scam-line bg-scam-850 px-2 py-0.5 text-[11px] font-medium text-scam-dim">
+      Live updates unavailable
+    </span>
   );
 }

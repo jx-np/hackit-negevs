@@ -5,6 +5,7 @@ import type {
   ApiComment,
   ApiFlagResponse,
   ApiListResponse,
+  ApiStreamComment,
   Comment,
   CommentsPage,
   FlagReason,
@@ -18,11 +19,20 @@ function mapComment(c: ApiComment): Comment {
     parentId: c.parent_id ?? null,
     authorId: c.author_id,
     authorLabel: c.author_label,
+    isBot: !!c.is_bot,
     body: c.body,
     status: c.status,
     createdAt: c.created_at,
     updatedAt: c.updated_at,
   };
+}
+
+/**
+ * Map a comment announced over the SSE stream. The payload uses the same
+ * snake_case shape as the comments endpoint, so the same mapper applies.
+ */
+export function mapStreamComment(c: ApiStreamComment): Comment {
+  return mapComment(c);
 }
 
 export async function getComments(

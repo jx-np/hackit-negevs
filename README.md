@@ -28,6 +28,12 @@ font and wide layout tuned for readability (including users with low vision).
 - **Post detail / thread** (`/forum/:id`)
   - Full report view (screenshots, tags, risk, author, body) with the comment thread
   - Reached by clicking a post's title or image in the forum
+  - **Live comments over SSE** — the page subscribes to
+    `GET /community/posts/{id}/sse` and new comments appear in the thread
+    without a reload, with a small "live updates" status pill
+  - **NegevAI assistant** — mentioning `@help` in a comment makes the AI
+    assistant answer it. The triggering comment shows a "NegevAI is thinking…"
+    indicator while the bot works, and the reply is badge-marked with an **AI** chip
 - **Report a scam** (`/report`) — **login-gated**
   - Fleshed-out form: title, **incident date** (date picker, no future dates),
     description, single **category** picker, **risk** level, and a screenshot
@@ -169,6 +175,7 @@ The API layer lives in `src/api/`:
 - `client.ts` — base URL, the shared JSON/multipart/blob fetch helpers, token refresh
 - `posts.ts` — feed, search, post detail, create/edit/delete, reactions, flags
 - `media.ts` — screenshot upload (`POST /uploads`), redaction polling, redacted images
+- `sse.ts` — URL builder for the post discussion stream (`/community/posts/{id}/sse`)
 - `tags.ts`, `comments.ts`, `numbers.ts`, `auth.ts`, `guidance.ts`
 
 ## Project Structure
@@ -183,7 +190,7 @@ src/
 │   ├── report/    # MediaPicker (upload + redaction preview)
 │   └── layout/    # Navbar, Footer, SettingsPanel
 ├── context/       # Appearance, Auth, SavedFeeds contexts
-├── hooks/         # usePosts, usePost, useComments, useReaction, ...
+├── hooks/         # usePosts, usePost, useComments, usePostCommentsStream, ...
 ├── routes/        # LandingPage, ForumPage, PostDetailPage, ReportPage, ...
 ├── test/          # Vitest setup + render helpers
 ├── types/         # Shared TypeScript types (UI + backend wire shapes)

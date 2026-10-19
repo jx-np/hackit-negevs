@@ -128,6 +128,11 @@ export interface Comment {
   parentId: string | null;
   authorId: string;
   authorLabel: string;
+  /**
+   * True when the comment was written by the service's AI helper (the
+   * `@help` / NegevAI bot). Bots are badge-marked in the UI.
+   */
+  isBot: boolean;
   body: string;
   status: 'visible' | 'hidden' | 'removed';
   createdAt: string;
@@ -137,6 +142,52 @@ export interface Comment {
 export interface CommentsPage {
   comments: Comment[];
   nextCursor: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// Live discussion stream (SSE)
+// ---------------------------------------------------------------------------
+//
+// The wire event names still say "grok" for backwards compatibility; the bot
+// itself is now NegevAI and its trigger mention is `@help`.
+
+/** Connection state of a post's live discussion stream. */
+export type StreamStatus = 'connecting' | 'live' | 'offline';
+
+/**
+ * A comment announced by the server over SSE. The payload matches the
+ * `comment_created` event body (the §8 comment shape).
+ */
+export type ApiStreamComment = ApiComment;
+
+/** `ready` — the stream is open and listening. */
+export interface ApiStreamReady {
+  post_id: string;
+}
+
+/** `grok_thinking` — a bot mention (`@help`) was accepted for an answer. */
+export interface ApiStreamBotThinking {
+  post_id: string;
+  trigger_comment_id: string;
+}
+
+/** `grok_replied` — the bot's reply comment was stored. */
+export interface ApiStreamBotReplied {
+  post_id: string;
+  trigger_comment_id: string;
+  reply_comment_id: string;
+  /** True when the model failed and the bot posted its apology reply instead. */
+  fallback: boolean;
+  /** The stored bot comment; omitted if the row could not be re-loaded. */
+  comment?: ApiStreamComment;
+}
+
+/** `grok_failed` — the job ended without a reply. */
+export interface ApiStreamBotFailed {
+  post_id: string;
+  trigger_comment_id: string;
+  /** `"skipped"` (nothing to answer) or `"error"` (unexpected failure). */
+  reason: 'skipped' | 'error' | string;
 }
 
 // ---------------------------------------------------------------------------
@@ -329,6 +380,8 @@ export interface ApiComment {
   parent_id?: string | null;
   author_id: string;
   author_label: string;
+  /** True for the service's AI helper (`@help` / NegevAI bot). */
+  is_bot?: boolean;
   body: string;
   status: 'visible' | 'hidden' | 'removed';
   created_at: string;

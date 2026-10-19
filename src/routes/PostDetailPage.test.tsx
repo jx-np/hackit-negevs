@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppearanceProvider } from '../context/AppearanceContext';
@@ -7,6 +7,7 @@ import { AuthProvider } from '../context/AuthContext';
 import { SavedFeedsProvider } from '../context/SavedFeedsContext';
 import { makeQueryClient } from '../test/utils';
 import { mockFetch } from '../test/mockFetch';
+import { lastEventSource } from '../test/mockEventSource';
 import { PostDetailPage } from './PostDetailPage';
 import type { ApiPostDetail } from '../types';
 
@@ -80,5 +81,45 @@ describe('PostDetailPage', () => {
     expect(
       screen.getByRole('link', { name: /return to the forum/i }),
     ).toBeInTheDocument();
+  });
+
+  it('shows comments announced over the live stream without a reload', async () => {
+    mockFetch([
+      { match: '/community/posts/post-1', json: MOCK_POST },
+      {
+        match: '/community/discussion/posts/post-1/comments',
+        json: { items: [], next_cursor: null },
+      },
+    ]);
+    renderAt('/forum/post-1');
+
+    await waitFor(() =>
+      expect(screen.getByText(/no comments yet/i)).toBeInTheDocument(),
+    );
+
+    const source = lastEventSource();
+    expect(source.url).toContain('/community/posts/post-1/sse');
+
+    act(() => {
+      source.open();
+      source.emit('ready', { post_id: 'post-1' });
+      source.emit('comment_created', {
+        comment_id: 'c-bot',
+        parent_id: null,
+        author_id: 'bot',
+        author_label: 'NegevAI',
+        is_bot: true,
+        body: 'This is a phishing attempt.',
+        status: 'visible',
+        created_at: '2026-09-29T09:20:00Z',
+        updated_at: '2026-09-29T09:20:00Z',
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText('This is a phishing attempt.')).toBeInTheDocument(),
+    );
+    expect(screen.getByTitle('AI-generated reply')).toBeInTheDocument();
+    expect(screen.getByText(/live updates on/i)).toBeInTheDocument();
   });
 });

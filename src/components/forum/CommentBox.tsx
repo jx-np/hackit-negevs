@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createComment } from '../../api/comments';
 import { useAuth } from '../../context/AuthContext';
+import { BOT_MENTION } from '../../lib/bot';
 
 interface CommentBoxProps {
   postId: string;
@@ -69,7 +70,7 @@ export function CommentBox({ postId }: CommentBoxProps) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           rows={2}
-          placeholder="Share your thoughts…"
+          placeholder={`Share your thoughts… (ask ${BOT_MENTION} a question)`}
           className="w-full resize-none rounded-md border border-scam-line bg-scam-750 px-4 py-3 text-base text-scam-text outline-none transition placeholder:text-scam-muted focus:border-trust-500 focus:ring-2 focus:ring-trust-500/30"
         />
       </div>

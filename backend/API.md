@@ -732,7 +732,43 @@ URLs and contact details are returned exactly as stored — the API never fabric
 
 ---
 
-## 12. Moderation (moderator/admin only)
+## 12. News (home-screen articles)
+
+### GET /news
+Optional auth. Short, plain-language scam-awareness articles for the home screen.
+Every article is returned with **all** of its locales at once; the client picks the
+language (fall back to `en` when a locale is missing). Icons are client-side icon
+names — the API never returns image data.
+
+Response `200`:
+```json
+{
+  "articles": [
+    {
+      "id": "news-1",
+      "icon": "message_square_warning",
+      "title": {
+        "en": "Fake bank SMS on the rise",
+        "ms": "SMS bank palsu semakin meningkat",
+        "ta": "போலி வங்கி SMS அதிகரிப்பு",
+        "zh": "假银行短信增多"
+      },
+      "text": {
+        "en": "Scammers are sending texts that look like your bank. Never tap links in a text message.",
+        "ms": "Penipu menghantar mesej yang kelihatan seperti bank anda. Jangan klik pautan dalam mesej.",
+        "ta": "மோசடி செய்பவர்கள் உங்கள் வங்கியிலிருந்து வருவது போல் செய்திகள் அனுப்புகிறார்கள். செய்தியில் உள்ள இணைப்புகளைத் தட்ட வேண்டாம்.",
+        "zh": "诈骗者发送看起来像银行的短信。切勿点击短信中的链接。"
+      }
+    }
+  ]
+}
+```
+`id` is the article slug (stable, opaque string). Articles are ordered by the
+content team's `sort_order`; only active articles are returned.
+
+---
+
+## 13. Moderation (moderator/admin only)
 
 ### GET /moderation/queue
 Open reports (flags) oldest first (paginated).
@@ -778,7 +814,7 @@ Moderator/admin. Decide on a comment.
 
 ---
 
-## 13. Admin resource catalog (admin only)
+## 14. Admin resource catalog (admin only)
 
 ### POST /admin/resources
 ```json
@@ -804,7 +840,7 @@ Sets the resource inactive (removes it from public listings). Response `204`.
 
 ---
 
-## 14. Operations
+## 15. Operations
 
 ### GET /health/live
 Public. Liveness. `200 { "status": "ok" }`.
@@ -814,7 +850,7 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 
 ---
 
-## 15. Full route index
+## 16. Full route index
 
 | Method | Path | Access |
 |---|---|---|
@@ -854,6 +890,7 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 | POST | `/community/discussion/comments/{id}/flag` | Authenticated |
 | GET | `/guidance` | Optional auth |
 | GET | `/guidance/resources` | Optional auth |
+| GET | `/news` | Optional auth |
 | GET | `/moderation/queue` | Moderator |
 | POST | `/moderation/posts/{id}/review` | Moderator |
 | POST | `/moderation/comments/{id}/review` | Moderator |
@@ -865,7 +902,7 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 
 ---
 
-## 16. Notes for teammates
+## 17. Notes for teammates
 
 - **Private detection retention & deletion:** private uploads expire after **24 hours** and private checks after **30 days** (schema defaults, indexed by `expires_at`). A background **retention reaper** enforces these windows — enabled with `REAPER_ENABLED` (default `true`), running every `REAPER_INTERVAL` (default `1h`) — deleting expired rows and purging their stored blobs. Owners can also delete immediately: `DELETE /detection/{id}` removes a check (and its uploads and blobs) and `DELETE /uploads/{id}` cancels an upload. Deleting a check is irreversible, cascades its uploads, and nulls `source_check_id` on any published post (the post and its own image copy are unaffected).
 - **Screenshot uploads:** `POST /uploads` stores the image and schedules background OCR + PII redaction only. Poll `GET /uploads/{id}`; once ready, `POST /detection` creates a check and classifies the stored redacted text. The redacted image is available via `GET /uploads/{id}/redacted-image` or, once linked, `GET /detection/{id}/redacted-image`, and can be copied to a published post. Redaction is delegated to the Python PII-removal service; when unavailable uploads become failed. Text detection does not depend on it.
@@ -873,4 +910,9 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 - **Flag vs. phone report:** "flag" (§9) escalates a *post/comment* to moderators. The phone-number feature (§5) is a *lookup* against the scam-number database. They are unrelated.
 - **DB note (backend/DB team):** the `report_receipts` table in `init.sql` is now unused — the "I received this too" feature was removed in favour of reactions. It can be dropped in a future migration.
 - **Naming note:** the public API says `posts`, but internally the Go package and the `reports` DB table keep the name `reports`. This is intentional and does not affect the API.
+- **News:** `GET /news` serves home-screen scam-awareness articles from
+  `news_articles` / `news_article_translations` (seeded by migration `00015`).
+  All locales are returned together so the client picks the language; the API
+  does not localize server-side. Articles are content-managed rows — set
+  `active = false` to hide one without deleting its translations.
 - **i18n:** `name_key` / `description_key` on categories and tags are localization keys, not display strings. Guidance/resource `name`, `title`, `body`, `description` are already localized (with `en-SG` fallback).

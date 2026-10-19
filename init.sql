@@ -289,3 +289,24 @@ CREATE TABLE resource_opens (
     CHECK (user_id IS NOT NULL OR check_id IS NOT NULL)
 );
 CREATE INDEX resource_opens_metric_idx ON resource_opens (opened_at, resource_id);
+
+-- Scam-awareness news shown on the home screen. Each article carries one row
+-- per locale; the public API returns every locale at once so the client picks
+-- the language. icon is a client-side icon name, never image data.
+CREATE TABLE news_articles (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    slug text NOT NULL UNIQUE,
+    icon text NOT NULL,
+    sort_order integer NOT NULL DEFAULT 0,
+    active boolean NOT NULL DEFAULT true
+);
+
+CREATE TABLE news_article_translations (
+    article_id bigint NOT NULL REFERENCES news_articles(id) ON DELETE CASCADE,
+    locale text NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    PRIMARY KEY (article_id, locale)
+);
+
+CREATE INDEX news_articles_order_idx ON news_articles (sort_order, id) WHERE active = true;

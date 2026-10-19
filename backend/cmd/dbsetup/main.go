@@ -70,6 +70,7 @@ func run(dsn, schemaPath string, drop bool) error {
 // CASCADE handles foreign-key dependencies and indexes.
 const dropSQL = `
 DROP TABLE IF EXISTS
+	news_article_translations, news_articles,
 	resource_opens, guidance_resources, resource_translations, resources,
 	guidance_translations, guidance, moderation_decisions, moderation_suggestions,
 	content_flags, report_reactions, report_receipts, comments, report_tags,

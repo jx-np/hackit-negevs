@@ -18,6 +18,7 @@ import (
 	"scamshield/internal/httpx"
 	"scamshield/internal/logging"
 	"scamshield/internal/moderation"
+	"scamshield/internal/news"
 	"scamshield/internal/pii"
 	"scamshield/internal/platform/db"
 	"scamshield/internal/reports"
@@ -153,6 +154,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	reportsHandler := reports.NewHandler(reports.NewService(reports.NewPostgresRepository(pool), postClassifier, store))
 	moderationHandler := moderation.NewHandler(moderation.NewService(moderation.NewPostgresRepository(pool)))
 	resourcesHandler := resources.NewHandler(resources.NewService(resources.NewPostgresRepository(pool)))
+	newsHandler := news.NewHandler(news.NewService(news.NewPostgresRepository(pool)))
 
 	rateLimiter := httpx.NewRateLimiter(20, 40, nil)
 	defer rateLimiter.Close()
@@ -176,6 +178,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	reportsHandler.RegisterRoutes(mux, requireAuth, optionalAuth, globalMW)
 	moderationHandler.RegisterRoutes(mux, requireAuth, optionalAuth, requireModerator, globalMW)
 	resourcesHandler.RegisterRoutes(mux, optionalAuth, requireAdmin, globalMW)
+	newsHandler.RegisterRoutes(mux, optionalAuth, globalMW)
 	registerHealthRoutes(mux, globalMW, pool)
 
 	// Background retention reaper: enforces the private_uploads (24h) and

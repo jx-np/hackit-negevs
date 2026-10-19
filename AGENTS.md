@@ -44,6 +44,7 @@ This is the single most important constraint in the codebase. Treat it as non-ne
     │   ├── config/     # env-var config loading with dev defaults
     │   ├── httpx/      # middleware (request ID, logging, recover, rate limit), JSON/error helpers
     │   ├── moderation/ # flag queue + moderator decisions
+    │   ├── news/       # public home-screen scam-awareness articles
     │   ├── platform/db/# pgx pool connect/ping
     │   ├── reports/    # community posts/feed/comments/reactions ("posts" = "reports" internally)
     │   └── resources/  # guidance + resource catalog + admin

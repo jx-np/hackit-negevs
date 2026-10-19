@@ -115,6 +115,11 @@ $ro = $null
 try { Invoke-RestMethod "$base/detection/$checkId/resource-opens" -Method POST -Headers $h -ContentType application/json -Body (@{resource_id=$res.items[0].id}|ConvertTo-Json); $ro=$true } catch { $ro=$false }
 Check "record resource-open (metric)" $ro
 
+Write-Host "`n== News ==" -ForegroundColor Cyan
+$news = Invoke-RestMethod "$base/news"
+Check "news articles" ($news.articles.Count -ge 1) "count=$($news.articles.Count)"
+Check "news article has locales" ($news.articles[0].title.en -and $news.articles[0].text.zh) "title=$($news.articles[0].title.en)"
+
 Write-Host "`n== Moderation (needs moderator role) ==" -ForegroundColor Cyan
 # register a plain user then elevate via DB-less path isn't possible over API; test 403 instead.
 $reg2 = Invoke-RestMethod "$base/auth/register" -Method POST -ContentType application/json -Body (@{email=$modEmail;password="password123";display_name="Mod"}|ConvertTo-Json)

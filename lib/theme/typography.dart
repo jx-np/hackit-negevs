@@ -25,11 +25,13 @@ FTypeface _display({
     return FTypeface(
       fontFamily: fontFamily,
       fontFamilyFallback: fontFamilyFallback,
+      // Older-user readability: keep the smallest tokens legible. xs3 raised to
+      // 13 and xs2 to 14 so even the tiniest Forui labels stay above 13sp.
       xs3: TextStyle(
         color: color,
         fontFamily: fontFamily,
         fontFamilyFallback: fontFamilyFallback,
-        fontSize: 10,
+        fontSize: 13,
         height: 1,
         leadingDistribution: .even,
       ),
@@ -37,7 +39,7 @@ FTypeface _display({
         color: color,
         fontFamily: fontFamily,
         fontFamilyFallback: fontFamilyFallback,
-        fontSize: 12,
+        fontSize: 14,
         height: 1,
         leadingDistribution: .even,
       ),
@@ -274,11 +276,13 @@ FTypeface _body({
     return FTypeface(
       fontFamily: fontFamily,
       fontFamilyFallback: fontFamilyFallback,
+      // Older-user readability: keep the smallest tokens legible. xs3 raised to
+      // 13 and xs2 to 14 so even the tiniest Forui labels stay above 13sp.
       xs3: TextStyle(
         color: color,
         fontFamily: fontFamily,
         fontFamilyFallback: fontFamilyFallback,
-        fontSize: 10,
+        fontSize: 13,
         height: 1,
         leadingDistribution: .even,
       ),
@@ -286,7 +290,7 @@ FTypeface _body({
         color: color,
         fontFamily: fontFamily,
         fontFamilyFallback: fontFamilyFallback,
-        fontSize: 12,
+        fontSize: 14,
         height: 1,
         leadingDistribution: .even,
       ),

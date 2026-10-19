@@ -26,7 +26,8 @@ class _FakeEvaluator implements ScamEvaluator {
   @override
   Future<ScamVerdict> evaluate(
     NotificationRecord record, {
-    List<String> priorMessages = const [],
+    List<String>? priorMessages,
+    ScamHints? hints,
   }) async =>
       _verdict;
 }
@@ -241,6 +242,47 @@ void main() {
       source: EvaluationSource.local,
     );
     expect(verdict.label, ScamLabel.prizeLottery);
+  });
+
+  test('malformed JSON at the start of the output does not throw', () {
+    // The only `{` sits at index 0 and nothing decodes, so the scan used to
+    // call lastIndexOf('{', -1) and throw a RangeError. The salvage path now
+    // pulls the real label and confidence out of the unparseable object (the
+    // unescaped quotes in the reason break jsonDecode) instead of discarding
+    // them to the flat-0.35 keyword fallback.
+    final verdict = parseScamVerdict(
+      '{"label":"not_scam","confidence":0.95,"reason":"says "hi" to a friend"}',
+      source: EvaluationSource.local,
+    );
+    expect(verdict.label, ScamLabel.notScam);
+    expect(verdict.confidence, 0.95);
+  });
+
+  test('salvages a payment_request verdict from malformed JSON', () {
+    final verdict = parseScamVerdict(
+      '{"label":"payment_request","confidence":0.8,"reason":"wants a "wire" now"}',
+      source: EvaluationSource.local,
+    );
+    expect(verdict.label, ScamLabel.paymentRequest);
+    expect(verdict.confidence, 0.8);
+  });
+
+  test('keyword fallback still fires when there is no label field', () {
+    final verdict = parseScamVerdict(
+      'I think this looks like other_scam honestly',
+      source: EvaluationSource.local,
+    );
+    expect(verdict.label, ScamLabel.otherScam);
+    expect(verdict.confidence, 0.35);
+  });
+
+  test('an out-of-vocabulary callback_request label resolves to not_scam', () {
+    final verdict = parseScamVerdict(
+      '{"label":"callback_request","confidence":0.95,"reason":"call me back"}',
+      source: EvaluationSource.local,
+    );
+    expect(verdict.label, ScamLabel.notScam);
+    expect(verdict.confidence, 0.95);
   });
 
   test('router keeps the local verdict when the cloud is unavailable', () async {
@@ -484,7 +526,7 @@ void main() {
 
     test('resolves through modelById only while it is registered', () {
       expect(allModels.length, modelCatalog.length);
-      expect(modelById(kCustomModelId), modelCatalog.first);
+      expect(modelById(kCustomModelId), defaultModel);
 
       final spec = buildCustomModelSpec(
         path: '/sdcard/Download/minicpm.litertlm',
@@ -500,7 +542,7 @@ void main() {
 
       clearCustomModelSpec();
       expect(allModels.length, modelCatalog.length);
-      expect(modelById(kCustomModelId), modelCatalog.first);
+      expect(modelById(kCustomModelId), defaultModel);
     });
   });
 

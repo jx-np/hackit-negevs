@@ -57,110 +57,124 @@ class HighRiskCallAlert extends StatelessWidget {
       child: Scaffold(
         backgroundColor: risk.danger,
         body: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.all(tokens.space.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Spacer(),
-                Container(
-                  width: 112,
-                  height: 112,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    LucideIcons.octagonAlert,
-                    size: 64,
-                    color: Colors.white,
-                  ),
+          // Scrolls at large text sizes; the Spacers still centre the content
+          // when everything fits.
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              padding: EdgeInsets.all(tokens.space.xl),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: (constraints.maxHeight - tokens.space.xl * 2)
+                      .clamp(0.0, double.infinity),
                 ),
-                SizedBox(height: tokens.space.xl),
-                Text(
-                  l10n.callHighRiskTitle,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-                SizedBox(height: tokens.space.md),
-                Text(
-                  l10n.callHighRiskBody,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.92),
-                      ),
-                ),
-                SizedBox(height: tokens.space.xl),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: tokens.space.lg,
-                    vertical: tokens.space.md,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.14),
-                    borderRadius: tokens.radii.lgRadius,
-                  ),
+                child: IntrinsicHeight(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        phoneNumber,
-                        textAlign: TextAlign.center,
-                        style:
-                            Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                      const Spacer(),
+                      Container(
+                        width: 112,
+                        height: 112,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          LucideIcons.octagonAlert,
+                          size: 64,
+                          color: Colors.white,
+                        ),
                       ),
-                      if (trustScore != null) ...[
-                        SizedBox(height: tokens.space.xs),
-                        Text(
-                          l10n.callHighRiskScore(trustScore!),
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.92),
-                              ),
+                      SizedBox(height: tokens.space.xl),
+                      Text(
+                        l10n.callHighRiskTitle,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      SizedBox(height: tokens.space.md),
+                      Text(
+                        l10n.callHighRiskBody,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.92),
                         ),
-                      ],
-                      if (reportCount != null && reportCount! > 0) ...[
-                        SizedBox(height: tokens.space.xs),
-                        Text(
-                          l10n.callHighRiskReports(reportCount!),
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.92),
-                              ),
+                      ),
+                      SizedBox(height: tokens.space.xl),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.space.lg,
+                          vertical: tokens.space.md,
                         ),
-                      ],
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          borderRadius: tokens.radii.lgRadius,
+                        ),
+                        child: Column(
+                          children: [
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                phoneNumber,
+                                maxLines: 1,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                              ),
+                            ),
+                            if (trustScore != null) ...[
+                              SizedBox(height: tokens.space.xs),
+                              Text(
+                                l10n.callHighRiskScore(trustScore!),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.92,
+                                      ),
+                                    ),
+                              ),
+                            ],
+                            if (reportCount != null && reportCount! > 0) ...[
+                              SizedBox(height: tokens.space.xs),
+                              Text(
+                                l10n.callHighRiskReports(reportCount!),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.92,
+                                      ),
+                                    ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      SizedBox(height: tokens.space.xl),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(60),
+                          backgroundColor: Colors.white,
+                          foregroundColor: risk.danger,
+                          textStyle: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        child: Text(l10n.callHighRiskDismiss),
+                      ),
                     ],
                   ),
                 ),
-                const Spacer(),
-                SizedBox(
-                  height: 60,
-                  child: FilledButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: risk.danger,
-                      textStyle: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w800),
-                    ),
-                    child: Text(l10n.callHighRiskDismiss),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

@@ -94,6 +94,20 @@ class PermissionStep {
     PermissionStepKind.batteryOptimizationSettings =>
       l10n.onboardingBatterySettingsBody,
   };
+
+  /// Optional extra detail shown behind a "Why?" button, or null when the
+  /// short body already says enough.
+  String? why(AppLocalizations l10n) => switch (kind) {
+    PermissionStepKind.callScreening => l10n.onboardingScreeningWhy,
+    PermissionStepKind.messageAccess => l10n.onboardingMessagesWhy,
+    _ => null,
+  };
+
+  /// What to do once the system settings page opens.
+  String settingsHint(AppLocalizations l10n) =>
+      kind == PermissionStepKind.batteryOptimizationSettings
+      ? l10n.onboardingBatterySettingsHint
+      : l10n.onboardingSettingsHint;
 }
 
 /// The full list of permissions the app needs, in the order they are shown.

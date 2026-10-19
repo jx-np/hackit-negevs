@@ -185,15 +185,14 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
       children: [
         ChoiceChip(
           label: Text(l10n.guidanceShowAll),
-          labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          labelStyle: Theme.of(context).textTheme.titleSmall,
           selected: _activeScenario == null,
           onSelected: (_) => _selectScenario(null),
         ),
         for (final slug in _scenarioSlugs)
           ChoiceChip(
             label: Text(_scenarioLabel(l10n, slug)),
-            labelStyle:
-                const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            labelStyle: Theme.of(context).textTheme.titleSmall,
             selected: _activeScenario == slug,
             onSelected: (_) => _selectScenario(slug),
           ),
@@ -270,13 +269,19 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
     if (resource.hasContact) {
       buttons.add(
         SizedBox(
-          height: 56,
+          width: double.infinity,
           child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+            ),
             onPressed: () => _callNumber(resource.contactInstructions!),
             icon: const Icon(LucideIcons.phone, size: 24),
             label: Text(
               resource.contactInstructions!,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
@@ -285,20 +290,34 @@ class _GuidanceScreenState extends State<GuidanceScreen> {
     if (resource.hasUrl) {
       buttons.add(
         SizedBox(
-          height: 56,
+          width: double.infinity,
           child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+            ),
             onPressed: () => _openUrl(resource.url!),
             icon: const Icon(LucideIcons.externalLink, size: 24),
             label: Text(
               l10n.guidanceOpenWebsite,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ),
       );
     }
     if (buttons.isEmpty) return const SizedBox.shrink();
-    return Wrap(spacing: 12, runSpacing: 12, children: buttons);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var i = 0; i < buttons.length; i++) ...[
+          if (i > 0) const SizedBox(height: 12),
+          buttons[i],
+        ],
+      ],
+    );
   }
 
   Widget _emptyGuidance(ThemeData theme) {

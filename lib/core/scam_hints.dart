@@ -115,8 +115,11 @@ class ScamHints {
 
   /// Counts the strong, independently-computed signals in these hints. Used by
   /// [shouldAlert] as a hard gate so a weak model cannot raise an alert on a
-  /// message that carries no corroborating evidence.
-  int get strongSignalCount => [
+  /// message that carries no corroborating evidence. A shortened link counts as
+  /// two signals on its own: unsolicited short links are a strong scam tell, so
+  /// one is enough to clear the two-signal gate without a second corroborator.
+  int get strongSignalCount =>
+      [
         asksForCode,
         apkOrRemoteApp,
         urgency,
@@ -124,9 +127,9 @@ class ScamHints {
         movesOffPlatform,
         callbackRequest,
         legalThreat,
-        linkType == LinkType.shortened,
         includeSender && senderType == SenderType.unsavedInternational,
-      ].where((signal) => signal).length;
+      ].where((signal) => signal).length +
+      (linkType == LinkType.shortened ? 2 : 0);
 
   /// Whether a verdict should actually raise an alert. The model's label and
   /// confidence are necessary but not sufficient: a small model misfires on

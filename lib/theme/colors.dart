@@ -14,7 +14,10 @@ final FColors lightColors = FColors(
   secondary: Color(0xFFEDE8FD),
   secondaryForeground: Color(0xFF3A2A77),
   muted: Color(0xFFF1EFF8),
-  mutedForeground: Color(0xFF5E5876),
+  // Readability: secondary/muted text is darkened a quarter of the way toward
+  // `foreground` (base #5E5876 blended 25% toward #1C1A2E) so grey Forui labels
+  // stay easy to read for older users. Mirrors material_theme's secondaryText.
+  mutedForeground: Color(0xFF4E4964),
   destructive: Color(0xFFC74747),
   destructiveForeground: Color(0xFFFFFFFF),
   error: Color(0xFFC74747),
@@ -35,7 +38,10 @@ final FColors darkColors = FColors(
   secondary: Color(0xFF2A2140),
   secondaryForeground: Color(0xFFD9CCFF),
   muted: Color(0xFF1C1826),
-  mutedForeground: Color(0xFFA79FC2),
+  // Readability: secondary/muted text is lightened a quarter of the way toward
+  // `foreground` (base #A79FC2 blended 25% toward #ECE9F6) so grey Forui labels
+  // stay easy to read for older users. Mirrors material_theme's secondaryText.
+  mutedForeground: Color(0xFFB8B2CF),
   destructive: Color(0xFFFF7A72),
   destructiveForeground: Color(0xFF2A0D0D),
   error: Color(0xFFFF6467),

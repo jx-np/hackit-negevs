@@ -59,6 +59,12 @@ class LocalLlmEvaluator implements ScamEvaluator {
 
   InferenceModel? _model;
 
+  /// The backend the live [_model] was created with, set in [warmUp]. Used to
+  /// pick the sampler in [evaluate]: GPU/CPU get greedy decoding (`topK: 1`) so
+  /// the verdict is deterministic; NPU keeps the catalog sampler since it runs
+  /// greedy argmax natively and ignores the sampling params either way.
+  PreferredBackend? _effectiveBackend;
+
   bool get _isThinking => scamThinkingEnabled(
         thinking: _models.spec.thinking,
         contextTokens: _models.spec.contextTokens,
@@ -117,6 +123,7 @@ class LocalLlmEvaluator implements ScamEvaluator {
     }
     final backend = await _settings.modelBackend();
     final preferredBackend = _preferredBackend(backend);
+    _effectiveBackend = preferredBackend;
     debugPrint(
       '[ScamShield] requested backend=${backend.name}, '
       'effective backend=${preferredBackend.name}, '
@@ -157,13 +164,20 @@ class LocalLlmEvaluator implements ScamEvaluator {
     NotificationRecord record, {
     List<String>? priorMessages,
     int? exampleCount,
+    ScamHints? hints,
   }) async {
     try {
       await warmUp();
       final model = _model!;
+      // GPU/CPU: force greedy decoding (topK: 1) so the verdict is
+      // deterministic. NPU keeps the catalog sampler — it runs greedy argmax
+      // natively and ignores these params anyway (see flutter_edge_ai NPU
+      // sampling behaviour).
+      final greedy = _effectiveBackend == PreferredBackend.gpu ||
+          _effectiveBackend == PreferredBackend.cpu;
       final session = await model.createSession(
-        temperature: 0.2,
-        topK: 40,
+        temperature: greedy ? null : 0.0,
+        topK: greedy ? 1 : 40,
         enableThinking: _isThinking,
         maxOutputTokens: _outputTokenCap,
       );
@@ -173,6 +187,7 @@ class LocalLlmEvaluator implements ScamEvaluator {
           record,
           priorMessages,
           exampleCount,
+          hints,
         );
         await session.addQueryChunk(Message(text: prompt, isUser: true));
         final buffer = StringBuffer();
@@ -220,10 +235,14 @@ class LocalLlmEvaluator implements ScamEvaluator {
     NotificationRecord record,
     List<String>? priorMessages,
     int? exampleCount,
+    ScamHints? precomputedHints,
   ) async {
     final budget = _inputTokenBudget;
     final message = _truncate(record.content, _inputCharCap);
-    final hints = (await ScamHintBuilder.fromRecord(record)).render();
+    // Reuse hints computed by the caller when available; recomputing here would
+    // hit the device contacts DB a second time (see ScamHintBuilder.fromRecord).
+    final hints =
+        (precomputedHints ?? await ScamHintBuilder.fromRecord(record)).render();
     // Earlier turns only carry context, so each is clipped hard to keep the
     // added prefill small. Blank turns are dropped so a rolled-up or empty
     // prior ("3 new messages") does not waste a line.

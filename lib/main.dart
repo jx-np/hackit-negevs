@@ -23,6 +23,7 @@ import 'package:scamwatch_mobile_app/state/theme_controller.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/auth_gate.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/theme/material_theme.dart';
 import 'package:scamwatch_mobile_app/theme/theme.dart';
 import 'package:scamwatch_mobile_app/widgets/tour/coach_mark_overlay.dart';
 import 'package:scamwatch_mobile_app/widgets/tour/tour_controller.dart';
@@ -33,7 +34,7 @@ void main() {
   final apiClient = ApiClient();
   final authController = AuthController(client: apiClient);
   authController.bootstrap();
-  final tourTargets = CoachMarkTargets(kTourSteps.length);
+  final tourTargets = CoachMarkTargets(kTourTabCount);
   final tourController = TourController(steps: kTourSteps);
   final localeController = LocaleController();
   localeController.load();
@@ -57,93 +58,8 @@ void backgroundMain() {
   BackgroundRunner().start();
 }
 
-ThemeData _materialTheme(FColors colors) {
-  final isDark = colors.brightness == Brightness.dark;
-  return ThemeData(
-    useMaterial3: true,
-    extensions: [isDark ? AppTokens.dark : AppTokens.light],
-    colorScheme: ColorScheme(
-      brightness: colors.brightness,
-      primary: colors.primary,
-      onPrimary: colors.primaryForeground,
-      secondary: colors.secondary,
-      onSecondary: colors.secondaryForeground,
-      error: colors.error,
-      onError: colors.errorForeground,
-      surface: colors.background,
-      onSurface: colors.foreground,
-    ),
-    scaffoldBackgroundColor: colors.background,
-    visualDensity: VisualDensity.standard,
-    textTheme: TextTheme(
-      headlineSmall: TextStyle(
-        color: colors.foreground,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0,
-      ),
-      titleLarge: TextStyle(
-        color: colors.foreground,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 0,
-      ),
-      bodyLarge: TextStyle(color: colors.foreground, letterSpacing: 0),
-      bodyMedium: TextStyle(
-        color: colors.foreground,
-        letterSpacing: 0,
-        height: 1.35,
-      ),
-      bodySmall: TextStyle(
-        color: colors.mutedForeground,
-        letterSpacing: 0,
-        height: 1.3,
-      ),
-    ),
-    appBarTheme: AppBarTheme(
-      backgroundColor: colors.card,
-      foregroundColor: colors.foreground,
-      surfaceTintColor: Colors.transparent,
-      elevation: 0,
-    ),
-    cardColor: colors.card,
-    dividerColor: colors.border,
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: colors.card,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      hintStyle: TextStyle(color: colors.mutedForeground),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: colors.border),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: colors.border),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: colors.primary, width: 2),
-      ),
-    ),
-    elevatedButtonTheme: ElevatedButtonThemeData(
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size(0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      ),
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      ),
-    ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(0, 48),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      ),
-    ),
-  );
-}
+// Built in lib/theme/material_theme.dart so tests can use the same theme.
+ThemeData _materialTheme(FColors colors) => buildMaterialTheme(colors);
 
 class MyApp extends StatelessWidget {
   const MyApp({
@@ -266,13 +182,13 @@ class _HomePageState extends State<HomePage> {
   static const MethodChannel _deeplink = MethodChannel('report/deeplink');
 
   final List<_NavigationItem> _items = [
-    _NavigationItem(icon: LucideIcons.house, label: (l10n) => l10n.homeTitle),
-    _NavigationItem(icon: LucideIcons.phone, label: (l10n) => l10n.callHistoryTitle),
-    _NavigationItem(icon: LucideIcons.shield, label: (l10n) => l10n.safetyTitle),
-    _NavigationItem(icon: LucideIcons.megaphone, label: (l10n) => l10n.reportTabTitle),
+    _NavigationItem(icon: LucideIcons.house, label: (l10n) => l10n.navHome),
+    _NavigationItem(icon: LucideIcons.phone, label: (l10n) => l10n.navCalls),
+    _NavigationItem(icon: LucideIcons.shield, label: (l10n) => l10n.navSafety),
+    _NavigationItem(icon: LucideIcons.megaphone, label: (l10n) => l10n.navReport),
     _NavigationItem(
       icon: LucideIcons.circleUserRound,
-      label: (l10n) => l10n.myProfileTitle,
+      label: (l10n) => l10n.navProfile,
     ),
   ];
 
@@ -397,12 +313,14 @@ class _HomePageState extends State<HomePage> {
       AuthGate(child: ReportTabScreen(client: client)),
       MyProfileScreen(client: client),
     ];
-    return Scaffold(
-      body: SafeArea(
-        bottom: false,
-        child: CoachMarkOverlay(
-          controller: tour,
-          targets: targets,
+    // The tour overlay wraps the whole Scaffold so its scrim also covers the
+    // bottom nav bar (accidental taps can't switch tabs mid-tour).
+    return CoachMarkOverlay(
+      controller: tour,
+      targets: targets,
+      child: Scaffold(
+        body: SafeArea(
+          bottom: false,
           child: GestureDetector(
             // Horizontal swipes move to the adjacent tab. We handle the gesture
             // ourselves (instead of a scrolling PageView) so a swipe is just an
@@ -415,12 +333,12 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
-      ),
-      bottomNavigationBar: _AppNavBar(
-        items: _items,
-        currentIndex: _currentIndex,
-        targets: targets,
-        onSelected: _showTab,
+        bottomNavigationBar: _AppNavBar(
+          items: _items,
+          currentIndex: _currentIndex,
+          targets: targets,
+          onSelected: _showTab,
+        ),
       ),
     );
   }
@@ -522,8 +440,10 @@ class _AppNavBar extends StatelessWidget {
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
-          height: 68,
+        // Minimum height instead of a fixed one, so the bar grows with large
+        // text sizes rather than clipping the labels.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
           child: Row(
             children: [
               for (var i = 0; i < items.length; i++)
@@ -535,7 +455,7 @@ class _AppNavBar extends StatelessWidget {
                     selected: i == currentIndex,
                     onTap: () => onSelected(i),
                     primary: colors.primary,
-                    inactive: colors.mutedForeground,
+                    inactive: secondaryTextColor(colors),
                     pill: colors.primary.withValues(alpha: 0.14),
                     radii: tokens.radii,
                     space: tokens.space,
@@ -579,12 +499,15 @@ class _NavTab extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       customBorder: const StadiumBorder(),
-      child: Padding(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 72),
+        child: Padding(
         padding: EdgeInsets.symmetric(
           horizontal: space.xs,
           vertical: space.sm,
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             AnimatedContainer(
@@ -598,7 +521,7 @@ class _NavTab extends StatelessWidget {
                 color: selected ? pill : Colors.transparent,
                 borderRadius: radii.pillRadius,
               ),
-              child: Icon(icon, size: 24, color: color),
+              child: Icon(icon, size: 26, color: color),
             ),
             SizedBox(height: space.xs),
             FittedBox(
@@ -607,15 +530,15 @@ class _NavTab extends StatelessWidget {
                 label,
                 maxLines: 1,
                 softWrap: false,
-                style: TextStyle(
-                  fontSize: 12,
-                  height: 1.1,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  height: 1.15,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                   color: color,
                 ),
               ),
             ),
           ],
+        ),
         ),
       ),
     );

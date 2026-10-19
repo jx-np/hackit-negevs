@@ -262,7 +262,7 @@ String _stripThinking(String text) {
 Map<String, dynamic>? _lastJsonObject(String text) {
   for (var start = text.lastIndexOf('{');
       start >= 0;
-      start = text.lastIndexOf('{', start - 1)) {
+      start = start > 0 ? text.lastIndexOf('{', start - 1) : -1) {
     for (var end = text.lastIndexOf('}');
         end > start;
         end = text.lastIndexOf('}', end - 1)) {
@@ -296,7 +296,46 @@ ScamVerdict parseScamVerdict(
       );
     } catch (_) {}
   }
+  final salvaged = _salvageVerdict(answer, source: source, raw: cleaned);
+  if (salvaged != null) return salvaged;
   return _keywordFallback(answer, source: source, raw: cleaned);
+}
+
+/// Field matchers for recovering a verdict from malformed JSON. The model
+/// usually emits well-formed `"label": "..."` and `"confidence": 0.x` pairs
+/// even when the surrounding object is unparseable (an unescaped quote in the
+/// reason string is the common culprit). Pulling the fields out directly keeps
+/// the model's real label and confidence instead of discarding them to the
+/// flat-0.35 keyword fallback.
+final RegExp _labelField =
+    RegExp(r'"label"\s*:\s*"([a-zA-Z_]+)"');
+final RegExp _confidenceField =
+    RegExp(r'"confidence"\s*:\s*(0?\.\d+|\d+(?:\.\d+)?)');
+final RegExp _reasonField =
+    RegExp(r'"reason"\s*:\s*"(.*?)"\s*[},]', dotAll: true);
+
+/// Extracts a verdict from [answer] when [_lastJsonObject] could not decode a
+/// clean object. Returns null when no `label` field is present so the caller
+/// falls through to the keyword scan.
+ScamVerdict? _salvageVerdict(
+  String answer, {
+  required EvaluationSource source,
+  required String raw,
+}) {
+  final labelMatch = _labelField.firstMatch(answer);
+  if (labelMatch == null) return null;
+  final label = ScamLabel.fromWire(labelMatch.group(1));
+  final confidence =
+      double.tryParse(_confidenceField.firstMatch(answer)?.group(1) ?? '') ??
+          0.0;
+  final reason = _reasonField.firstMatch(answer)?.group(1)?.trim() ?? '';
+  return ScamVerdict(
+    label: label,
+    confidence: confidence.clamp(0.0, 1.0),
+    reason: reason.isNotEmpty ? reason : label.title,
+    source: source,
+    raw: raw,
+  );
 }
 
 ScamVerdict _keywordFallback(

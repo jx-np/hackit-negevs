@@ -45,9 +45,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get commonSharing => '正在分享…';
 
   @override
-  String get commonDownloadModelFirst => '请先在“设置”选项卡中下载模型';
-
-  @override
   String get commonTitle => '标题';
 
   @override
@@ -61,9 +58,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get commonWhatKindOfScam => '是哪种诈骗？';
-
-  @override
-  String get commonTagsOptional => '标签（可选）';
 
   @override
   String get commonShareIntro => '分享你收到的诈骗信息，帮助他人。请先删除所有个人信息。';
@@ -84,13 +78,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportTabPhotoProcessing => '分析中...';
 
   @override
-  String get reportTabPhotoReady => '就绪';
-
-  @override
   String get reportTabPhotoFailed => '无法分析';
-
-  @override
-  String get reportTabPhotoDropped => '部分图片无法分析，已被移除。';
 
   @override
   String get reportTabProcessingTitle => '请勿关闭应用。正在处理';
@@ -119,30 +107,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get reportTabFailedPostWithout => '不含图片发布';
 
   @override
-  String get reportTabWaitForImages => 'Wait for images to be processed';
+  String get reportTabWaitForImages => '请等待图片处理完成';
 
   @override
-  String get reportTabCheckImages => 'Check images';
+  String get reportTabCheckImages => '检查图片';
 
   @override
-  String get reportTabReviewCheckbox =>
-      'I\'ve reviewed the images and the personal details are hidden correctly';
+  String get reportTabReviewCheckbox => '我已检查图片，个人信息已正确隐藏';
 
   @override
-  String get reportTabEditImage => 'Edit image';
+  String get reportTabEditImage => '编辑图片';
 
   @override
-  String get reportTabReuploading => 'Re-uploading edited image...';
+  String get reportTabReuploading => '正在重新上传编辑后的图片…';
 
   @override
-  String get reportTabPosting => 'Posting...';
+  String get reportTabPosting => '正在发布…';
 
   @override
-  String get reportTabEditorSaveFailed =>
-      'Couldn\'t re-upload the edited image. Try again.';
+  String get reportTabEditorSaveFailed => '无法重新上传编辑后的图片。请重试。';
 
   @override
-  String get reportTabViewPost => 'View your post';
+  String get reportTabViewPost => '查看你的帖子';
 
   @override
   String get homeTitle => '主页';
@@ -151,40 +137,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeWelcomePrefix => '欢迎， ';
 
   @override
-  String get homeWelcomeGuestLabel => '未登录';
-
-  @override
   String get homeWelcomeGuest => 'Welcome';
 
   @override
   String get myProfileTitle => '我的个人资料';
 
   @override
-  String get myProfileAccountSection => '账户详情';
-
-  @override
-  String get myProfileName => '姓名';
-
-  @override
-  String get myProfileEmail => '电子邮件';
-
-  @override
   String get myProfileMemberSince => '注册于';
 
   @override
   String get myProfilePosts => '帖子';
-
-  @override
-  String get myProfileRole => '角色';
-
-  @override
-  String get myProfileRoleResident => '成员';
-
-  @override
-  String get myProfileRoleModerator => '版主';
-
-  @override
-  String get myProfileRoleAdmin => '管理员';
 
   @override
   String get myProfileSignOut => '退出登录';
@@ -214,12 +176,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeQuickActionsTitle => '您想做什么？';
 
   @override
-  String get homeActionMyPosts => '我的帖子';
-
-  @override
-  String get homeActionMyPostsBody => '查看您举报过的诈骗';
-
-  @override
   String get homeActionProfile => '我的个人资料';
 
   @override
@@ -236,12 +192,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeActionReportBody => '提醒社区里的其他人';
-
-  @override
-  String get homeActionSafety => '防护';
-
-  @override
-  String get homeActionSafetyBody => '开启 Scam Shield';
 
   @override
   String get homeStatusOnBody => '我们正在检查您的消息中是否存在诈骗。';
@@ -285,13 +235,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeNewsNext => '下一条警报';
 
   @override
-  String get settingsDetectionModel => '检测模型';
-
-  @override
   String get settingsProtection => '防护';
-
-  @override
-  String get settingsClearNotifications => '清除已捕获的通知';
 
   @override
   String get settingsStopProtection => '停止后台防护';
@@ -303,123 +247,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsServiceStopped => '服务已停止';
 
   @override
-  String get settingsAccount => '账户';
-
-  @override
   String get settingsShowTutorial => '再次查看教程';
 
   @override
   String get settingsReplayTour => '重新播放应用功能概览';
-
-  @override
-  String get settingsLogOut => '退出登录';
-
-  @override
-  String get settingsSignOutSubtitle => '退出你的账户';
-
-  @override
-  String get settingsAdvanced => '高级';
-
-  @override
-  String get settingsAdvancedSubtitle => '开发者与模型调校选项';
-
-  @override
-  String get settingsModelFromDevice => '来自本设备的模型（测试）';
-
-  @override
-  String get settingsScanForModels => '扫描模型文件';
-
-  @override
-  String get settingsScanningStorage => '正在扫描存储…';
-
-  @override
-  String get settingsScanSubtitle => '查找应用已下载的 .litertlm 和 .task 文件';
-
-  @override
-  String get settingsModelFilePath => '模型文件路径';
-
-  @override
-  String get settingsModelFilePathHelper => '也可手动输入路径。文件将就地使用，绝不会被复制。';
-
-  @override
-  String get settingsContextWindow => '上下文窗口（词元）';
-
-  @override
-  String settingsContextWindowHelper(int max) {
-    return '加载时请求的上下文长度。不得超过转换时设定的 kv_cache_max_len（MiniCPM5-2B 最高支持 $max）。更大的窗口每个词元约占用 40 KB 内存。';
-  }
-
-  @override
-  String settingsContextRange(int max) {
-    return '请输入 1024 到 $max 之间的值';
-  }
-
-  @override
-  String get settingsThinking => '思考（推理）';
-
-  @override
-  String get settingsThinkingHelper =>
-      '让模型在回答前先推理。会使用更多词元且速度较慢；需要 3000 以上词元的上下文才有效。';
-
-  @override
-  String get settingsLoadModelFromFile => '从文件加载模型';
-
-  @override
-  String settingsCloudThreshold(int pct) {
-    return '云端升级阈值 — 低于 $pct% 时升级';
-  }
-
-  @override
-  String get settingsCloudReview => '云端审查';
-
-  @override
-  String get settingsForceCloud => '强制使用云端';
-
-  @override
-  String get settingsForceCloudHelper =>
-      '将每条信息都发送到云端模型并跳过本地模型。仅在云端无法连接时才回退到本地模型。';
-
-  @override
-  String get settingsEndpoint => '接口地址';
-
-  @override
-  String get settingsEndpointHint => 'https://.../v1/chat/completions（留空 = 停用）';
-
-  @override
-  String get settingsModelName => '模型名称';
-
-  @override
-  String settingsOnDeviceModel(String name) {
-    return '本地模型 — $name';
-  }
-
-  @override
-  String settingsReadyKept(int mb) {
-    return '就绪 · $mb MB · 保存在应用中（卸载后删除）';
-  }
-
-  @override
-  String settingsReadyOffline(int mb) {
-    return '就绪 · $mb MB · 离线运行';
-  }
-
-  @override
-  String settingsInstallingBundled(int pct) {
-    return '正在安装内置模型 $pct%';
-  }
-
-  @override
-  String settingsDownloadingPct(int pct) {
-    return '正在下载 $pct%';
-  }
-
-  @override
-  String get settingsBundledPreparing => '随应用捆绑 · 准备中';
-
-  @override
-  String settingsNotDownloaded(int mb) {
-    return '尚未下载（$mb MB）';
-  }
 
   @override
   String get settingsRemove => '移除';
@@ -430,77 +261,116 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get settingsInstall => '安装';
-
-  @override
   String get settingsDownload => '下载';
-
-  @override
-  String get settingsNoFilePicked => '尚未选择文件';
-
-  @override
-  String get settingsScanHint => '扫描本手机上已有的模型文件。';
-
-  @override
-  String settingsCustomModelMeta(String path, int mb, int tokens) {
-    return '$path · $mb MB · $tokens 词元';
-  }
-
-  @override
-  String get settingsForget => '忘记';
-
-  @override
-  String get settingsAllFilesAccess =>
-      '请在 Android 设置中为 Scam Shield 授予“所有文件访问权限”，然后重新扫描。';
-
-  @override
-  String get settingsNoModelFiles =>
-      '未找到 .litertlm 或 .task 文件。\n\n请在上方下载模型（或在下方输入文件路径），然后重新扫描。';
-
-  @override
-  String settingsFileSizeMb(int mb) {
-    return '$mb MB';
-  }
-
-  @override
-  String get settingsEnterPathFirst => '请先输入模型文件路径';
-
-  @override
-  String settingsModelLoaded(String name) {
-    return '$name 已加载';
-  }
-
-  @override
-  String get settingsModelForgotten => '已忘记所选模型 — 文件仍保留在设备上';
-
-  @override
-  String settingsSizeFromDevice(int mb) {
-    return '~$mb MB · 来自本设备';
-  }
-
-  @override
-  String settingsSizeBundled(int mb) {
-    return '~$mb MB · 内置';
-  }
-
-  @override
-  String settingsSizeDownload(int mb) {
-    return '~$mb MB · 下载';
-  }
-
-  @override
-  String settingsFieldSaved(String label) {
-    return '$label 已保存';
-  }
-
-  @override
-  String get settingsSave => '保存';
 
   @override
   String get settingsLanguage => '语言';
 
   @override
   String get settingsLanguageSystem => '系统默认';
+
+  @override
+  String get settingsStatusTitle => '状态';
+
+  @override
+  String get settingsGettingReady => '正在准备…';
+
+  @override
+  String get settingsNeedsDownload => '防护需要下载';
+
+  @override
+  String settingsModelReady(String name) {
+    return '$name 已就绪';
+  }
+
+  @override
+  String settingsModelNotDownloaded(String name) {
+    return '$name 尚未下载';
+  }
+
+  @override
+  String settingsSettingUpPct(int pct) {
+    return '正在设置…$pct%';
+  }
+
+  @override
+  String settingsSettingUpMb(int mb) {
+    return '正在设置…$mb MB';
+  }
+
+  @override
+  String get settingsCheckerTitle => '诈骗检查器';
+
+  @override
+  String get settingsCheckerCaption => '在你的手机上检查信息。不会向外部发送任何内容。';
+
+  @override
+  String get settingsCheckingSupport => '正在检查你的手机…';
+
+  @override
+  String get settingsNotAvailable => '此手机不支持';
+
+  @override
+  String get settingsReadyShort => '就绪';
+
+  @override
+  String get settingsBuiltInSubtitle => '内置于你的手机。无需下载。';
+
+  @override
+  String settingsAboutMb(int mb) {
+    return '约 $mb MB';
+  }
+
+  @override
+  String get settingsPrepare => '设置';
+
+  @override
+  String get settingsSpeedTitle => '速度';
+
+  @override
+  String get settingsSpeedCaption => '除非检查器出现问题，请保持“自动”。';
+
+  @override
+  String get settingsSpeedAuto => '自动';
+
+  @override
+  String get settingsSpeedAutoBody => '最适合大多数手机';
+
+  @override
+  String get settingsSpeedCpu => '兼容性最佳';
+
+  @override
+  String get settingsSpeedCpuBody => '适用于所有手机。速度最慢。';
+
+  @override
+  String get settingsSpeedGpu => '更快';
+
+  @override
+  String get settingsSpeedGpuBody => '使用手机的图形芯片';
+
+  @override
+  String get settingsSpeedNpu => '最快';
+
+  @override
+  String get settingsSpeedNpuBody => '仅部分较新的手机支持';
+
+  @override
+  String get settingsAppSection => '应用';
+
+  @override
+  String get settingsAppearance => '外观';
+
+  @override
+  String get settingsThemeLight => '浅色';
+
+  @override
+  String get settingsThemeDark => '深色';
+
+  @override
+  String get settingsPermissionsSubtitle => '查看应用被允许执行的操作';
+
+  @override
+  String get settingsSignInSubtitle => '在社区发帖需要登录';
 
   @override
   String callIncoming(String who) {
@@ -538,6 +408,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callBlockedLabel => '已拦截';
 
   @override
+  String get navHome => '主页';
+
+  @override
+  String get navCalls => '通话';
+
+  @override
+  String get navSafety => '安全';
+
+  @override
+  String get navReport => '举报';
+
+  @override
+  String get navProfile => '我的';
+
+  @override
   String get callHistoryTitle => '通话记录';
 
   @override
@@ -567,13 +452,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callReportedSuffix => ' • 已举报';
 
   @override
-  String get callBlock => '拦截';
-
-  @override
   String get callUnblock => '取消拦截';
-
-  @override
-  String get callBlockAndReport => '拦截并举报';
 
   @override
   String get callBlockNeedsScreening => '要阻止已屏蔽的号码响铃，请选择此应用进行来电筛选。';
@@ -598,28 +477,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get callHighRiskDismiss => '关闭';
 
   @override
-  String get callCheckNumber => '检查此号码';
-
-  @override
   String get callChecking => '正在检查号码...';
-
-  @override
-  String callCheckSafe(String number) {
-    return '$number 看起来安全';
-  }
-
-  @override
-  String callCheckUnknown(String number) {
-    return '没有关于 $number 的举报';
-  }
-
-  @override
-  String callCheckHighRisk(String number) {
-    return '$number 属于高风险';
-  }
-
-  @override
-  String get callCheckFailed => '无法检查此号码';
 
   @override
   String get callCheckTitle => '号码检查';
@@ -662,60 +520,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get reportPhone => '电话';
-
-  @override
-  String get reportUnknownApp => '未知应用';
-
-  @override
-  String get reportSent => '举报已发送';
-
-  @override
   String get reportNotSent => '举报未发送 — 举报接口尚未配置';
-
-  @override
-  String get reportAddAppFirst => '请先添加一个应用。';
-
-  @override
-  String get reportAsScam => '将此信息举报为诈骗？';
-
-  @override
-  String get reportSuspiciousMessages => '可疑信息';
-
-  @override
-  String get reportTapHint => '对任何看起来像诈骗的信息点按“举报此项”。';
-
-  @override
-  String get reportNothingSuspicious => '目前没有可疑内容';
-
-  @override
-  String reportVerdictSummary(String label, int pct) {
-    return '$label · $pct% 确定';
-  }
-
-  @override
-  String get reportRecentCalls => '最近通话';
-
-  @override
-  String get reportNoCalls => '尚无通话记录';
-
-  @override
-  String get reportSomethingElse => '举报其他内容';
-
-  @override
-  String get reportWriteOwn => '撰写你自己的举报';
-
-  @override
-  String get reportNumberOptional => '号码（可选）';
-
-  @override
-  String get reportAppRequired => '应用（必填）';
-
-  @override
-  String get reportAppHint => 'WhatsApp、Telegram、电话…';
-
-  @override
-  String get reportMarkAs => '标记为';
 
   @override
   String get reportSpam => '垃圾信息';
@@ -728,52 +533,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reportReason => '原因';
-
-  @override
-  String get reportReasonHint => '他们做了或说了什么？';
-
-  @override
-  String get reportOtherComments => '其他备注';
-
-  @override
-  String get reportOtherCommentsHint => '还有什么我们该知道的（可选）';
-
-  @override
-  String get reportSubmit => '提交举报';
-
-  @override
-  String reportSubjectTitle(String subject) {
-    return '举报 $subject？';
-  }
-
-  @override
-  String get reportReasonOptional => '原因（可选）';
-
-  @override
-  String get shieldTurnOnToRun => '开启防护以运行模型';
-
-  @override
-  String get shieldCheckingMessage => '正在检查信息…';
-
-  @override
-  String get shieldScamAi => '诈骗 AI';
-
-  @override
-  String get shieldModelReady => '本地模型已就绪';
-
-  @override
-  String get shieldNoModel => '未安装本地模型';
-
-  @override
-  String shieldStats(int evaluated, int alerts) {
-    return '已检查 $evaluated 条信息，发出 $alerts 次警报';
-  }
-
-  @override
-  String get shieldTryMessage => '试试一条信息';
-
-  @override
-  String get shieldPasteHint => '粘贴一条可疑信息…';
 
   @override
   String get shieldCheck => '检查';
@@ -890,15 +649,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactsPermRequired => '查看通讯录需要通讯录权限';
 
   @override
-  String contactsLoadFailed(String error) {
-    return '加载通讯录失败：$error';
-  }
-
-  @override
   String get contactsTitle => '通讯录';
-
-  @override
-  String get contactsOpenMenu => '打开菜单';
 
   @override
   String get contactsSearchHint => '搜索通讯录…';
@@ -916,11 +667,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactsCouldNotCall => '无法发起通话';
 
   @override
-  String contactsCouldNotCallError(String error) {
-    return '无法发起通话：$error';
-  }
-
-  @override
   String get safetyTitle => '安全';
 
   @override
@@ -931,9 +677,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get safetyProtectedOff => '防护已关闭';
-
-  @override
-  String get safetyDownloadFirstPeriod => '请先在“设置”选项卡中下载模型。';
 
   @override
   String get safetyWeCheck => '我们会检查你的信息是否为诈骗。';
@@ -963,6 +706,44 @@ class AppLocalizationsZh extends AppLocalizations {
   String get safetyNoScamsBody => '可疑信息将显示在这里。';
 
   @override
+  String get safetyMeteredTitle => '使用移动数据？';
+
+  @override
+  String safetyMeteredBody(int mb) {
+    return '此下载约 $mb MB。建议使用 Wi-Fi。';
+  }
+
+  @override
+  String get safetyNotNow => '以后再说';
+
+  @override
+  String get safetyDownload => '下载';
+
+  @override
+  String get safetyCouldNotStart => '防护无法启动。请重试。';
+
+  @override
+  String get safetyShowMore => '显示更多';
+
+  @override
+  String get safetyShowLess => '显示更少';
+
+  @override
+  String get safetyPillOn => '已防护';
+
+  @override
+  String get safetyPillOff => '已关闭';
+
+  @override
+  String get safetyPillError => '需要注意';
+
+  @override
+  String get safetyPillChecking => '检查中';
+
+  @override
+  String get safetyHeroOnBody => '在你的手机上私密检查。';
+
+  @override
   String get protectionChecked => '已检查';
 
   @override
@@ -973,9 +754,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get protectionOff => '防护已关闭';
-
-  @override
-  String get protectionReadsNotifications => '读取来自信息应用的通知';
 
   @override
   String activityAll(int count) {
@@ -1037,47 +815,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notificationsTitle => '通知';
 
   @override
-  String get notificationsTestTitle => 'Test the on-device AI';
+  String get notificationsTestTitle => '测试信息';
 
   @override
-  String get notificationsTestHint => 'Paste or type a message to check';
+  String get notificationsTestHint => '粘贴或输入信息';
 
   @override
-  String get notificationsTestRun => 'Check message';
+  String get notificationsTestRun => '检查信息';
 
   @override
-  String get notificationsTestServiceOff =>
-      'Turn protection on first so the model can run the check.';
+  String get notificationsTestServiceOff => '请先开启防护。';
 
   @override
-  String get notificationsTestSent =>
-      'Checking… the result will appear below once the model finishes.';
-
-  @override
-  String settingsScreenModelInstalled(String name) {
-    return '$name 已安装';
-  }
+  String get notificationsTestSent => '正在检查。结果将显示在下方。';
 
   @override
   String get settingsScreenTitle => '设置';
 
   @override
-  String get settingsScreenModelTab => '模型';
-
-  @override
   String get settingsScreenPermissionsTab => '权限';
-
-  @override
-  String get loginAppName => 'Call Manager';
-
-  @override
-  String get loginTagline => '保护你远离诈骗电话和信息。';
-
-  @override
-  String get loginGetStarted => '开始使用';
-
-  @override
-  String get onboardingTitle => '权限';
 
   @override
   String get onboardingContinue => '继续';
@@ -1087,9 +843,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingStart => '开始';
-
-  @override
-  String get onboardingNext => '下一步';
 
   @override
   String get onboardingAllow => '允许';
@@ -1198,6 +951,57 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get onboardingWhy => '为什么？';
+
+  @override
+  String get onboardingScreeningWhy => '手机会要求你选择此应用。请选择它，以便检查来电。';
+
+  @override
+  String get onboardingMessagesWhy => '我们会寻找诈骗迹象，例如可疑链接或索要钱财。';
+
+  @override
+  String get onboardingBatterySettingsHint => '设置将打开。找到此应用并选择“不优化”。';
+
+  @override
+  String get onboardingModelTitle => '诈骗检查器';
+
+  @override
+  String get onboardingModelBody => '在你的手机上检查信息。建议使用 Wi‑Fi。';
+
+  @override
+  String onboardingModelDownload(String size) {
+    return '下载（$size）';
+  }
+
+  @override
+  String get onboardingModelDownloadShort => '下载';
+
+  @override
+  String onboardingModelDownloading(int percent) {
+    return '正在下载…$percent%';
+  }
+
+  @override
+  String get onboardingModelKeepGoing => '你可以继续。下载会继续进行。';
+
+  @override
+  String get onboardingModelReady => '可以使用了。';
+
+  @override
+  String get onboardingModelFailed => '下载未完成。请重试，或稍后在设置中进行。';
+
+  @override
+  String get onboardingModelMeteredTitle => '使用移动数据？';
+
+  @override
+  String onboardingModelMeteredBody(String size) {
+    return '你当前不在 Wi‑Fi 上。这将使用约 $size 的数据流量。';
+  }
+
+  @override
+  String get setupOpenSettingsFailed => '无法打开设置。';
+
+  @override
   String get authEnterEmail => '请输入你的电子邮箱。';
 
   @override
@@ -1250,9 +1054,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get authToggleToRegister => '初次使用？创建账户';
-
-  @override
-  String get authGateMessage => '请登录以继续';
 
   @override
   String get authGateTitle => '需要登录';
@@ -1354,6 +1155,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get myPostsDeleteConfirmBody => '这会将其从社区中移除。此操作无法撤销。';
 
   @override
+  String get myPostsEdit => '编辑';
+
+  @override
+  String get editPostTitle => '编辑帖子';
+
+  @override
+  String get editPostSave => '保存更改';
+
+  @override
+  String get editPostSaving => '正在保存…';
+
+  @override
+  String get editPostSaved => '更改已保存。';
+
+  @override
+  String get editPostReReview => '编辑信息后，帖子将重新提交审核。';
+
+  @override
   String get postDetailThankYou => '谢谢你。我们的团队将审核此帖。';
 
   @override
@@ -1427,11 +1246,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postDetailRemovedComment => '此评论已被移除。';
 
   @override
-  String postDetailShowMoreReplies(int count) {
-    return '显示另外 $count 条回复';
-  }
-
-  @override
   String get guidanceClickedLink => '我点了一个链接';
 
   @override
@@ -1484,6 +1298,18 @@ class AppLocalizationsZh extends AppLocalizations {
       '陌生号码的来电会显示在这里。点按某条通话可查看详情，使用右上角的拦截图标来管理你再也不想接到的号码。';
 
   @override
+  String get tourBlockedTitle => '你的已拦截号码';
+
+  @override
+  String get tourBlockedBody => '点按带斜线的盾牌图标，查看你已拦截的号码。';
+
+  @override
+  String get tourHelpTitle => '需要帮助？';
+
+  @override
+  String get tourHelpBody => '在任意界面点按 ? 了解各项含义。';
+
+  @override
   String get tourSafetyTitle => '安全';
 
   @override
@@ -1497,22 +1323,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tourReportBody => '发现诈骗了？在此选项卡将它分享到社区，让其他人也能识别同样的伎俩并保持警惕。';
 
   @override
-  String get tourMyPostsTitle => '我的帖子';
-
-  @override
-  String get tourMyPostsBody => '你举报的所有内容都会汇总到这里。追踪讨论，查看版主何时审核了你的帖子。';
-
-  @override
   String get tourProfileTitle => '您的个人资料';
 
   @override
   String get tourProfileBody => '在这里查看您的账户详情和您举报过的诈骗。';
-
-  @override
-  String get tourSettingsTitle => '设置';
-
-  @override
-  String get tourSettingsBody => '下载防护模型、管理权限，并可随时从“账户”区域重新播放本导览。';
 
   @override
   String tourStepCounter(int current, int total) {
@@ -1527,4 +1341,100 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tourNext => '下一步';
+
+  @override
+  String get tourBack => '返回';
+
+  @override
+  String get helpTooltip => '帮助';
+
+  @override
+  String get helpGotIt => '知道了';
+
+  @override
+  String get helpShowTour => '再次显示应用教程';
+
+  @override
+  String get helpCallsTitle => '各项含义';
+
+  @override
+  String get helpCallsHighRiskTitle => '红色通话 = 很可能是诈骗';
+
+  @override
+  String get helpCallsHighRiskBody => '请勿接听或回拨。';
+
+  @override
+  String get helpCallsNormalTitle => '普通通话';
+
+  @override
+  String get helpCallsNormalBody => '此号码没有诈骗举报记录。';
+
+  @override
+  String get helpCallsBlockedRowTitle => '已拦截的通话';
+
+  @override
+  String get helpCallsBlockedRowBody => '你已拦截此号码。它无法再打扰你。';
+
+  @override
+  String get helpCallsBlockedListTitle => '你的已拦截号码';
+
+  @override
+  String get helpCallsBlockedListBody => '点按此项可查看或取消拦截号码。';
+
+  @override
+  String get helpCallsMenuTitle => '更多选项';
+
+  @override
+  String get helpCallsMenuBody => '检查、拦截或举报号码。';
+
+  @override
+  String get helpCallsRefreshTitle => '刷新';
+
+  @override
+  String get helpCallsRefreshBody => '重新检查你的通话。';
+
+  @override
+  String get helpCallsMissedBody => '你未接听此通话。';
+
+  @override
+  String get helpCallsAnsweredBody => '你已接听此通话。';
+
+  @override
+  String get helpCallsRejectedBody => '你已拒接此通话。';
+
+  @override
+  String get helpCallsBlockedIconBody => '此通话已被阻止。';
+
+  @override
+  String get helpCallsOutgoingBody => '你拨打了此号码。';
+
+  @override
+  String get callsLikelyScam => '很可能是诈骗';
+
+  @override
+  String get callsMoreOptions => '更多选项';
+
+  @override
+  String get callsBlockNumber => '拦截号码';
+
+  @override
+  String get callsReportScam => '举报为诈骗';
+
+  @override
+  String get callsBlockAndReport => '拦截并举报';
+
+  @override
+  String get callsCheckNumber => '检查号码';
+
+  @override
+  String get callsLoadFailedBody => '请重试。';
+
+  @override
+  String get callsBlockedEmptyBody => '你拦截的号码将显示在这里。';
+
+  @override
+  String get callsContactsLoadFailed => '无法显示你的通讯录。请重试。';
+
+  @override
+  String get callsCallTooltip => '呼叫';
 }

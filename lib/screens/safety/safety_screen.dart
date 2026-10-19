@@ -14,20 +14,20 @@ import '../../services/notification_log.dart';
 import '../../services/protection_settings.dart';
 import '../../services/scamshield_channels.dart';
 import '../../widgets/auth/require_login.dart';
+import '../../widgets/tour/tour_models.dart';
 import 'notifications_screen.dart';
+import 'widgets/safety_hero.dart';
 import '../community/report_tab_screen.dart';
 
-enum _ShieldState { grey, green, red, shimmer }
-
-_ShieldState _deriveShieldState({
+SafetyHeroStatus _deriveHeroStatus({
   required bool enabled,
   required ServiceStatus status,
 }) {
-  if (!enabled) return _ShieldState.grey;
-  if (status.processing) return _ShieldState.shimmer;
-  if (status.modelError) return _ShieldState.red;
-  if (status.modelReady) return _ShieldState.green;
-  return _ShieldState.grey;
+  if (!enabled) return SafetyHeroStatus.off;
+  if (status.processing) return SafetyHeroStatus.checking;
+  if (status.modelError) return SafetyHeroStatus.error;
+  if (status.modelReady) return SafetyHeroStatus.on;
+  return SafetyHeroStatus.off;
 }
 
 class SafetyScreen extends StatefulWidget {
@@ -204,24 +204,21 @@ class _SafetyScreenState extends State<SafetyScreen>
     final metered = await ScamShieldController.isOnMeteredConnection();
     if (!metered) return true;
     if (!mounted) return false;
+    final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Download on mobile data?'),
-          content: Text(
-            'You are on a metered connection. Downloading the '
-            '${spec.displayName} will use about ${spec.approxSizeMb} MB of '
-            'data. Continue?',
-          ),
+          title: Text(l10n.safetyMeteredTitle),
+          content: Text(l10n.safetyMeteredBody(spec.approxSizeMb)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: const Text('Not now'),
+              child: Text(l10n.safetyNotNow),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Download'),
+              child: Text(l10n.safetyDownload),
             ),
           ],
         );
@@ -327,7 +324,9 @@ class _SafetyScreenState extends State<SafetyScreen>
       debugPrint('[ScamShield] Protection setup failed: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Protection could not start: $error')),
+          SnackBar(
+            content: Text(AppLocalizations.of(context).safetyCouldNotStart),
+          ),
         );
       }
       // The setup failed, so protection must not be left reported as on.
@@ -503,9 +502,13 @@ class _SafetyScreenState extends State<SafetyScreen>
             _protectionCard(theme, l10n),
             const SizedBox(height: 20),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(l10n.safetyRecentAlerts, style: theme.textTheme.titleLarge),
+                Expanded(
+                  child: Text(
+                    l10n.safetyRecentAlerts,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ),
                 if (_entries.isNotEmpty)
                   TextButton.icon(
                     onPressed: _clear,
@@ -526,55 +529,37 @@ class _SafetyScreenState extends State<SafetyScreen>
   }
 
   Widget _protectionCard(ThemeData theme, AppLocalizations l10n) {
-    final scheme = theme.colorScheme;
     final on = _protectionEnabled;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                ExcludeSemantics(child: _shield(scheme)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        on ? l10n.safetyProtectedOn : l10n.safetyProtectedOff,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      // Before any model is installed (first run) we show no
-                      // subtitle — just the title and the "Press to start"
-                      // button below. Once a model exists, explain whether we
-                      // are checking (on) or prompt to turn protection on.
-                      if (_modelInstalled) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          on ? l10n.safetyWeCheck : l10n.safetyTurnOnToCheck,
-                          style: theme.textTheme.bodyMedium,
-                          semanticsLabel:
-                              on ? l10n.safetyWeCheck : l10n.safetyTurnOnToCheck,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            // Rebuilds on ModelController changes so the download progress
-            // reflects live percent while a model is being fetched.
-            AnimatedBuilder(
-              animation: _model,
-              builder: (context, _) => _protectionButton(theme, l10n, on),
-            ),
-          ],
-        ),
-      ),
+    final status = _deriveHeroStatus(enabled: on, status: _status);
+
+    SafetyHero hero({Color? accent}) => SafetyHero(
+          key: CoachMarkTargets.keyOf(context, TourTarget.safetyStatus),
+          status: status,
+          accentOverride: accent,
+          title: on ? l10n.safetyProtectedOn : l10n.safetyProtectedOff,
+          // Before any model is installed (first run) we show no subtitle,
+          // just the title and the "Press to start" button below.
+          subtitle: !_modelInstalled
+              ? null
+              : on
+                  ? l10n.safetyHeroOnBody
+                  : l10n.safetyTurnOnToCheck,
+          // Rebuilds on ModelController changes so the download progress
+          // reflects live percent while a model is being fetched.
+          action: AnimatedBuilder(
+            animation: _model,
+            builder: (context, _) => _protectionButton(theme, l10n, on),
+          ),
+        );
+
+    if (status != SafetyHeroStatus.checking) return hero();
+    // While a message is being checked the shield cycles through hues.
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, _) {
+        final hue = (_shimmerHue + _pulse.value * 360) % 360;
+        return hero(accent: HSVColor.fromAHSV(1, hue, 0.85, 0.9).toColor());
+      },
     );
   }
 
@@ -610,8 +595,8 @@ class _SafetyScreenState extends State<SafetyScreen>
     }
     return SizedBox(
       width: double.infinity,
-      height: 60,
       child: FilledButton.icon(
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(60)),
         onPressed:
             _busy ? null : () => _toggleProtection(!_protectionEnabled),
         icon: Icon(on ? Icons.toggle_on : Icons.toggle_off, size: 28),
@@ -691,47 +676,6 @@ class _SafetyScreenState extends State<SafetyScreen>
     return '${l10n.safetyDownloadingModel} $pct';
   }
 
-  Widget _shield(ColorScheme scheme) {
-    final state = _deriveShieldState(
-      enabled: _protectionEnabled,
-      status: _status,
-    );
-    final Color fill;
-    switch (state) {
-      case _ShieldState.grey:
-        fill = scheme.outline;
-      case _ShieldState.green:
-        fill = const Color(0xFF2E7D32);
-      case _ShieldState.red:
-        fill = scheme.error;
-      case _ShieldState.shimmer:
-        fill = const Color(0xFF2E7D32);
-    }
-    final shieldStack = Stack(
-      alignment: Alignment.center,
-      children: [
-        Icon(Icons.shield, size: 56, color: fill),
-        Icon(Icons.shield_outlined, size: 56, color: scheme.onSurface),
-      ],
-    );
-    if (state != _ShieldState.shimmer) return shieldStack;
-    return AnimatedBuilder(
-      animation: _pulse,
-      builder: (context, _) {
-        final hue = (_shimmerHue + _pulse.value * 360) % 360;
-        final shimmerColor =
-            HSVColor.fromAHSV(1, hue, 0.85, 0.9).toColor();
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Icon(Icons.shield, size: 56, color: shimmerColor),
-            Icon(Icons.shield_outlined, size: 56, color: scheme.onSurface),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _alertCard(ThemeData theme, AppLocalizations l10n, LoggedNotification entry) {
     final scheme = theme.colorScheme;
     final record = entry.record;
@@ -761,13 +705,15 @@ class _SafetyScreenState extends State<SafetyScreen>
             ),
             if (record.content.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(record.content, style: theme.textTheme.bodyLarge),
+              _AlertMessage(text: record.content),
             ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
-              height: 52,
               child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                ),
                 onPressed: () => _reportEntry(entry),
                 icon: const Icon(Icons.flag),
                 label: Text(
@@ -803,13 +749,59 @@ class _SafetyScreenState extends State<SafetyScreen>
               const SizedBox(height: 4),
               Text(
                 l10n.safetyNoScamsBody,
-                style: theme.textTheme.bodyMedium,
+                style: theme.textTheme.bodyLarge,
                 textAlign: TextAlign.center,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The body of a scam alert. Long messages are clipped to a few lines with a
+/// large "Show more" toggle so the alert card stays easy to scan.
+class _AlertMessage extends StatefulWidget {
+  const _AlertMessage({required this.text});
+
+  final String text;
+
+  @override
+  State<_AlertMessage> createState() => _AlertMessageState();
+}
+
+class _AlertMessageState extends State<_AlertMessage> {
+  static const int _collapsedLines = 4;
+  static const int _longThreshold = 160;
+
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final isLong = widget.text.length > _longThreshold ||
+        '\n'.allMatches(widget.text).length >= _collapsedLines;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.text,
+          style: theme.textTheme.bodyLarge,
+          maxLines: isLong && !_expanded ? _collapsedLines : null,
+          overflow: isLong && !_expanded ? TextOverflow.ellipsis : null,
+        ),
+        if (isLong)
+          TextButton(
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            onPressed: () => setState(() => _expanded = !_expanded),
+            child: Text(_expanded ? l10n.safetyShowLess : l10n.safetyShowMore),
+          ),
+      ],
     );
   }
 }

@@ -91,10 +91,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       padBody: false,
       body: Column(
         children: [
-          _TestEvaluateCard(
-            controller: _testController,
-            sending: _sending,
-            onRun: _runTest,
+          // Flexible + scroll so the test card can shrink at large text sizes
+          // instead of overflowing the activity list below.
+          Flexible(
+            child: SingleChildScrollView(
+              child: _TestEvaluateCard(
+                controller: _testController,
+                sending: _sending,
+                onRun: _runTest,
+              ),
+            ),
           ),
           Expanded(
             child: ActivityTab(
@@ -161,8 +167,10 @@ class _TestEvaluateCard extends StatelessWidget {
               SizedBox(height: tokens.space.md),
               SizedBox(
                 width: double.infinity,
-                height: 48,
                 child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                  ),
                   onPressed: sending ? null : onRun,
                   icon: sending
                       ? const SizedBox(

@@ -305,10 +305,6 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       padding: EdgeInsets.only(top: tokens.space.sm, bottom: tokens.space.xl2),
       children: [
         Text(post.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
-        if (post.tags.isNotEmpty) ...[
-          SizedBox(height: tokens.space.sm),
-          _TagChips(tags: post.tags),
-        ],
         if (post.imageUrls.isNotEmpty) ...[
           SizedBox(height: tokens.space.md),
           _pictureStrip(theme, post.imageUrls),
@@ -458,16 +454,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     required VoidCallback onTap,
   }) {
     return Expanded(
-      child: SizedBox(
-        height: 56,
-        child: OutlinedButton.icon(
-          onPressed: _voting ? null : onTap,
-          icon: Icon(icon, size: 24),
-          label: Text(label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          style: OutlinedButton.styleFrom(
-             backgroundColor: active ? theme.colorScheme.primary.withValues(alpha: 0.12) : null,
-            foregroundColor: active ? theme.colorScheme.primary : theme.colorScheme.onSurface,
-          ),
+      child: OutlinedButton.icon(
+        onPressed: _voting ? null : onTap,
+        icon: Icon(icon, size: 24),
+        label: Text(label, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(56),
+           backgroundColor: active ? theme.colorScheme.primary.withValues(alpha: 0.12) : null,
+          foregroundColor: active ? theme.colorScheme.primary : theme.colorScheme.onSurface,
         ),
       ),
     );
@@ -549,8 +543,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           ),
         ),
          SizedBox(height: context.tokens.space.sm),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        Wrap(
+          alignment: WrapAlignment.end,
+          runSpacing: context.tokens.space.xs,
           children: [
             TextButton(
               onPressed: _savingEdit ? null : _cancelEdit,
@@ -572,7 +567,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   Widget _commentActions(ThemeData theme, AppLocalizations l10n, PostComment comment, bool isAuthor) {
     final buttonStyle = TextButton.styleFrom(
        padding: EdgeInsets.symmetric(horizontal: context.tokens.space.sm, vertical: context.tokens.space.xs),
-       minimumSize: const Size(0, 44),
+       minimumSize: const Size(48, 48),
       foregroundColor: theme.colorScheme.onSurfaceVariant,
     );
     return Padding(
@@ -658,8 +653,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ),
          SizedBox(height: context.tokens.space.md),
         SizedBox(
-          height: 56,
           child: FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
             onPressed: _postingComment ? null : _addComment,
             icon: _postingComment
                 ? const SizedBox(
@@ -668,55 +663,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                  : const Icon(LucideIcons.send),
-            label: Text(l10n.postDetailPostComment, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            label: Text(l10n.postDetailPostComment, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
           ),
         ),
-      ],
-    );
-  }
-}
-
-/// A compact row of tag pills (e.g. "Bank impersonation"). Wraps onto multiple
-/// lines when there are many tags. Shown next to a post's title.
-class _TagChips extends StatelessWidget {
-  const _TagChips({required this.tags});
-
-  final List<ScamTag> tags;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final tokens = context.tokens;
-    return Wrap(
-      spacing: tokens.space.xs,
-      runSpacing: tokens.space.xs,
-      children: [
-        for (final tag in tags)
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: tokens.space.sm,
-              vertical: tokens.space.xs,
-            ),
-            decoration: BoxDecoration(
-              color: scheme.primary.withValues(alpha: 0.12),
-              borderRadius: tokens.radii.pillRadius,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(LucideIcons.tag, size: 14, color: scheme.primary),
-                SizedBox(width: tokens.space.xs),
-                Text(
-                  tag.displayName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
       ],
     );
   }
@@ -780,11 +729,11 @@ class _FlagDialogState extends State<_FlagDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(l10n.commonCancel, style: const TextStyle(fontSize: 16)),
+          child: Text(l10n.commonCancel, style: theme.textTheme.bodyMedium),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(_reason),
-          child: Text(l10n.commonReport, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          child: Text(l10n.commonReport, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
         ),
       ],
     );

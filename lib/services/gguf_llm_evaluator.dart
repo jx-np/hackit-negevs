@@ -107,7 +107,8 @@ class GgufLlmEvaluator implements ScamEvaluator {
   @override
   Future<ScamVerdict> evaluate(
     NotificationRecord record, {
-    List<String> priorMessages = const [],
+    List<String>? priorMessages,
+    ScamHints? hints,
     int? exampleCount,
   }) async {
     try {
@@ -117,6 +118,7 @@ class GgufLlmEvaluator implements ScamEvaluator {
         engine,
         record,
         priorMessages,
+        hints,
         exampleCount,
       );
       // `create` applies the chat template the GGUF carries, which is exactly
@@ -147,13 +149,17 @@ class GgufLlmEvaluator implements ScamEvaluator {
   Future<String> _fittedPrompt(
     LlamaEngine engine,
     NotificationRecord record,
-    List<String> priorMessages,
+    List<String>? priorMessages,
+    ScamHints? precomputedHints,
     int? exampleCount,
   ) async {
     final budget = _inputTokenBudget;
     final message = _truncate(record.content, _inputCharCap);
-    final hints = (await ScamHintBuilder.fromRecord(record)).render();
-    final prior = priorMessages
+    // Reuse hints computed by the caller when available; recomputing here would
+    // hit the device contacts DB a second time (see ScamHintBuilder.fromRecord).
+    final hints =
+        (precomputedHints ?? await ScamHintBuilder.fromRecord(record)).render();
+    final prior = (priorMessages ?? const <String>[])
         .map((m) => _truncate(m.trim(), _priorTurnChars))
         .where((m) => m.isNotEmpty)
         .toList();

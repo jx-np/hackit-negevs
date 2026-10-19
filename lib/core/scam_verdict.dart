@@ -19,8 +19,18 @@ enum ScamLabel {
       if (label.wire == normalized) return label;
       if (label.name.toLowerCase() == normalized) return label;
     }
+    // Aliases for out-of-vocabulary labels the model emits by copying a hint
+    // name instead of a verdict label. `callback_request` is a hint, and some
+    // models echo it as a label; the observed cases all describe a benign
+    // "call me back" message, so it resolves to not_scam rather than unsure.
+    final alias = _aliases[normalized];
+    if (alias != null) return alias;
     return ScamLabel.unsure;
   }
+
+  static const Map<String, ScamLabel> _aliases = {
+    'callback_request': ScamLabel.notScam,
+  };
 
   bool get isScam =>
       this != ScamLabel.notScam && this != ScamLabel.unsure;

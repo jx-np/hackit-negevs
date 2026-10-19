@@ -63,6 +63,7 @@ class RemoteApiEvaluator implements ScamEvaluator {
   Future<ScamVerdict> evaluate(
     NotificationRecord record, {
     List<String>? priorMessages,
+    ScamHints? hints,
   }) async {
     if (!isConfigured) {
       return const ScamVerdict(
@@ -73,12 +74,14 @@ class RemoteApiEvaluator implements ScamEvaluator {
       );
     }
     try {
-      final hints = (await ScamHintBuilder.fromRecord(record)).render();
+      final hintsLine =
+          (hints ?? await ScamHintBuilder.fromRecord(record)).render();
       final prompt = buildScamPrompt(
         appLabel: record.appLabel,
         sender: record.title,
         message: record.content,
-        hints: hints,
+        hints: hintsLine,
+        priorMessages: priorMessages ?? const [],
       );
       final response = await http
           .post(

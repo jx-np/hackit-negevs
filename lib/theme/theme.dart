@@ -1,6 +1,7 @@
 import 'package:forui/forui.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:remixicon/remixicon.dart';
+import 'package:scamwatch_mobile_app/theme/app_type_scale.dart';
 
 part 'colors.dart';
 part 'typography.dart';

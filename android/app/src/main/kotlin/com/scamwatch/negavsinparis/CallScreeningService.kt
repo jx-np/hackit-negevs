@@ -37,6 +37,10 @@ class SpamCallScreeningService : CallScreeningService() {
             .build()
 
         respondToCall(callDetails, response)
+
+        if (isIncoming && !shouldBlock && !number.isNullOrBlank()) {
+            HighRiskCallOverlay.checkInBackground(this, number)
+        }
     }
 
     companion object {

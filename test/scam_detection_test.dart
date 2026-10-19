@@ -600,7 +600,6 @@ void main() {
       );
       expect(hints.render(), 'signals=0');
       expect(hints.strongSignalCount, 0);
-      expect(hints.shouldAlert('other_scam', 0.95), isFalse);
     });
 
     test('sms notifications keep their sender hint', () async {
@@ -721,43 +720,107 @@ void main() {
       expect(hints.linkType, LinkType.oddTld);
     });
 
-    test('shouldAlert needs high confidence and two strong signals', () {
-      // Parcel scam: international sender + money + urgency + short link.
-      final scam = hintsFor(
-        '+44 7700 900123',
-        'Pay 2.99 at bit.ly/xyz within 24h or your parcel is returned.',
+    test('every link is weighted as two signals', () {
+      expect(
+        hintsFor('Unknown', 'https://sg-cdn.example.xyz/reconnect-tool')
+            .strongSignalCount,
+        2,
       );
-      expect(scam.shouldAlert('payment_request', 0.96), isTrue);
+      expect(hintsFor('Unknown', 'see bit.ly/xyz now').strongSignalCount, 2);
+      expect(
+        hintsFor('Jay', 'map https://maps.app/abc').strongSignalCount,
+        2,
+      );
     });
 
-    test('shouldAlert is false for a bare link even if the model misfires', () {
-      final hints =
-          hintsFor('Unknown', 'https://sg-cdn.example.xyz/reconnect-tool');
-      expect(hints.strongSignalCount, lessThan(2));
-      expect(hints.shouldAlert('other_scam', 0.95), isFalse);
+    test('a bare link after a click-now hook carries the hook as prior signal',
+        () {
+      final hints = ScamHintBuilder.build(
+        sender: '+65 9123 4567',
+        message: 'bit.ly/dlv-sg8',
+        isSavedContact: false,
+        priorMessages: ['Your parcel could not be delivered. Click now to confirm.'],
+      );
+      expect(hints.priorSignals, 1);
+      expect(hints.strongSignalCount, 3);
+      expect(hints.render(), contains('prior_signals=1'));
     });
 
-    test('shouldAlert is false for casual chat from an odd username', () {
-      final hints = hintsFor('qwertyl 76g20', 'amelia\nehh');
+    test('a saved contact never accumulates prior signals', () {
+      final hints = ScamHintBuilder.build(
+        sender: 'Raj',
+        message: 'bit.ly/abc',
+        isSavedContact: true,
+        priorMessages: ['click here now'],
+      );
+      expect(hints.priorSignals, 0);
+    });
+
+    const workshop = 'Hey Makers! 👋🏻✨\n\n'
+        'We’ve got an upcoming *Be an Entrepreneurship Workshop* to help you '
+        'level up your ideas and creations 💡🔥\n\n'
+        '📅 *Workshop Details:*\n'
+        '🗓️ Date: _28 Oct 2026 (Wed)_\n'
+        '⏰ Time: _2.30pm – 4pm_\n'
+        '📍Location: Bounce (Blk 25 #01-01, near FoodClub)\n'
+        '👥 Slots: No limit!\n\n'
+        '*Sign up:* https://forms.gle/VG1Wr8TAMim2augZ9\n'
+        '*Deadline:* _23 Oct 2026, 11.59pm_';
+
+    test('a free workshop notice with a sign-up link is an announcement', () {
+      final hints = hintsFor('Makers', workshop);
+      expect(hints.messageSignalCount, 0);
+      expect(hints.announcement, isTrue);
+      expect(hints.render(), contains('announcement=yes'));
+    });
+
+    test('a short event lure is not an announcement', () {
+      final hints = hintsFor('Unknown', 'Join our event: https://forms.gle/x');
+      expect(hints.announcement, isFalse);
+    });
+
+    test('an event notice that asks for payment is not an announcement', () {
+      final hints = hintsFor('Makers', '$workshop\nPay the 20 fee to confirm.');
+      expect(hints.announcement, isFalse);
+    });
+
+    test('security warnings and a bare WhatsApp mention are not asks', () {
+      final hints = hintsFor(
+        'Unknown sender',
+        "Hi kenny! We've dropped an exclusive \$2 no min spend voucher into "
+        'your Shopee wallet! Hurry, head over to your Shopee app to use your '
+        "voucher before it expires! Shopee's official WhatsApp channel has a "
+        'verified badge. Do not share your account password, OTP or ShopeePay '
+        'PIN number.',
+      );
+      expect(hints.asksForCode, isFalse);
+      expect(hints.movesOffPlatform, isFalse);
+    });
+
+    test('the carrier Likely-SCAM header is its own sender type', () {
+      for (final sender in ['Likely-SCAM', 'LIKELY-SCAM', 'Likely Scam']) {
+        expect(hintsFor(sender, 'hi').senderType, SenderType.unregistered);
+      }
+      expect(hintsFor('Likely Scammers Ltd', 'hi').senderType, SenderType.name);
+    });
+
+    test('an unregistered sender id adds no signal of its own', () {
+      final hints = hintsFor(
+        'Likely-SCAM',
+        'Shopee: Enjoy \$2 off your next order! Use code SAVE2 before it '
+        'expires. Never share your OTP.',
+      );
+      expect(hints.render(), contains('sender=unregistered_id'));
+      expect(hints.strongSignalCount, 2);
+    });
+
+    test('an OTP from an unregistered sender id is still trivial', () {
+      final hints = hintsFor(
+        'Likely-SCAM',
+        'Your Shopee verification code is 482913. Do not share this code.',
+      );
+      expect(hints.looksTrivial(), isTrue);
       expect(hints.strongSignalCount, 0);
-      expect(hints.shouldAlert('other_scam', 0.95), isFalse);
-    });
-
-    test('shouldAlert needs confidence at least 0.8', () {
-      final hints = hintsFor(
-        '+44 7700 900123',
-        'Pay 2.99 at bit.ly/xyz within 24h or your parcel is returned.',
-      );
-      expect(hints.shouldAlert('payment_request', 0.75), isFalse);
-    });
-
-    test('shouldAlert never fires on not_scam or unsure', () {
-      final hints = hintsFor(
-        '+44 7700 900123',
-        'Pay 2.99 at bit.ly/xyz within 24h or your parcel is returned.',
-      );
-      expect(hints.shouldAlert('not_scam', 0.99), isFalse);
-      expect(hints.shouldAlert('unsure', 0.99), isFalse);
     });
   });
 }

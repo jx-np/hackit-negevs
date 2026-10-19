@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
+import 'package:scamwatch_mobile_app/theme/app_type_scale.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -219,6 +220,14 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                   decoration: _fieldDecoration(l10n.authPasswordHint).copyWith(
                     suffixIcon: IconButton(
                       iconSize: 28,
+                      padding: const EdgeInsets.all(10),
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 48,
+                      ),
+                      tooltip: _obscurePassword
+                          ? l10n.authShowPassword
+                          : l10n.authHidePassword,
                       icon: Icon(
                         _obscurePassword
                             ? LucideIcons.eye
@@ -281,10 +290,12 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                 ),
                 SizedBox(height: context.tokens.space.lg),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 56),
-                  child: TextButton(
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size.fromHeight(56),
+                  constraints: const BoxConstraints(minHeight: 60),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(60),
+                      textStyle: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
                     onPressed: busy ? null : _toggleMode,
                     child: Text(
@@ -292,7 +303,6 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
                           ? l10n.authToggleToLogin
                           : l10n.authToggleToRegister,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ),
                 ),
@@ -306,6 +316,10 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen> {
   InputDecoration _fieldDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(
+        fontSize: AppTypeScale.body,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
       filled: true,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,

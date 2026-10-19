@@ -9,6 +9,7 @@ import 'package:scamwatch_mobile_app/models/api/news_models.dart';
 import 'package:scamwatch_mobile_app/services/api/news_service.dart';
 import 'package:scamwatch_mobile_app/services/protection_settings.dart';
 import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
+import 'package:scamwatch_mobile_app/screens/safety/notifications_screen.dart';
 import 'package:scamwatch_mobile_app/state/auth_controller.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/widgets/ui/app_card.dart';
@@ -42,10 +43,23 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final l10n = AppLocalizations.of(context);
 
     return AppScreen(
-      title: AppLocalizations.of(context).homeTitle,
+      title: l10n.homeTitle,
       titleWidget: _HomeHeaderTitle(onNavigate: onNavigate),
+      actions: [
+        IconButton(
+          tooltip: l10n.activityTitle,
+          iconSize: 28,
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const NotificationsScreen(),
+            ),
+          ),
+          icon: const Icon(Icons.history),
+        ),
+      ],
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -842,7 +856,7 @@ class _NewsBannerState extends State<_NewsBanner> {
   }
 }
 
-/// A 56px round arrow button under the carousel. Disabled at either end.
+/// A 64px round arrow button under the carousel. Disabled at either end.
 class _CarouselArrow extends StatelessWidget {
   const _CarouselArrow({
     required this.icon,
@@ -859,8 +873,8 @@ class _CarouselArrow extends StatelessWidget {
     return IconButton.filledTonal(
       onPressed: onPressed,
       tooltip: tooltip,
-      iconSize: 28,
-      style: IconButton.styleFrom(minimumSize: const Size(56, 56)),
+      iconSize: 32,
+      style: IconButton.styleFrom(minimumSize: const Size(64, 64)),
       icon: Icon(icon),
     );
   }

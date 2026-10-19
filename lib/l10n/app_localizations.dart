@@ -117,7 +117,7 @@ abstract class AppLocalizations {
   /// No description provided for @commonRetry.
   ///
   /// In en, this message translates to:
-  /// **'Retry'**
+  /// **'Try again'**
   String get commonRetry;
 
   /// No description provided for @commonRefresh.
@@ -159,7 +159,7 @@ abstract class AppLocalizations {
   /// No description provided for @commonShareWithCommunity.
   ///
   /// In en, this message translates to:
-  /// **'Share with community'**
+  /// **'Share'**
   String get commonShareWithCommunity;
 
   /// No description provided for @commonShare.
@@ -171,7 +171,7 @@ abstract class AppLocalizations {
   /// No description provided for @commonSharing.
   ///
   /// In en, this message translates to:
-  /// **'Sharing...'**
+  /// **'Sharing…'**
   String get commonSharing;
 
   /// No description provided for @commonTitle.
@@ -183,7 +183,7 @@ abstract class AppLocalizations {
   /// No description provided for @commonTitleHint.
   ///
   /// In en, this message translates to:
-  /// **'A short summary'**
+  /// **'Short summary'**
   String get commonTitleHint;
 
   /// No description provided for @commonMessage.
@@ -195,19 +195,19 @@ abstract class AppLocalizations {
   /// No description provided for @commonMessageHint.
   ///
   /// In en, this message translates to:
-  /// **'Paste the scam message here'**
+  /// **'Paste the message'**
   String get commonMessageHint;
 
   /// No description provided for @commonWhatKindOfScam.
   ///
   /// In en, this message translates to:
-  /// **'What kind of scam?'**
+  /// **'Scam type'**
   String get commonWhatKindOfScam;
 
   /// No description provided for @commonShareIntro.
   ///
   /// In en, this message translates to:
-  /// **'Help others by sharing a scam you received. Remove any personal details first.'**
+  /// **'Share a scam. Remove personal details first.'**
   String get commonShareIntro;
 
   /// No description provided for @commonPhotos.
@@ -231,49 +231,49 @@ abstract class AppLocalizations {
   /// No description provided for @commonImageTooLarge.
   ///
   /// In en, this message translates to:
-  /// **'Each image must be 10 MB or smaller.'**
+  /// **'Each image must be 10 MB or less.'**
   String get commonImageTooLarge;
 
   /// No description provided for @reportTabPhotoProcessing.
   ///
   /// In en, this message translates to:
-  /// **'Analyzing...'**
+  /// **'Checking…'**
   String get reportTabPhotoProcessing;
 
   /// No description provided for @reportTabPhotoFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t analyze'**
+  /// **'Couldn\'t check'**
   String get reportTabPhotoFailed;
 
   /// No description provided for @reportTabProcessingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Do not close the application. Processing'**
+  /// **'Processing. Don\'t close the app.'**
   String get reportTabProcessingTitle;
 
   /// No description provided for @reportTabSignInToAddPhotos.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to attach photos.'**
+  /// **'Sign in to add photos.'**
   String get reportTabSignInToAddPhotos;
 
   /// No description provided for @reportTabFailedDialogTitle.
   ///
   /// In en, this message translates to:
-  /// **'Some photos couldn\'t be analyzed'**
+  /// **'Some photos failed'**
   String get reportTabFailedDialogTitle;
 
   /// No description provided for @reportTabFailedDialogBody.
   ///
   /// In en, this message translates to:
-  /// **'{count, plural, one{1 photo failed to upload or analyze. Retry it, or post without it?} other{{count} photos failed to upload or analyze. Retry them, or post without them?}}'**
+  /// **'{count, plural, one{1 photo failed. Retry it, or post without it?} other{{count} photos failed. Retry them, or post without them?}}'**
   String reportTabFailedDialogBody(int count);
 
   /// No description provided for @reportTabFailedRetry.
   ///
   /// In en, this message translates to:
-  /// **'Retry'**
+  /// **'Try again'**
   String get reportTabFailedRetry;
 
   /// No description provided for @reportTabFailedPostWithout.
@@ -285,49 +285,49 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabWaitForImages.
   ///
   /// In en, this message translates to:
-  /// **'Wait for images to be processed'**
+  /// **'Wait for photos'**
   String get reportTabWaitForImages;
 
   /// No description provided for @reportTabCheckImages.
   ///
   /// In en, this message translates to:
-  /// **'Check images'**
+  /// **'Check photos'**
   String get reportTabCheckImages;
 
   /// No description provided for @reportTabReviewCheckbox.
   ///
   /// In en, this message translates to:
-  /// **'I\'ve reviewed the images and the personal details are hidden correctly'**
+  /// **'I consent to posting these photos'**
   String get reportTabReviewCheckbox;
 
   /// No description provided for @reportTabEditImage.
   ///
   /// In en, this message translates to:
-  /// **'Edit image'**
+  /// **'Edit photo'**
   String get reportTabEditImage;
 
   /// No description provided for @reportTabReuploading.
   ///
   /// In en, this message translates to:
-  /// **'Re-uploading edited image...'**
+  /// **'Saving edited photo…'**
   String get reportTabReuploading;
 
   /// No description provided for @reportTabPosting.
   ///
   /// In en, this message translates to:
-  /// **'Posting...'**
+  /// **'Posting…'**
   String get reportTabPosting;
 
   /// No description provided for @reportTabEditorSaveFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t re-upload the edited image. Try again.'**
+  /// **'Couldn\'t save the edited photo. Try again.'**
   String get reportTabEditorSaveFailed;
 
   /// No description provided for @reportTabEditorLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load the image to edit. Try again.'**
+  /// **'Couldn\'t open the photo. Try again.'**
   String get reportTabEditorLoadFailed;
 
   /// No description provided for @reportTabViewPost.
@@ -345,19 +345,19 @@ abstract class AppLocalizations {
   /// No description provided for @homeWelcomePrefix.
   ///
   /// In en, this message translates to:
-  /// **'Welcome, '**
+  /// **'Hi, '**
   String get homeWelcomePrefix;
 
   /// No description provided for @homeWelcomeGuest.
   ///
   /// In en, this message translates to:
-  /// **'Welcome'**
+  /// **'Hi'**
   String get homeWelcomeGuest;
 
   /// No description provided for @myProfileTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Profile'**
+  /// **'Profile'**
   String get myProfileTitle;
 
   /// No description provided for @myProfileMemberSince.
@@ -381,13 +381,13 @@ abstract class AppLocalizations {
   /// No description provided for @myProfileSignOutHint.
   ///
   /// In en, this message translates to:
-  /// **'You can sign back in at any time'**
+  /// **'You can sign in again any time'**
   String get myProfileSignOutHint;
 
   /// No description provided for @myProfileNotSignedInTitle.
   ///
   /// In en, this message translates to:
-  /// **'You\'re not signed in'**
+  /// **'Not signed in'**
   String get myProfileNotSignedInTitle;
 
   /// No description provided for @myProfileNotSignedInBody.
@@ -405,13 +405,13 @@ abstract class AppLocalizations {
   /// No description provided for @homeNewsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Scam alerts & news'**
+  /// **'Scam alerts'**
   String get homeNewsTitle;
 
   /// No description provided for @homeNewsError.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load the latest alerts.'**
+  /// **'Couldn\'t load alerts.'**
   String get homeNewsError;
 
   /// No description provided for @homeNewsRetry.
@@ -423,31 +423,31 @@ abstract class AppLocalizations {
   /// No description provided for @homeQuickActionsTitle.
   ///
   /// In en, this message translates to:
-  /// **'What would you like to do?'**
+  /// **'What do you want to do?'**
   String get homeQuickActionsTitle;
 
   /// No description provided for @homeActionProfile.
   ///
   /// In en, this message translates to:
-  /// **'My profile'**
+  /// **'Profile'**
   String get homeActionProfile;
 
   /// No description provided for @homeActionProfileBody.
   ///
   /// In en, this message translates to:
-  /// **'See your details and your posts'**
+  /// **'Your details and posts'**
   String get homeActionProfileBody;
 
   /// No description provided for @homeActionCalls.
   ///
   /// In en, this message translates to:
-  /// **'Recent calls'**
+  /// **'Calls'**
   String get homeActionCalls;
 
   /// No description provided for @homeActionCallsBody.
   ///
   /// In en, this message translates to:
-  /// **'Review calls from unknown numbers'**
+  /// **'Check calls from unknown numbers'**
   String get homeActionCallsBody;
 
   /// No description provided for @homeActionReport.
@@ -459,55 +459,55 @@ abstract class AppLocalizations {
   /// No description provided for @homeActionReportBody.
   ///
   /// In en, this message translates to:
-  /// **'Warn others in the community'**
+  /// **'Warn other people'**
   String get homeActionReportBody;
 
   /// No description provided for @homeStatusOnBody.
   ///
   /// In en, this message translates to:
-  /// **'We are checking your messages for scams.'**
+  /// **'Checking your messages for scams.'**
   String get homeStatusOnBody;
 
   /// No description provided for @homeStatusOffBody.
   ///
   /// In en, this message translates to:
-  /// **'Turn it on so we can warn you about scam messages.'**
+  /// **'Turn on to get scam warnings.'**
   String get homeStatusOffBody;
 
   /// No description provided for @homeStatusProblemTitle.
   ///
   /// In en, this message translates to:
-  /// **'Protection needs attention'**
+  /// **'Protection needs a fix'**
   String get homeStatusProblemTitle;
 
   /// No description provided for @homeStatusProblemBody.
   ///
   /// In en, this message translates to:
-  /// **'Something went wrong. Tap below to fix it.'**
+  /// **'Something is wrong. Tap to fix it.'**
   String get homeStatusProblemBody;
 
   /// No description provided for @homeStatusStartingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Getting ready'**
+  /// **'Starting…'**
   String get homeStatusStartingTitle;
 
   /// No description provided for @homeStatusStartingBody.
   ///
   /// In en, this message translates to:
-  /// **'Protection is starting up. This can take a minute.'**
+  /// **'This can take a minute.'**
   String get homeStatusStartingBody;
 
   /// No description provided for @homeStatusOpen.
   ///
   /// In en, this message translates to:
-  /// **'See details'**
+  /// **'Details'**
   String get homeStatusOpen;
 
   /// No description provided for @homeStatusFix.
   ///
   /// In en, this message translates to:
-  /// **'Fix it now'**
+  /// **'Fix it'**
   String get homeStatusFix;
 
   /// No description provided for @homeNewsReadMore.
@@ -531,13 +531,13 @@ abstract class AppLocalizations {
   /// No description provided for @homeNewsPrevious.
   ///
   /// In en, this message translates to:
-  /// **'Previous alert'**
+  /// **'Previous'**
   String get homeNewsPrevious;
 
   /// No description provided for @homeNewsNext.
   ///
   /// In en, this message translates to:
-  /// **'Next alert'**
+  /// **'Next'**
   String get homeNewsNext;
 
   /// No description provided for @settingsProtection.
@@ -555,7 +555,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsServiceRunning.
   ///
   /// In en, this message translates to:
-  /// **'Running now'**
+  /// **'On'**
   String get settingsServiceRunning;
 
   /// No description provided for @settingsServiceStopped.
@@ -567,13 +567,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsShowTutorial.
   ///
   /// In en, this message translates to:
-  /// **'Show the tour again'**
+  /// **'Show tour again'**
   String get settingsShowTutorial;
 
   /// No description provided for @settingsReplayTour.
   ///
   /// In en, this message translates to:
-  /// **'A quick look at the app'**
+  /// **'A quick tour of the app'**
   String get settingsReplayTour;
 
   /// No description provided for @settingsRemove.
@@ -603,7 +603,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsLanguageSystem.
   ///
   /// In en, this message translates to:
-  /// **'System default'**
+  /// **'Phone default'**
   String get settingsLanguageSystem;
 
   /// No description provided for @settingsStatusTitle.
@@ -615,13 +615,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsGettingReady.
   ///
   /// In en, this message translates to:
-  /// **'Getting ready…'**
+  /// **'Starting…'**
   String get settingsGettingReady;
 
   /// No description provided for @settingsNeedsDownload.
   ///
   /// In en, this message translates to:
-  /// **'Protection needs a download'**
+  /// **'Download needed'**
   String get settingsNeedsDownload;
 
   /// No description provided for @settingsModelReady.
@@ -633,7 +633,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsModelNotDownloaded.
   ///
   /// In en, this message translates to:
-  /// **'{name} is not downloaded yet'**
+  /// **'{name} is not downloaded'**
   String settingsModelNotDownloaded(String name);
 
   /// No description provided for @settingsSettingUpPct.
@@ -657,7 +657,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsCheckerCaption.
   ///
   /// In en, this message translates to:
-  /// **'Checks your messages on your phone. Nothing is sent away.'**
+  /// **'Checks messages on your phone. Nothing leaves your phone.'**
   String get settingsCheckerCaption;
 
   /// No description provided for @settingsCheckingSupport.
@@ -681,7 +681,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsBuiltInSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Built into your phone. No download.'**
+  /// **'Built in. No download.'**
   String get settingsBuiltInSubtitle;
 
   /// No description provided for @settingsAboutMb.
@@ -705,7 +705,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSpeedCaption.
   ///
   /// In en, this message translates to:
-  /// **'Leave this on Automatic unless the checker has trouble.'**
+  /// **'Keep Automatic unless the checker has problems.'**
   String get settingsSpeedCaption;
 
   /// No description provided for @settingsSpeedAuto.
@@ -729,7 +729,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSpeedCpuBody.
   ///
   /// In en, this message translates to:
-  /// **'Works on every phone. Slowest.'**
+  /// **'Works on all phones. Slowest.'**
   String get settingsSpeedCpuBody;
 
   /// No description provided for @settingsSpeedGpu.
@@ -741,7 +741,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSpeedGpuBody.
   ///
   /// In en, this message translates to:
-  /// **'Uses your phone\'s graphics chip'**
+  /// **'Uses the graphics chip'**
   String get settingsSpeedGpuBody;
 
   /// No description provided for @settingsSpeedNpu.
@@ -753,7 +753,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSpeedNpuBody.
   ///
   /// In en, this message translates to:
-  /// **'Only on some newer phones'**
+  /// **'Newer phones only'**
   String get settingsSpeedNpuBody;
 
   /// No description provided for @settingsAppSection.
@@ -765,7 +765,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsAppearance.
   ///
   /// In en, this message translates to:
-  /// **'Appearance'**
+  /// **'Theme'**
   String get settingsAppearance;
 
   /// No description provided for @settingsThemeLight.
@@ -783,19 +783,19 @@ abstract class AppLocalizations {
   /// No description provided for @settingsPermissionsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'See what the app is allowed to do'**
+  /// **'See what the app can do'**
   String get settingsPermissionsSubtitle;
 
   /// No description provided for @settingsSignInSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Needed to post in the community'**
+  /// **'Needed to post'**
   String get settingsSignInSubtitle;
 
   /// No description provided for @callIncoming.
   ///
   /// In en, this message translates to:
-  /// **'Incoming call: {who}'**
+  /// **'Call from {who}'**
   String callIncoming(String who);
 
   /// No description provided for @callBlocked.
@@ -831,7 +831,7 @@ abstract class AppLocalizations {
   /// No description provided for @callRejected.
   ///
   /// In en, this message translates to:
-  /// **'Rejected'**
+  /// **'Declined'**
   String get callRejected;
 
   /// No description provided for @callMissed.
@@ -879,7 +879,7 @@ abstract class AppLocalizations {
   /// No description provided for @callHistoryTitle.
   ///
   /// In en, this message translates to:
-  /// **'Call history'**
+  /// **'Calls'**
   String get callHistoryTitle;
 
   /// No description provided for @callBlockedNumbers.
@@ -903,7 +903,7 @@ abstract class AppLocalizations {
   /// No description provided for @callPhonePermBody.
   ///
   /// In en, this message translates to:
-  /// **'We need this to show your calls and spot scams.'**
+  /// **'Needed to show calls and spot scams.'**
   String get callPhonePermBody;
 
   /// No description provided for @callGrantPhone.
@@ -915,7 +915,7 @@ abstract class AppLocalizations {
   /// No description provided for @callCouldNotLoad.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t show your calls'**
+  /// **'Couldn\'t show calls'**
   String get callCouldNotLoad;
 
   /// No description provided for @callDurationSuffix.
@@ -939,7 +939,7 @@ abstract class AppLocalizations {
   /// No description provided for @callBlockNeedsScreening.
   ///
   /// In en, this message translates to:
-  /// **'To stop blocked calls ringing, set this app as your call blocker.'**
+  /// **'To block calls, set this app as your call blocker.'**
   String get callBlockNeedsScreening;
 
   /// No description provided for @callHighRiskTitle.
@@ -951,19 +951,19 @@ abstract class AppLocalizations {
   /// No description provided for @callHighRiskBody.
   ///
   /// In en, this message translates to:
-  /// **'People reported this number as a scam. Never share money or personal details.'**
+  /// **'People reported this number as a scam. Don\'t share money or personal details.'**
   String get callHighRiskBody;
 
   /// No description provided for @callHighRiskScore.
   ///
   /// In en, this message translates to:
-  /// **'Trust score: {score}/100'**
+  /// **'Score: {score}/100'**
   String callHighRiskScore(int score);
 
   /// No description provided for @callHighRiskReports.
   ///
   /// In en, this message translates to:
-  /// **'Reported {count} times'**
+  /// **'{count} reports'**
   String callHighRiskReports(int count);
 
   /// No description provided for @callHighRiskDismiss.
@@ -972,10 +972,22 @@ abstract class AppLocalizations {
   /// **'Got it'**
   String get callHighRiskDismiss;
 
+  /// No description provided for @callHighRiskBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a Scam – Block'**
+  String get callHighRiskBlock;
+
+  /// No description provided for @callHighRiskSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s Safe / Dismiss'**
+  String get callHighRiskSafe;
+
   /// No description provided for @callChecking.
   ///
   /// In en, this message translates to:
-  /// **'Checking number...'**
+  /// **'Checking…'**
   String get callChecking;
 
   /// No description provided for @callCheckTitle.
@@ -1017,19 +1029,19 @@ abstract class AppLocalizations {
   /// No description provided for @callCheckDetailHighRisk.
   ///
   /// In en, this message translates to:
-  /// **'People reported this number as a scam. Don\'t answer or call back.'**
+  /// **'People reported this number as a scam. Don\'t call back.'**
   String get callCheckDetailHighRisk;
 
   /// No description provided for @callCheckDetailUnknown.
   ///
   /// In en, this message translates to:
-  /// **'No one has reported this number. Still be careful.'**
+  /// **'No reports. Still be careful.'**
   String get callCheckDetailUnknown;
 
   /// No description provided for @callCheckDetailSafe.
   ///
   /// In en, this message translates to:
-  /// **'This number looks safe. Still be careful.'**
+  /// **'Looks safe. Still be careful.'**
   String get callCheckDetailSafe;
 
   /// No description provided for @callCheckDetailFailed.
@@ -1041,19 +1053,19 @@ abstract class AppLocalizations {
   /// No description provided for @callCheckScore.
   ///
   /// In en, this message translates to:
-  /// **'Trust score: {score}/100'**
+  /// **'Score: {score}/100'**
   String callCheckScore(int score);
 
   /// No description provided for @callCheckReports.
   ///
   /// In en, this message translates to:
-  /// **'Reported {count} times'**
+  /// **'{count} reports'**
   String callCheckReports(int count);
 
   /// No description provided for @reportNotSent.
   ///
   /// In en, this message translates to:
-  /// **'Report not sent — reporting endpoint is not configured yet'**
+  /// **'Could not send. Reporting is not set up yet.'**
   String get reportNotSent;
 
   /// No description provided for @reportSpam.
@@ -1095,13 +1107,13 @@ abstract class AppLocalizations {
   /// No description provided for @permConfirmScreening.
   ///
   /// In en, this message translates to:
-  /// **'Confirm Call Manager for call screening'**
+  /// **'Set this app as your call screener'**
   String get permConfirmScreening;
 
   /// No description provided for @permScreeningUnavailable.
   ///
   /// In en, this message translates to:
-  /// **'Call screening is not available on this device'**
+  /// **'Call screening is not available on this phone'**
   String get permScreeningUnavailable;
 
   /// No description provided for @permNotificationAccess.
@@ -1113,19 +1125,19 @@ abstract class AppLocalizations {
   /// No description provided for @permNotificationAccessSub.
   ///
   /// In en, this message translates to:
-  /// **'Reads new messages to spot scams'**
+  /// **'Reads new messages for scams'**
   String get permNotificationAccessSub;
 
   /// No description provided for @permOverlay.
   ///
   /// In en, this message translates to:
-  /// **'Warnings during calls'**
+  /// **'Call warnings'**
   String get permOverlay;
 
   /// No description provided for @permOverlaySub.
   ///
   /// In en, this message translates to:
-  /// **'Shows a warning while a call rings'**
+  /// **'Shows a warning during calls'**
   String get permOverlaySub;
 
   /// No description provided for @permAlerts.
@@ -1137,7 +1149,7 @@ abstract class AppLocalizations {
   /// No description provided for @permAlertsSub.
   ///
   /// In en, this message translates to:
-  /// **'Sends you scam alerts'**
+  /// **'Sends scam alerts'**
   String get permAlertsSub;
 
   /// No description provided for @permBackground.
@@ -1149,7 +1161,7 @@ abstract class AppLocalizations {
   /// No description provided for @permBackgroundSub.
   ///
   /// In en, this message translates to:
-  /// **'Keeps working when the screen is off'**
+  /// **'Works when the screen is off'**
   String get permBackgroundSub;
 
   /// No description provided for @permBatterySettings.
@@ -1185,13 +1197,13 @@ abstract class AppLocalizations {
   /// No description provided for @permScreeningRoleSub.
   ///
   /// In en, this message translates to:
-  /// **'Checks calls and stops numbers you block.'**
+  /// **'Checks calls and blocks numbers you choose.'**
   String get permScreeningRoleSub;
 
   /// No description provided for @permScreeningActive.
   ///
   /// In en, this message translates to:
-  /// **'Turned on'**
+  /// **'On'**
   String get permScreeningActive;
 
   /// No description provided for @permEnableScreening.
@@ -1233,7 +1245,7 @@ abstract class AppLocalizations {
   /// No description provided for @permPhoneGranted.
   ///
   /// In en, this message translates to:
-  /// **'Phone permission granted'**
+  /// **'Phone access allowed'**
   String get permPhoneGranted;
 
   /// No description provided for @permContacts.
@@ -1245,7 +1257,7 @@ abstract class AppLocalizations {
   /// No description provided for @permContactsGranted.
   ///
   /// In en, this message translates to:
-  /// **'Contacts permission granted'**
+  /// **'Contacts allowed'**
   String get permContactsGranted;
 
   /// No description provided for @permNotifications.
@@ -1257,7 +1269,7 @@ abstract class AppLocalizations {
   /// No description provided for @permNotificationsGranted.
   ///
   /// In en, this message translates to:
-  /// **'Notification permission granted'**
+  /// **'Notifications allowed'**
   String get permNotificationsGranted;
 
   /// No description provided for @permStillNotWorking.
@@ -1269,7 +1281,7 @@ abstract class AppLocalizations {
   /// No description provided for @permOpenSettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'Turn things on yourself in your phone\'s settings.'**
+  /// **'Turn permissions on in your phone settings.'**
   String get permOpenSettingsBody;
 
   /// No description provided for @permOpenAppSettings.
@@ -1305,7 +1317,7 @@ abstract class AppLocalizations {
   /// No description provided for @contactsPermRequired.
   ///
   /// In en, this message translates to:
-  /// **'Allow contacts access to see your contacts.'**
+  /// **'Allow contacts to see your contacts.'**
   String get contactsPermRequired;
 
   /// No description provided for @contactsTitle.
@@ -1323,13 +1335,13 @@ abstract class AppLocalizations {
   /// No description provided for @contactsCouldNotLoad.
   ///
   /// In en, this message translates to:
-  /// **'Could not load contacts'**
+  /// **'Couldn\'t load contacts'**
   String get contactsCouldNotLoad;
 
   /// No description provided for @contactsNoneFound.
   ///
   /// In en, this message translates to:
-  /// **'No contacts found'**
+  /// **'No contacts'**
   String get contactsNoneFound;
 
   /// No description provided for @contactsNoDetails.
@@ -1359,43 +1371,43 @@ abstract class AppLocalizations {
   /// No description provided for @safetyProtectedOn.
   ///
   /// In en, this message translates to:
-  /// **'You are protected'**
+  /// **'Protected'**
   String get safetyProtectedOn;
 
   /// No description provided for @safetyProtectedOff.
   ///
   /// In en, this message translates to:
-  /// **'Protection is off'**
+  /// **'Protection off'**
   String get safetyProtectedOff;
 
   /// No description provided for @safetyWeCheck.
   ///
   /// In en, this message translates to:
-  /// **'We check your messages for scams.'**
+  /// **'Checks your messages for scams.'**
   String get safetyWeCheck;
 
   /// No description provided for @safetyTurnOnToCheck.
   ///
   /// In en, this message translates to:
-  /// **'Turn this on to check messages for scams.'**
+  /// **'Turn on to check messages.'**
   String get safetyTurnOnToCheck;
 
   /// No description provided for @safetyTurnOff.
   ///
   /// In en, this message translates to:
-  /// **'Turn protection off'**
+  /// **'Turn off protection'**
   String get safetyTurnOff;
 
   /// No description provided for @safetyTurnOn.
   ///
   /// In en, this message translates to:
-  /// **'Turn protection on'**
+  /// **'Turn on protection'**
   String get safetyTurnOn;
 
   /// No description provided for @safetyPressToStart.
   ///
   /// In en, this message translates to:
-  /// **'Press to start'**
+  /// **'Tap to start'**
   String get safetyPressToStart;
 
   /// No description provided for @safetyDownloadingModel.
@@ -1413,13 +1425,13 @@ abstract class AppLocalizations {
   /// No description provided for @safetyNoScams.
   ///
   /// In en, this message translates to:
-  /// **'No scams found'**
+  /// **'No scams'**
   String get safetyNoScams;
 
   /// No description provided for @safetyNoScamsBody.
   ///
   /// In en, this message translates to:
-  /// **'Scam messages will show here.'**
+  /// **'Scams will show here.'**
   String get safetyNoScamsBody;
 
   /// No description provided for @safetyMeteredTitle.
@@ -1431,7 +1443,7 @@ abstract class AppLocalizations {
   /// No description provided for @safetyMeteredBody.
   ///
   /// In en, this message translates to:
-  /// **'This download is about {mb} MB. Wi-Fi is better.'**
+  /// **'Download is about {mb} MB. Wi-Fi is better.'**
   String safetyMeteredBody(int mb);
 
   /// No description provided for @safetyNotNow.
@@ -1449,7 +1461,7 @@ abstract class AppLocalizations {
   /// No description provided for @safetyCouldNotStart.
   ///
   /// In en, this message translates to:
-  /// **'Protection could not start. Please try again.'**
+  /// **'Couldn\'t start protection. Try again.'**
   String get safetyCouldNotStart;
 
   /// No description provided for @safetyShowMore.
@@ -1479,7 +1491,7 @@ abstract class AppLocalizations {
   /// No description provided for @safetyPillError.
   ///
   /// In en, this message translates to:
-  /// **'Needs attention'**
+  /// **'Fix needed'**
   String get safetyPillError;
 
   /// No description provided for @safetyPillChecking.
@@ -1491,7 +1503,7 @@ abstract class AppLocalizations {
   /// No description provided for @safetyHeroOnBody.
   ///
   /// In en, this message translates to:
-  /// **'Checked privately on your phone.'**
+  /// **'Checked on your phone.'**
   String get safetyHeroOnBody;
 
   /// No description provided for @protectionChecked.
@@ -1509,13 +1521,13 @@ abstract class AppLocalizations {
   /// No description provided for @protectionOn.
   ///
   /// In en, this message translates to:
-  /// **'Protection is on'**
+  /// **'Protection on'**
   String get protectionOn;
 
   /// No description provided for @protectionOff.
   ///
   /// In en, this message translates to:
-  /// **'Protection is off'**
+  /// **'Protection off'**
   String get protectionOff;
 
   /// No description provided for @activityAll.
@@ -1533,7 +1545,7 @@ abstract class AppLocalizations {
   /// No description provided for @activityUnchecked.
   ///
   /// In en, this message translates to:
-  /// **'Unchecked ({count})'**
+  /// **'Not checked ({count})'**
   String activityUnchecked(int count);
 
   /// No description provided for @activityNoMessages.
@@ -1563,7 +1575,7 @@ abstract class AppLocalizations {
   /// No description provided for @activityVerdict.
   ///
   /// In en, this message translates to:
-  /// **'Verdict'**
+  /// **'Result'**
   String get activityVerdict;
 
   /// No description provided for @activityConfidence.
@@ -1581,7 +1593,7 @@ abstract class AppLocalizations {
   /// No description provided for @activityEscalatedSuffix.
   ///
   /// In en, this message translates to:
-  /// **'{wire} (online check)'**
+  /// **'{wire} (online)'**
   String activityEscalatedSuffix(String wire);
 
   /// No description provided for @activityReason.
@@ -1619,6 +1631,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications'**
   String get notificationsTitle;
+
+  /// No description provided for @activityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get activityTitle;
 
   /// No description provided for @notificationsTestTitle.
   ///
@@ -1701,7 +1719,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFinish.
   ///
   /// In en, this message translates to:
-  /// **'Go to the app'**
+  /// **'Open the app'**
   String get onboardingFinish;
 
   /// No description provided for @onboardingStepCount.
@@ -1719,7 +1737,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'We warn you about scam calls and messages. Setup takes a few taps.'**
+  /// **'We warn you about scam calls and messages. Setup is quick.'**
   String get onboardingWelcomeBody;
 
   /// No description provided for @onboardingWelcomeNote.
@@ -1737,7 +1755,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingPhoneBody.
   ///
   /// In en, this message translates to:
-  /// **'See who is calling, so we can warn you.'**
+  /// **'See who is calling.'**
   String get onboardingPhoneBody;
 
   /// No description provided for @onboardingContactsTitle.
@@ -1749,7 +1767,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingContactsBody.
   ///
   /// In en, this message translates to:
-  /// **'Calls from people you know are never flagged.'**
+  /// **'Calls from people you know are not flagged.'**
   String get onboardingContactsBody;
 
   /// No description provided for @onboardingScreeningTitle.
@@ -1761,7 +1779,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingScreeningBody.
   ///
   /// In en, this message translates to:
-  /// **'Check calls and stop numbers you block.'**
+  /// **'Check calls and block numbers you choose.'**
   String get onboardingScreeningBody;
 
   /// No description provided for @onboardingNotificationsTitle.
@@ -1773,7 +1791,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingNotificationsBody.
   ///
   /// In en, this message translates to:
-  /// **'Get an alert when something looks like a scam.'**
+  /// **'Get an alert for a possible scam.'**
   String get onboardingNotificationsBody;
 
   /// No description provided for @onboardingMessagesTitle.
@@ -1785,19 +1803,19 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingMessagesBody.
   ///
   /// In en, this message translates to:
-  /// **'Read new messages to warn you about scams.'**
+  /// **'Read new messages to find scams.'**
   String get onboardingMessagesBody;
 
   /// No description provided for @onboardingOverlayTitle.
   ///
   /// In en, this message translates to:
-  /// **'Warnings during calls'**
+  /// **'Call warnings'**
   String get onboardingOverlayTitle;
 
   /// No description provided for @onboardingOverlayBody.
   ///
   /// In en, this message translates to:
-  /// **'Show a warning on screen during a risky call.'**
+  /// **'Show a warning during a risky call.'**
   String get onboardingOverlayBody;
 
   /// No description provided for @onboardingBackgroundTitle.
@@ -1809,7 +1827,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingBackgroundBody.
   ///
   /// In en, this message translates to:
-  /// **'Keep watching for scams when the screen is off.'**
+  /// **'Keep checking when the screen is off.'**
   String get onboardingBackgroundBody;
 
   /// No description provided for @onboardingBatterySettingsTitle.
@@ -1821,7 +1839,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingBatterySettingsBody.
   ///
   /// In en, this message translates to:
-  /// **'Some phones pause apps to save battery. Stop that for this app.'**
+  /// **'Stop your phone from pausing the app.'**
   String get onboardingBatterySettingsBody;
 
   /// No description provided for @onboardingSettingsHint.
@@ -1833,13 +1851,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingStatusOn.
   ///
   /// In en, this message translates to:
-  /// **'Turned on.'**
+  /// **'On.'**
   String get onboardingStatusOn;
 
   /// No description provided for @onboardingStatusSkipped.
   ///
   /// In en, this message translates to:
-  /// **'Not on yet. You can turn it on later in Settings.'**
+  /// **'Not on. You can turn it on in Settings.'**
   String get onboardingStatusSkipped;
 
   /// No description provided for @onboardingStatusBlocked.
@@ -1857,7 +1875,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingDoneBody.
   ///
   /// In en, this message translates to:
-  /// **'We are watching for scams for you.'**
+  /// **'We are watching for scams.'**
   String get onboardingDoneBody;
 
   /// No description provided for @onboardingDonePartialTitle.
@@ -1869,13 +1887,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingDonePartialBody.
   ///
   /// In en, this message translates to:
-  /// **'Some things are off. You can turn them on later in Settings.'**
+  /// **'Some things are off. You can turn them on in Settings.'**
   String get onboardingDonePartialBody;
 
   /// No description provided for @onboardingGrantedCount.
   ///
   /// In en, this message translates to:
-  /// **'{granted} of {total} turned on'**
+  /// **'{granted} of {total} on'**
   String onboardingGrantedCount(int granted, int total);
 
   /// No description provided for @onboardingWhy.
@@ -1887,13 +1905,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingScreeningWhy.
   ///
   /// In en, this message translates to:
-  /// **'Your phone will ask you to choose this app. Pick it so calls can be checked.'**
+  /// **'Pick this app so calls can be checked.'**
   String get onboardingScreeningWhy;
 
   /// No description provided for @onboardingMessagesWhy.
   ///
   /// In en, this message translates to:
-  /// **'We look for scam signs, like odd links or requests for money.'**
+  /// **'We look for odd links or requests for money.'**
   String get onboardingMessagesWhy;
 
   /// No description provided for @onboardingBatterySettingsHint.
@@ -1941,13 +1959,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingModelReady.
   ///
   /// In en, this message translates to:
-  /// **'Ready to use.'**
+  /// **'Ready.'**
   String get onboardingModelReady;
 
   /// No description provided for @onboardingModelFailed.
   ///
   /// In en, this message translates to:
-  /// **'Download did not finish. Try again, or later in Settings.'**
+  /// **'Download didn\'t finish. Try again or use Settings.'**
   String get onboardingModelFailed;
 
   /// No description provided for @onboardingModelMeteredTitle.
@@ -1959,31 +1977,31 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingModelMeteredBody.
   ///
   /// In en, this message translates to:
-  /// **'You are not on Wi‑Fi. This uses about {size} of data.'**
+  /// **'You\'re not on Wi‑Fi. This uses about {size}.'**
   String onboardingModelMeteredBody(String size);
 
   /// No description provided for @setupOpenSettingsFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not open settings.'**
+  /// **'Couldn\'t open settings.'**
   String get setupOpenSettingsFailed;
 
   /// No description provided for @authEnterEmail.
   ///
   /// In en, this message translates to:
-  /// **'Please enter your email.'**
+  /// **'Enter your email.'**
   String get authEnterEmail;
 
   /// No description provided for @authValidEmail.
   ///
   /// In en, this message translates to:
-  /// **'Please enter a valid email.'**
+  /// **'Enter a valid email.'**
   String get authValidEmail;
 
   /// No description provided for @authEnterPassword.
   ///
   /// In en, this message translates to:
-  /// **'Please enter your password.'**
+  /// **'Enter your password.'**
   String get authEnterPassword;
 
   /// No description provided for @authPasswordLength.
@@ -1995,13 +2013,13 @@ abstract class AppLocalizations {
   /// No description provided for @authEnterName.
   ///
   /// In en, this message translates to:
-  /// **'Please enter your name.'**
+  /// **'Enter your name.'**
   String get authEnterName;
 
   /// No description provided for @authNameInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Use only letters and numbers. One space is allowed.'**
+  /// **'Letters and numbers only. One space is allowed.'**
   String get authNameInvalid;
 
   /// No description provided for @authCreateAccount.
@@ -2019,7 +2037,7 @@ abstract class AppLocalizations {
   /// No description provided for @authRegisterIntro.
   ///
   /// In en, this message translates to:
-  /// **'Join to share scams and learn from others.'**
+  /// **'Join to share scams.'**
   String get authRegisterIntro;
 
   /// No description provided for @authLoginIntro.
@@ -2064,16 +2082,28 @@ abstract class AppLocalizations {
   /// **'Enter your password'**
   String get authPasswordHint;
 
+  /// No description provided for @authShowPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Show password'**
+  String get authShowPassword;
+
+  /// No description provided for @authHidePassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide password'**
+  String get authHidePassword;
+
   /// No description provided for @authToggleToLogin.
   ///
   /// In en, this message translates to:
-  /// **'Already have an account? Sign in'**
+  /// **'Have an account? Sign in'**
   String get authToggleToLogin;
 
   /// No description provided for @authToggleToRegister.
   ///
   /// In en, this message translates to:
-  /// **'New here? Create an account'**
+  /// **'New? Create an account'**
   String get authToggleToRegister;
 
   /// No description provided for @authGateTitle.
@@ -2085,7 +2115,7 @@ abstract class AppLocalizations {
   /// No description provided for @authGateBody.
   ///
   /// In en, this message translates to:
-  /// **'You need an account for this. It is free.'**
+  /// **'You need an account. It\'s free.'**
   String get authGateBody;
 
   /// No description provided for @authGateAction.
@@ -2115,25 +2145,25 @@ abstract class AppLocalizations {
   /// No description provided for @communityNoPostsBody.
   ///
   /// In en, this message translates to:
-  /// **'Scams shared by others will show here.'**
+  /// **'Shared scams will show here.'**
   String get communityNoPostsBody;
 
   /// No description provided for @createChooseType.
   ///
   /// In en, this message translates to:
-  /// **'Please choose a scam type.'**
+  /// **'Choose a scam type.'**
   String get createChooseType;
 
   /// No description provided for @createAddTitle.
   ///
   /// In en, this message translates to:
-  /// **'Please add a title.'**
+  /// **'Add a title.'**
   String get createAddTitle;
 
   /// No description provided for @createAddMessage.
   ///
   /// In en, this message translates to:
-  /// **'Please add the message text.'**
+  /// **'Add the message text.'**
   String get createAddMessage;
 
   /// No description provided for @reportTabTitle.
@@ -2145,13 +2175,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabThankYou.
   ///
   /// In en, this message translates to:
-  /// **'Shared with the community. Thank you!'**
+  /// **'Shared. Thank you!'**
   String get reportTabThankYou;
 
   /// No description provided for @reportTabTrackIt.
   ///
   /// In en, this message translates to:
-  /// **'Shared with the community. Check My Profile to track it.'**
+  /// **'Shared. See My Profile to track it.'**
   String get reportTabTrackIt;
 
   /// No description provided for @reportTabHeroTitle.
@@ -2163,13 +2193,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabNumberHeroTitle.
   ///
   /// In en, this message translates to:
-  /// **'Report a phone number'**
+  /// **'Report a number'**
   String get reportTabNumberHeroTitle;
 
   /// No description provided for @reportTabNumberHeroBody.
   ///
   /// In en, this message translates to:
-  /// **'Tell us why this number is suspicious. Your report helps protect others.'**
+  /// **'Say why this number is suspicious. Your report helps others.'**
   String get reportTabNumberHeroBody;
 
   /// No description provided for @reportTabPaste.
@@ -2199,7 +2229,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabNumberRequired.
   ///
   /// In en, this message translates to:
-  /// **'Please enter the phone number.'**
+  /// **'Enter the phone number.'**
   String get reportTabNumberRequired;
 
   /// No description provided for @reportTabReasonLabel.
@@ -2211,7 +2241,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabReasonSpamBody.
   ///
   /// In en, this message translates to:
-  /// **'Unwanted calls or adverts'**
+  /// **'Unwanted calls or ads'**
   String get reportTabReasonSpamBody;
 
   /// No description provided for @reportTabReasonScamBody.
@@ -2223,13 +2253,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportTabReasonOtherBody.
   ///
   /// In en, this message translates to:
-  /// **'Something else felt wrong'**
+  /// **'Something else was wrong'**
   String get reportTabReasonOtherBody;
 
   /// No description provided for @reportTabSuccessTitle.
   ///
   /// In en, this message translates to:
-  /// **'Thank you for helping'**
+  /// **'Thank you'**
   String get reportTabSuccessTitle;
 
   /// No description provided for @reportTabReportAnother.
@@ -2253,7 +2283,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPostsNoneBody.
   ///
   /// In en, this message translates to:
-  /// **'Scams you report will show up here so you can track them.'**
+  /// **'Reports you share will show here.'**
   String get myPostsNoneBody;
 
   /// No description provided for @myPostsDelete.
@@ -2271,7 +2301,7 @@ abstract class AppLocalizations {
   /// No description provided for @myPostsDeleteConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This removes it from the community. This cannot be undone.'**
+  /// **'It will be removed for everyone. This can\'t be undone.'**
   String get myPostsDeleteConfirmBody;
 
   /// No description provided for @myPostsEdit.
@@ -2289,31 +2319,31 @@ abstract class AppLocalizations {
   /// No description provided for @editPostSave.
   ///
   /// In en, this message translates to:
-  /// **'Save changes'**
+  /// **'Save'**
   String get editPostSave;
 
   /// No description provided for @editPostSaving.
   ///
   /// In en, this message translates to:
-  /// **'Saving...'**
+  /// **'Saving…'**
   String get editPostSaving;
 
   /// No description provided for @editPostSaved.
   ///
   /// In en, this message translates to:
-  /// **'Changes saved.'**
+  /// **'Saved.'**
   String get editPostSaved;
 
   /// No description provided for @editPostReReview.
   ///
   /// In en, this message translates to:
-  /// **'Editing the message sends the post back for review.'**
+  /// **'Editing sends the post back for review.'**
   String get editPostReReview;
 
   /// No description provided for @postDetailThankYou.
   ///
   /// In en, this message translates to:
-  /// **'Thank you. Our team will review this post.'**
+  /// **'Thank you. We will review this post.'**
   String get postDetailThankYou;
 
   /// No description provided for @postDetailTitle.
@@ -2325,7 +2355,7 @@ abstract class AppLocalizations {
   /// No description provided for @postDetailReportTooltip.
   ///
   /// In en, this message translates to:
-  /// **'Report this post'**
+  /// **'Report post'**
   String get postDetailReportTooltip;
 
   /// No description provided for @postDetailComments.
@@ -2349,7 +2379,7 @@ abstract class AppLocalizations {
   /// No description provided for @postDetailPostComment.
   ///
   /// In en, this message translates to:
-  /// **'Post comment'**
+  /// **'Post'**
   String get postDetailPostComment;
 
   /// No description provided for @postDetailFlagPersonalInfo.
@@ -2373,7 +2403,7 @@ abstract class AppLocalizations {
   /// No description provided for @postDetailFlagMisinfo.
   ///
   /// In en, this message translates to:
-  /// **'Misinformation'**
+  /// **'Wrong information'**
   String get postDetailFlagMisinfo;
 
   /// No description provided for @postDetailFlagOther.
@@ -2433,7 +2463,7 @@ abstract class AppLocalizations {
   /// No description provided for @postDetailDeleteConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This cannot be undone.'**
+  /// **'This can\'t be undone.'**
   String get postDetailDeleteConfirmBody;
 
   /// No description provided for @postDetailEdited.
@@ -2448,6 +2478,24 @@ abstract class AppLocalizations {
   /// **'This comment was removed.'**
   String get postDetailRemovedComment;
 
+  /// No description provided for @postDetailAiBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get postDetailAiBadge;
+
+  /// No description provided for @postDetailMentionHelpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask NegevAI about this post'**
+  String get postDetailMentionHelpHint;
+
+  /// No description provided for @postDetailBotThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'NegevAI is thinking...'**
+  String get postDetailBotThinking;
+
   /// No description provided for @guidanceClickedLink.
   ///
   /// In en, this message translates to:
@@ -2457,7 +2505,7 @@ abstract class AppLocalizations {
   /// No description provided for @guidanceGotMessage.
   ///
   /// In en, this message translates to:
-  /// **'I just got a message'**
+  /// **'I got a message'**
   String get guidanceGotMessage;
 
   /// No description provided for @guidanceSharedPassword.
@@ -2475,13 +2523,13 @@ abstract class AppLocalizations {
   /// No description provided for @guidanceCouldNotOpenLink.
   ///
   /// In en, this message translates to:
-  /// **'Could not open the link.'**
+  /// **'Couldn\'t open the link.'**
   String get guidanceCouldNotOpenLink;
 
   /// No description provided for @guidanceCouldNotCall.
   ///
   /// In en, this message translates to:
-  /// **'Could not start the call.'**
+  /// **'Couldn\'t start the call.'**
   String get guidanceCouldNotCall;
 
   /// No description provided for @guidanceTitle.
@@ -2529,37 +2577,37 @@ abstract class AppLocalizations {
   /// No description provided for @tourHomeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Are you protected?'**
+  /// **'Protection'**
   String get tourHomeTitle;
 
   /// No description provided for @tourHomeBody.
   ///
   /// In en, this message translates to:
-  /// **'Green means you are protected. If it is not green, tap it to turn protection on.'**
+  /// **'Green means protected. Tap if it is not green.'**
   String get tourHomeBody;
 
   /// No description provided for @tourCallsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Watch for red calls'**
+  /// **'Red calls'**
   String get tourCallsTitle;
 
   /// No description provided for @tourCallsBody.
   ///
   /// In en, this message translates to:
-  /// **'Calls shown in red may be scams. Don\'t answer or call back.'**
+  /// **'Red calls may be scams. Don\'t answer or call back.'**
   String get tourCallsBody;
 
   /// No description provided for @tourBlockedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your blocked numbers'**
+  /// **'Blocked numbers'**
   String get tourBlockedTitle;
 
   /// No description provided for @tourBlockedBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap the shield with a line through it to see numbers you blocked.'**
+  /// **'Tap the crossed shield to see blocked numbers.'**
   String get tourBlockedBody;
 
   /// No description provided for @tourHelpTitle.
@@ -2571,7 +2619,7 @@ abstract class AppLocalizations {
   /// No description provided for @tourHelpBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap ? on any screen to see what things mean.'**
+  /// **'Tap ? on any screen.'**
   String get tourHelpBody;
 
   /// No description provided for @tourSafetyTitle.
@@ -2583,7 +2631,7 @@ abstract class AppLocalizations {
   /// No description provided for @tourSafetyBody.
   ///
   /// In en, this message translates to:
-  /// **'Turn protection on or off here. We warn you about scam messages.'**
+  /// **'Turn it on or off here. We warn you about scam messages.'**
   String get tourSafetyBody;
 
   /// No description provided for @tourReportTitle.
@@ -2595,19 +2643,61 @@ abstract class AppLocalizations {
   /// No description provided for @tourReportBody.
   ///
   /// In en, this message translates to:
-  /// **'Tell others about a scam here so they can stay safe.'**
+  /// **'Tell others so they stay safe.'**
   String get tourReportBody;
+
+  /// No description provided for @tourReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tick the box'**
+  String get tourReviewTitle;
+
+  /// No description provided for @tourReviewBody.
+  ///
+  /// In en, this message translates to:
+  /// **'After you add photos, check them. Then tick this box to share.'**
+  String get tourReviewBody;
+
+  /// No description provided for @tourPostHelpTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the AI helper'**
+  String get tourPostHelpTitle;
+
+  /// No description provided for @tourPostHelpBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sure if this is a scam? Type @help in a comment. Our AI scam helper will reply.'**
+  String get tourPostHelpBody;
+
+  /// No description provided for @tourPostAiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read the replies'**
+  String get tourPostAiTitle;
+
+  /// No description provided for @tourPostAiBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Replies with an AI tag come from the helper. It can make mistakes, so ask someone you trust too.'**
+  String get tourPostAiBody;
+
+  /// No description provided for @tourPostSampleReply.
+  ///
+  /// In en, this message translates to:
+  /// **'This looks like a scam. Do not click the link.'**
+  String get tourPostSampleReply;
 
   /// No description provided for @tourProfileTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your profile'**
+  /// **'Profile'**
   String get tourProfileTitle;
 
   /// No description provided for @tourProfileBody.
   ///
   /// In en, this message translates to:
-  /// **'See your posts and open settings here. You can replay this tour from settings.'**
+  /// **'See your posts and settings here. You can replay this tour in Settings.'**
   String get tourProfileBody;
 
   /// No description provided for @tourStepCounter.
@@ -2655,7 +2745,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpShowTour.
   ///
   /// In en, this message translates to:
-  /// **'Show the app tour again'**
+  /// **'Show tour again'**
   String get helpShowTour;
 
   /// No description provided for @helpCallsTitle.
@@ -2685,7 +2775,7 @@ abstract class AppLocalizations {
   /// No description provided for @helpCallsNormalBody.
   ///
   /// In en, this message translates to:
-  /// **'No scam reports for this number.'**
+  /// **'No scam reports.'**
   String get helpCallsNormalBody;
 
   /// No description provided for @helpCallsBlockedRowTitle.
@@ -2697,19 +2787,19 @@ abstract class AppLocalizations {
   /// No description provided for @helpCallsBlockedRowBody.
   ///
   /// In en, this message translates to:
-  /// **'You blocked this number. It can\'t ring you.'**
+  /// **'This number can\'t ring you.'**
   String get helpCallsBlockedRowBody;
 
   /// No description provided for @helpCallsBlockedListTitle.
   ///
   /// In en, this message translates to:
-  /// **'Your blocked numbers'**
+  /// **'Blocked numbers'**
   String get helpCallsBlockedListTitle;
 
   /// No description provided for @helpCallsBlockedListBody.
   ///
   /// In en, this message translates to:
-  /// **'Tap this to see or unblock numbers.'**
+  /// **'Tap to see or unblock numbers.'**
   String get helpCallsBlockedListBody;
 
   /// No description provided for @helpCallsMenuTitle.
@@ -2733,13 +2823,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpCallsRefreshBody.
   ///
   /// In en, this message translates to:
-  /// **'Check your calls again.'**
+  /// **'Check calls again.'**
   String get helpCallsRefreshBody;
 
   /// No description provided for @helpCallsMissedBody.
   ///
   /// In en, this message translates to:
-  /// **'You did not answer this call.'**
+  /// **'You missed this call.'**
   String get helpCallsMissedBody;
 
   /// No description provided for @helpCallsAnsweredBody.
@@ -2751,13 +2841,13 @@ abstract class AppLocalizations {
   /// No description provided for @helpCallsRejectedBody.
   ///
   /// In en, this message translates to:
-  /// **'You turned down this call.'**
+  /// **'You declined this call.'**
   String get helpCallsRejectedBody;
 
   /// No description provided for @helpCallsBlockedIconBody.
   ///
   /// In en, this message translates to:
-  /// **'This call was stopped.'**
+  /// **'This call was blocked.'**
   String get helpCallsBlockedIconBody;
 
   /// No description provided for @helpCallsOutgoingBody.
@@ -2805,19 +2895,19 @@ abstract class AppLocalizations {
   /// No description provided for @callsLoadFailedBody.
   ///
   /// In en, this message translates to:
-  /// **'Please try again.'**
+  /// **'Try again.'**
   String get callsLoadFailedBody;
 
   /// No description provided for @callsBlockedEmptyBody.
   ///
   /// In en, this message translates to:
-  /// **'Numbers you block will show here.'**
+  /// **'Blocked numbers will show here.'**
   String get callsBlockedEmptyBody;
 
   /// No description provided for @callsContactsLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t show your contacts. Please try again.'**
+  /// **'Couldn\'t show contacts. Try again.'**
   String get callsContactsLoadFailed;
 
   /// No description provided for @callsCallTooltip.

@@ -25,14 +25,24 @@ class PhoneStateReceiver : BroadcastReceiver() {
                 val blocked = SpamStore.isEnabled(context) && SpamStore.isBlocked(context, number)
                 if (!blocked) {
                     NotificationHelper.showIncomingCall(context, number, null)
+                    // Covers the app being closed or in the background; the
+                    // in-app Dart alert handles the foreground case.
+                    if (!number.isNullOrBlank()) {
+                        val pending = goAsync()
+                        HighRiskCallOverlay.checkInBackground(context, number) {
+                            pending.finish()
+                        }
+                    }
                 }
             }
             TelephonyManager.EXTRA_STATE_OFFHOOK -> {
                 NotificationHelper.cancelIncomingCall(context)
+                HighRiskCallOverlay.dismiss()
                 callWasAnswered = true
             }
             TelephonyManager.EXTRA_STATE_IDLE -> {
                 NotificationHelper.cancelIncomingCall(context)
+                HighRiskCallOverlay.reset()
                 CallEvents.emit(CallEvents.STATE_IDLE, null, null)
                 val captured = lastRingingNumber
                 lastRingingNumber = null

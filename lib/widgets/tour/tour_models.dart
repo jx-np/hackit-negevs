@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:scamwatch_mobile_app/screens/calls/widgets/calls_help.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_post_sample.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_review_sample.dart';
 
 /// Resolves a localized string for a tour step.
 typedef TourText = String Function(AppLocalizations l10n);
@@ -33,6 +35,16 @@ enum TourTarget {
 
   /// The main "report a scam" action on the Report tab.
   reportCreate,
+
+  /// The "I checked the photos" tick on the Report tab. Only mounted once
+  /// photos are attached, so the step falls back to the Report nav tab.
+  reportReview,
+
+  /// The comment box on the post screen, where `@help` summons the AI helper.
+  postCommentField,
+
+  /// The "Comments" heading on the post screen, above the replies.
+  postComments,
 
   /// The settings button on the Profile tab.
   profileSettings;
@@ -85,6 +97,12 @@ String _safetyTitle(AppLocalizations l) => l.tourSafetyTitle;
 String _safetyBody(AppLocalizations l) => l.tourSafetyBody;
 String _reportTitle(AppLocalizations l) => l.tourReportTitle;
 String _reportBody(AppLocalizations l) => l.tourReportBody;
+String _reviewTitle(AppLocalizations l) => l.tourReviewTitle;
+String _reviewBody(AppLocalizations l) => l.tourReviewBody;
+String _postHelpTitle(AppLocalizations l) => l.tourPostHelpTitle;
+String _postHelpBody(AppLocalizations l) => l.tourPostHelpBody;
+String _postAiTitle(AppLocalizations l) => l.tourPostAiTitle;
+String _postAiBody(AppLocalizations l) => l.tourPostAiBody;
 String _profileTitle(AppLocalizations l) => l.tourProfileTitle;
 String _profileBody(AppLocalizations l) => l.tourProfileBody;
 
@@ -131,10 +149,40 @@ const List<TourStep> kTourSteps = [
     body: _reportBody,
   ),
   TourStep(
+    tabIndex: 3,
+    target: TourTarget.reportReview,
+    title: _reviewTitle,
+    body: _reviewBody,
+    illustration: buildTourSampleReviewTick,
+  ),
+  TourStep(
     tabIndex: 4,
     target: TourTarget.profileSettings,
     title: _profileTitle,
     body: _profileBody,
+  ),
+];
+
+/// Tab index for steps that are not tied to a bottom-nav tab (the post
+/// screen's tour). `CoachMarkTargets.keyForTab` returns null for it.
+const int kNoTab = -1;
+
+/// The short tour shown the first time a post is opened. It runs on the post
+/// screen itself, with its own overlay and its own "already seen" flag.
+const List<TourStep> kPostTourSteps = [
+  TourStep(
+    tabIndex: kNoTab,
+    target: TourTarget.postCommentField,
+    title: _postHelpTitle,
+    body: _postHelpBody,
+    illustration: buildTourSampleHelpComment,
+  ),
+  TourStep(
+    tabIndex: kNoTab,
+    target: TourTarget.postComments,
+    title: _postAiTitle,
+    body: _postAiBody,
+    illustration: buildTourSampleAiReply,
   ),
 ];
 

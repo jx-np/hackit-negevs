@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
-import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 
 import '../../core/model_catalog.dart';
 import '../../services/model_controller.dart';
@@ -10,6 +9,7 @@ import '../../services/protection_settings.dart';
 import '../../services/scamshield_channels.dart';
 import '../../state/auth_controller.dart';
 import '../../state/locale_controller.dart';
+import '../../state/text_size_controller.dart';
 import '../../state/theme_controller.dart';
 import '../../theme/app_tokens.dart';
 import '../../widgets/auth/require_login.dart';
@@ -69,13 +69,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _downloadModel() async {
     final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
     final ok = await _model.download();
     if (!mounted) return;
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          ok ? l10n.settingsModelReady(_model.spec.displayName) : _model.error,
+          ok ? '${_model.spec.displayName} is ready' : _model.error,
         ),
       ),
     );
@@ -111,9 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context).settingsScreenTitle),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
@@ -143,10 +140,11 @@ class _SettingsPageState extends State<SettingsPage> {
   // on its own tile; the overall status lives in the summary card up top.
   Widget _protectionSection() {
     final model = _model;
-    final l10n = AppLocalizations.of(context);
     return SettingsSection(
-      title: l10n.settingsCheckerTitle,
-      caption: l10n.settingsCheckerCaption,
+      title: 'Scam checker',
+      caption:
+          'A small assistant runs on your phone and quietly reviews messages '
+          'for common scam patterns. Nothing leaves your device.',
       children: [
         for (var i = 0; i < allModels.length; i++) ...[
           if (i > 0) const Divider(height: 1, indent: 16, endIndent: 16),
@@ -173,26 +171,25 @@ class _SettingsPageState extends State<SettingsPage> {
     final downloading = model.busy && progress >= 0 && progress < 100;
     final ready = model.installed || model.spec.isBuiltIn;
     final active = _serviceRunning && ready;
-    final l10n = AppLocalizations.of(context);
 
     final String statusLine;
     if (!_serviceRunning) {
-      statusLine = l10n.protectionOff;
+      statusLine = 'Protection is off';
     } else if (downloading) {
-      statusLine = l10n.settingsGettingReady;
+      statusLine = 'Getting ready…';
     } else if (ready) {
-      statusLine = l10n.protectionOn;
+      statusLine = 'Protection is on';
     } else {
-      statusLine = l10n.settingsNeedsDownload;
+      statusLine = 'Protection needs a model';
     }
 
     final String detail;
     if (downloading) {
       detail = _downloadLabel(model, progress);
     } else if (ready) {
-      detail = l10n.settingsModelReady(model.spec.displayName);
+      detail = '${model.spec.displayName} · ready to protect you';
     } else {
-      detail = l10n.settingsModelNotDownloaded(model.spec.displayName);
+      detail = '${model.spec.displayName} · not downloaded yet';
     }
 
     final color = active
@@ -200,7 +197,7 @@ class _SettingsPageState extends State<SettingsPage> {
         : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return SettingsSection(
-      title: l10n.settingsStatusTitle,
+      title: 'Status',
       children: [
         SettingsRow(
           leading: Icon(
@@ -226,19 +223,18 @@ class _SettingsPageState extends State<SettingsPage> {
   // "Setting up… 23% · 712 of 3100 MB" when the server reports a total,
   // otherwise falls back to just the percent (and bytes if we have them).
   String _downloadLabel(ModelController model, int progress) {
-    final l10n = AppLocalizations.of(context);
     final received = model.receivedBytes;
     final total = model.totalBytes;
     if (total > 0) {
       final gotMb = (received / (1024 * 1024)).round();
       final totalMb = (total / (1024 * 1024)).round();
-      return '${l10n.settingsSettingUpPct(progress)} · $gotMb/$totalMb MB';
+      return 'Setting up… $progress% · $gotMb of $totalMb MB';
     }
     if (received > 0) {
       final gotMb = (received / (1024 * 1024)).round();
-      return l10n.settingsSettingUpMb(gotMb);
+      return 'Setting up… $gotMb MB';
     }
-    return l10n.settingsSettingUpPct(progress);
+    return 'Setting up… $progress%';
   }
 
   Widget _modelChoiceTile(ScamModelSpec spec) {
@@ -259,20 +255,19 @@ class _SettingsPageState extends State<SettingsPage> {
     final checkingBuiltIn = spec.isBuiltIn && !model.builtInProbed;
     final unavailable = spec.isBuiltIn && model.builtInProbed && !model.builtInAvailable;
 
-    final l10n = AppLocalizations.of(context);
     final String subtitle;
     if (checkingBuiltIn) {
-      subtitle = l10n.settingsCheckingSupport;
+      subtitle = 'Checking if your device supports this…';
     } else if (unavailable) {
-      subtitle = l10n.settingsNotAvailable;
+      subtitle = 'Not available on this device';
     } else if (downloading) {
       subtitle = _downloadLabel(model, progress);
     } else if (ready) {
-      subtitle = l10n.settingsReadyShort;
+      subtitle = 'Ready to protect you';
     } else if (spec.isBuiltIn) {
-      subtitle = l10n.settingsBuiltInSubtitle;
+      subtitle = 'Android system model · no app download';
     } else {
-      subtitle = l10n.settingsAboutMb(spec.approxSizeMb);
+      subtitle = 'About ${spec.approxSizeMb} MB';
     }
 
     // Grey the tile out (ListTile.enabled) while a download is running on
@@ -308,29 +303,24 @@ class _SettingsPageState extends State<SettingsPage> {
     int progress,
   ) {
     final model = _model;
-    final l10n = AppLocalizations.of(context);
     if (downloading) {
       return Text(
-        l10n.settingsPercent(progress),
+        '$progress%',
         style: TextStyle(color: Theme.of(context).colorScheme.primary),
       );
     }
     if (ready && !spec.isBuiltIn) {
       return TextButton(
-        style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
         onPressed: model.busy ? null : _deleteModel,
-        child: Text(l10n.settingsRemove),
+        child: const Text('Remove'),
       );
     }
     if (!ready) {
       return TextButton(
-        style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
         onPressed: model.busy
             ? null
             : () => _downloadFor(spec),
-        child: Text(
-          spec.isBuiltIn ? l10n.settingsPrepare : l10n.settingsDownload,
-        ),
+        child: Text(spec.isBuiltIn ? 'Prepare' : 'Download'),
       );
     }
     return null;
@@ -349,36 +339,36 @@ class _SettingsPageState extends State<SettingsPage> {
   // Pick which hardware the on-device model runs on. Automatic lets the
   // runtime choose the fastest compatible accelerator; the rest pin a target.
   Widget _speedSection() {
-    final l10n = AppLocalizations.of(context);
     return SettingsSection(
-      title: l10n.settingsSpeedTitle,
-      caption: l10n.settingsSpeedCaption,
+      title: 'AI Compatibility mode',
+      caption: 'Automatic picks the fastest compatible hardware. Pin a '
+          'specific one only if Automatic has trouble on your phone.',
       children: [
         _backendRow(
           icon: Icons.auto_awesome_outlined,
-          title: l10n.settingsSpeedAuto,
-          subtitle: l10n.settingsSpeedAutoBody,
+          title: 'Automatic',
+          subtitle: 'Recommended · best compatible hardware',
           backend: ModelBackend.npu,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         _backendRow(
           icon: Icons.memory_outlined,
-          title: l10n.settingsSpeedCpu,
-          subtitle: l10n.settingsSpeedCpuBody,
+          title: 'CPU',
+          subtitle: 'Most compatible, slowest',
           backend: ModelBackend.cpu,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         _backendRow(
           icon: Icons.bolt_outlined,
-          title: l10n.settingsSpeedGpu,
-          subtitle: l10n.settingsSpeedGpuBody,
+          title: 'GPU',
+          subtitle: 'Faster on phones with a supported graphics chip',
           backend: ModelBackend.gpu,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         _backendRow(
           icon: Icons.memory,
-          title: l10n.settingsSpeedNpu,
-          subtitle: l10n.settingsSpeedNpuBody,
+          title: 'NPU',
+          subtitle: 'Fastest on phones with a dedicated AI chip',
           backend: ModelBackend.forceNpu,
         ),
         if (kDebugMode) ...[
@@ -414,21 +404,29 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _appSection() {
     final localeController = context.watch<LocaleController>();
     final themeController = context.watch<ThemeController>();
-    final l10n = AppLocalizations.of(context);
+    final textSizeController = context.watch<TextSizeController>();
     return SettingsSection(
-      title: l10n.settingsAppSection,
+      title: 'App',
       children: [
         SettingsRow(
           leading: Icon(_themeIcon(themeController.mode)),
-          title: l10n.settingsAppearance,
+          title: 'Appearance',
           subtitle: _themeLabel(themeController.mode),
           trailing: const Icon(LucideIcons.chevronRight),
           onTap: _showThemePicker,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         SettingsRow(
+          leading: const Icon(Icons.format_size),
+          title: 'Text size',
+          subtitle: _textSizeLabel(textSizeController.size),
+          trailing: const Icon(LucideIcons.chevronRight),
+          onTap: _showTextSizePicker,
+        ),
+        const Divider(height: 1, indent: 16, endIndent: 16),
+        SettingsRow(
           leading: const Icon(LucideIcons.languages),
-          title: l10n.settingsLanguage,
+          title: 'Language',
           subtitle: _languageLabel(localeController.locale?.languageCode),
           trailing: const Icon(Icons.chevron_right),
           onTap: _showLanguagePicker,
@@ -436,21 +434,24 @@ class _SettingsPageState extends State<SettingsPage> {
         const Divider(height: 1, indent: 16, endIndent: 16),
         SettingsRow(
           leading: const Icon(Icons.school_outlined),
-          title: l10n.settingsShowTutorial,
-          subtitle: l10n.settingsReplayTour,
+          title: 'Show the tour again',
+          subtitle: 'Replay the quick walkthrough',
           trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.read<TourController>().start(),
+          onTap: () {
+            _settings.setSeenPostTour(false);
+            context.read<TourController>().start();
+          },
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         SettingsRow(
           leading: const Icon(Icons.shield_outlined),
-          title: l10n.settingsScreenPermissionsTab,
-          subtitle: l10n.settingsPermissionsSubtitle,
+          title: 'Permissions',
+          subtitle: 'Check what the app is allowed to do',
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
               builder: (_) => Scaffold(
-                appBar: AppBar(title: Text(l10n.settingsScreenPermissionsTab)),
+                appBar: AppBar(title: const Text('Permissions')),
                 body: const PermissionsTab(),
               ),
             ),
@@ -464,9 +465,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final auth = context.watch<AuthController>();
     final signedIn = auth.isSignedIn;
     final user = auth.user;
-    final l10n = AppLocalizations.of(context);
     return SettingsSection(
-      title: l10n.settingsProtection,
+      title: 'Protection',
       children: [
         SettingsRow(
           enabled: _serviceRunning,
@@ -475,25 +475,24 @@ class _SettingsPageState extends State<SettingsPage> {
                 ? Icons.stop_circle_outlined
                 : Icons.pause_circle_outlined,
           ),
-          title: l10n.settingsStopProtection,
-          subtitle: _serviceRunning
-              ? l10n.settingsServiceRunning
-              : l10n.settingsServiceStopped,
+          title: 'Pause protection',
+          subtitle:
+            _serviceRunning ? 'Currently running' : 'Currently paused',
           onTap: _serviceRunning ? _stopProtection : null,
         ),
         const Divider(height: 1, indent: 16, endIndent: 16),
         if (signedIn)
           SettingsRow(
             leading: const Icon(LucideIcons.logOut),
-            title: l10n.myProfileSignOut,
-            subtitle: user?.email ?? l10n.myProfileSignOutHint,
+            title: 'Sign out',
+            subtitle: user?.email ?? 'You can sign back in at any time',
             onTap: () => context.read<AuthController>().logout(),
           )
         else
           SettingsRow(
             leading: const Icon(LucideIcons.logIn),
-            title: l10n.myProfileSignIn,
-            subtitle: l10n.settingsSignInSubtitle,
+            title: 'Sign in',
+            subtitle: 'Needed for community posts and cloud review',
             trailing: const Icon(LucideIcons.chevronRight),
             onTap: () => requireLogin(context),
           ),
@@ -513,15 +512,52 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   String _themeLabel(ThemeMode mode) {
-    final l10n = AppLocalizations.of(context);
     switch (mode) {
       case ThemeMode.light:
-        return l10n.settingsThemeLight;
+        return 'Light';
       case ThemeMode.dark:
-        return l10n.settingsThemeDark;
+        return 'Dark';
       case ThemeMode.system:
-        return l10n.settingsLanguageSystem;
+        return 'System default';
     }
+  }
+
+  String _textSizeLabel(AppTextSize size) {
+    switch (size) {
+      case AppTextSize.normal:
+        return 'Normal';
+      case AppTextSize.large:
+        return 'Large';
+      case AppTextSize.extraLarge:
+        return 'Extra large';
+    }
+  }
+
+  Future<void> _showTextSizePicker() async {
+    final controller = context.read<TextSizeController>();
+    final selected = await showModalBottomSheet<AppTextSize>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: RadioGroup<AppTextSize>(
+          groupValue: controller.size,
+          onChanged: (value) {
+            if (value != null) Navigator.of(sheetContext).pop(value);
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final size in AppTextSize.values)
+                RadioListTile<AppTextSize>(
+                  value: size,
+                  title: Text(_textSizeLabel(size)),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (selected != null) await controller.setSize(selected);
   }
 
   Future<void> _showThemePicker() async {
@@ -590,14 +626,13 @@ class _SettingsPageState extends State<SettingsPage> {
       case 'en':
         return 'English';
       default:
-        return AppLocalizations.of(context).settingsLanguageSystem;
+        return 'System default';
     }
   }
 
   Future<void> _showLanguagePicker() async {
     final controller = context.read<LocaleController>();
     final current = controller.locale?.languageCode;
-    final systemLabel = AppLocalizations.of(context).settingsLanguageSystem;
     final selected = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
@@ -610,12 +645,12 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              for (final entry in [
-                MapEntry('__system__', systemLabel),
-                const MapEntry('en', 'English'),
-                const MapEntry('zh', '中文'),
-                const MapEntry('ta', 'தமிழ்'),
-                const MapEntry('ms', 'Melayu'),
+              for (final entry in const [
+                MapEntry('__system__', 'System default'),
+                MapEntry('en', 'English'),
+                MapEntry('zh', '中文'),
+                MapEntry('ta', 'தமிழ்'),
+                MapEntry('ms', 'Melayu'),
               ])
                 RadioListTile<String>(
                   value: entry.key,

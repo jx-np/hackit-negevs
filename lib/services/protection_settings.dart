@@ -69,6 +69,7 @@ class ProtectionSettings {
   static const String _kProtectionSetupComplete = 'protection_setup_complete';
   static const String _kSetupModelId = 'setup_model_id';
   static const String _kSeenTutorial = 'seen_tutorial';
+  static const String _kSeenPostTour = 'seen_post_tour';
   static const String _kPendingBackendTest = 'pending_backend_test';
   static const int _maxHistory = 60;
 
@@ -108,6 +109,12 @@ class ProtectionSettings {
 
   Future<void> setSeenTutorial(bool value) =>
       _prefs.setBool(_kSeenTutorial, value);
+
+  Future<bool> seenPostTour() async =>
+      await _prefs.getBool(_kSeenPostTour) ?? false;
+
+  Future<void> setSeenPostTour(bool value) =>
+      _prefs.setBool(_kSeenPostTour, value);
 
   Future<String> selectedModelId() async =>
       await _prefs.getString(_kModelId) ?? kDefaultModelId;

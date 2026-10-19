@@ -115,6 +115,11 @@ class BackgroundRunner {
   static const int _maxCatchUp = 12;
   static const Duration _catchUpWindow = Duration(hours: 24);
 
+  /// Minimum model confidence for raising the scam alert overlay. The label
+  /// must also be a scam; `not_scam` and `unsure` never alert. The model emits
+  /// 0.95 / 0.8 / 0.6 in practice, so this excludes only its weakest guesses.
+  static const double _alertMinConfidence = 0.7;
+
   /// Multi-turn context window: earlier messages from the same conversation
   /// within this span are fed into the prompt so a slow-burn scam spread across
   /// several messages is judged together. Older messages are ignored — a scam's
@@ -411,17 +416,20 @@ class BackgroundRunner {
         await _warmUp();
       }
 
-      // Compute the cheap local hints once, up front: they involve a
-      // contact-directory lookup, and both the model prompt and the alert gate
-      // below need them. Passing them into evaluate() avoids a second lookup.
-      final hints = await ScamHintBuilder.fromRecord(record);
-
       // Pull a short rolling window of earlier messages from the SAME
       // conversation so a slow-burn, multi-turn scam — where the ask and the
       // pressure are spread across several messages — is judged in context
       // rather than one message at a time. Empty for a first/one-off message,
       // which then keeps today's single-message prompt cost.
       final priorMessages = await _recentThread(id, record);
+
+      // Compute the cheap local hints once: they involve a contact-directory
+      // lookup, and the model prompt needs them. The thread is passed in so
+      // tells from earlier messages ("click now") count towards signals.
+      final hints = await ScamHintBuilder.fromRecord(
+        record,
+        priorMessages: priorMessages,
+      );
 
       ScamVerdict verdict;
       try {
@@ -436,13 +444,20 @@ class BackgroundRunner {
         verdict = ScamVerdict.unsure(reason: 'On-device check failed: $error');
       }
       _evaluated++;
+      _trace(
+        'verdict ${verdict.label.name} '
+        '${verdict.confidence.toStringAsFixed(2)} | '
+        'hints: ${hints.render()} | ${verdict.reason}',
+      );
       await _log.attachVerdict(id, record, verdict);
 
-      // Gate the alert on the cheap local hints, not just the model's verdict.
-      // A small model misfires on short, vague or odd-looking messages, so an
-      // alert also requires high confidence and at least two corroborating
-      // signals computed independently of the model.
-      if (hints.shouldAlert(verdict.label.wire, verdict.confidence)) {
+      // Alert on every scam verdict the model is reasonably sure about. The
+      // local hints are still computed for the prompt, but they are not an
+      // alert gate: a real scam can carry a single code-detected signal (for
+      // example an unsolicited "call this number" notice), and suppressing
+      // those made the overlay disappear for cases the model correctly flags.
+      // Only `not_scam`, `unsure`, and low-confidence guesses stay quiet.
+      if (verdict.isScam && verdict.confidence > _alertMinConfidence) {
         await _raiseAlert(record, verdict);
       }
     } finally {
@@ -450,7 +465,15 @@ class BackgroundRunner {
       _wakeLock('releaseWakeLock');
       if (_pendingModelSwitch) {
         _pendingModelSwitch = false;
-        unawaited(_disposeEvaluators());
+        // Await the teardown here rather than firing it unawaited. The drain
+        // loop calls _evaluateRecord again as soon as this returns, and that
+        // path warms the model back up (FlutterEdgeAi.getActiveModel). On the
+        // NPU/QNN backend, building a new context while the old one is still
+        // being deregistered races the handle release — the source of the
+        // "Failed to get context from memHandle" / "Invalid context" errors.
+        // Each close is already bounded by _closeTimeout inside dispose(), so
+        // awaiting here cannot stall the queue indefinitely.
+        await _disposeEvaluators();
       }
       _scheduleIdleUnload();
     }
@@ -678,6 +701,9 @@ class BackgroundRunner {
       final started = DateTime.now();
       try {
         final hints = await ScamHintBuilder.fromRecord(record);
+        final multiHints = prior == null
+            ? hints
+            : await ScamHintBuilder.fromRecord(record, priorMessages: prior);
         final singleStarted = DateTime.now();
         final single = await _evaluateForBatch(
           record,
@@ -693,7 +719,7 @@ class BackgroundRunner {
           final multi = await _evaluateForBatch(
             record,
             priorMessages: prior,
-            hints: hints,
+            hints: multiHints,
             exampleCount: exampleCount,
           );
           entry['verdict_multi'] = multi.toJson();

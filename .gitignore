@@ -67,6 +67,10 @@ tests_results.json
 logcat_dump.txt
 *.log
 
+# Launch video output and scratch prompt examples (not app build inputs)
+brag-output/
+lib/core/Example/
+
 # Unused non-Android platform scaffolding (this is an Android-only app)
 /linux/
 /macos/

@@ -44,13 +44,13 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
                 color: accent.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 36, color: accent),
+              child: Icon(icon, size: 44, color: accent),
             ),
             SizedBox(height: tokens.space.lg), // 16
             Text(

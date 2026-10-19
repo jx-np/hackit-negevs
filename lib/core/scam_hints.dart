@@ -16,13 +16,27 @@ enum SenderType {
   unsavedLocal('unsaved_local'),
   unsavedInternational('unsaved_international'),
   shortCode('short_code'),
-  name('name');
+  name('name'),
+
+  /// Singapore carriers relabel every unregistered sender ID "Likely-SCAM", so
+  /// the real sender is unknown and real brands land here too. It says nothing
+  /// about the text, so it is shown but never counted as a signal.
+  unregistered('unregistered_id');
 
   const SenderType(this.wire);
 
   /// The token written into the prompt, e.g. `sender=unsaved_international`.
   final String wire;
 }
+
+final RegExp _likelyScamLabel = RegExp(
+  r'^\W*likely[\s_-]*scam\W*$',
+  caseSensitive: false,
+);
+
+/// Whether [sender] is the carrier's "Likely-SCAM" header for unregistered SMS
+/// sender IDs rather than a real sender name.
+bool isLikelyScamLabel(String sender) => _likelyScamLabel.hasMatch(sender.trim());
 
 /// The kind of link found in a message, if any.
 enum LinkType {
@@ -31,14 +45,48 @@ enum LinkType {
   shortened('shortened'),
   oddTld('odd_tld'),
 
-  /// The message is nothing but a single URL. A bare link with no surrounding
-  /// text carries no ask or pressure, so on its own it is not evidence of a
-  /// scam — even when the domain looks unusual.
+  /// The message is nothing but a single URL. On its own it carries no ask, but
+  /// it is still a link, and in a thread it is usually the payload of an
+  /// earlier "click now" style hook.
   bareLinkOnly('bare_link_only');
 
   const LinkType(this.wire);
 
   final String wire;
+}
+
+/// A recognisable scam script the message follows, rendered as `lure=<wire>`.
+/// One value per message (first match wins) keeps the hints line short while
+/// still pointing the model at the right label.
+enum LureType {
+  none('none', counts: false),
+
+  /// Task / commission / part-time job hook.
+  job('job'),
+
+  /// Prize, lottery, voucher or refund you must claim.
+  prize('prize'),
+
+  /// Guaranteed returns, trading or crypto groups.
+  invest('invest'),
+
+  /// Unsolicited fast loan or credit offer.
+  loan('loan'),
+
+  /// Account alert wording (unauthorised login, suspended, delivery fee). Real
+  /// banks and couriers use it too, so it is shown but not counted as a signal.
+  account('account', counts: false),
+
+  /// "Hi mum, this is my new number" openers. Family really do this, so it is
+  /// shown but not counted as a signal.
+  newNumber('new_number', counts: false);
+
+  const LureType(this.wire, {this.counts = true});
+
+  final String wire;
+
+  /// Whether this lure adds one to the signal count.
+  final bool counts;
 }
 
 /// A compact set of signals about one message. Only true signals are rendered
@@ -56,8 +104,18 @@ class ScamHints {
     required this.brandMentioned,
     required this.callbackRequest,
     required this.legalThreat,
+    this.phoneInBody = false,
+    this.callToAction = false,
+    this.secrecy = false,
+    this.lure = LureType.none,
+    this.priorSignals = 0,
+    this.eventCues = 0,
     this.includeSender = true,
   });
+
+  /// Every link counts this many signals. Links are the payload of nearly every
+  /// phishing message, so one outweighs any single text-only tell.
+  static const int linkWeight = 2;
 
   final SenderType senderType;
   final LinkType linkType;
@@ -88,9 +146,46 @@ class ScamHints {
   /// common vishing / callback-fraud hook.
   final bool callbackRequest;
 
-  /// Threatens police / court / arrest / warrant / lawsuit to scare you into
-  /// acting — a classic authority-impersonation pressure tactic.
+  /// Threatens police / court / arrest / warrant / lawsuit, or uses a
+  /// government-official script ("safe account", "money laundering"), to scare
+  /// you into acting — a classic authority-impersonation pressure tactic.
   final bool legalThreat;
+
+  /// A phone number appears in the body. Weak on its own (companies list their
+  /// own), but it is the usual payload of a callback or WhatsApp lure.
+  final bool phoneInBody;
+
+  /// "click now", "tap here", "verify now" — an imperative aimed at a link.
+  final bool callToAction;
+
+  /// "don't tell anyone", "keep this confidential", "do not hang up".
+  final bool secrecy;
+
+  /// The scam script the message follows, if any.
+  final LureType lure;
+
+  /// Signals found in EARLIER messages of the same thread that this message
+  /// does not repeat (a link counts [linkWeight]). Zero for a one-off message
+  /// and for saved contacts. It is already included in [strongSignalCount].
+  final int priorSignals;
+
+  /// How many of the three event cues (event word, date/time, venue) appear in
+  /// a message long enough to be a real notice. See [announcement].
+  final int eventCues;
+
+  /// A community / event notice (workshop, meet-up, sign-up call) that carries
+  /// no scam signal at all: no money, code, install, urgency, callback, odd or
+  /// shortened link, or brand name. A plain link is allowed because sign-up
+  /// forms are normal. It is positive evidence for the model that a sign-up
+  /// link or deadline here is ordinary, not a lure. It is a nudge, not a
+  /// verdict.
+  bool get announcement =>
+      eventCues >= 2 &&
+      messageSignalCount == 0 &&
+      priorSignals == 0 &&
+      !brandMentioned &&
+      !deliversCode &&
+      (linkType == LinkType.none || linkType == LinkType.normal);
 
   /// Compact string that goes into the prompt as `$hints`. Only true signals
   /// are listed, so an ordinary message renders just its sender type. Chat
@@ -109,37 +204,67 @@ class ScamHints {
     if (brandMentioned) parts.add('brand_mentioned=yes');
     if (callbackRequest) parts.add('callback_request=yes');
     if (legalThreat) parts.add('legal_threat=yes');
+    if (phoneInBody) parts.add('phone_in_body=yes');
+    if (callToAction) parts.add('cta=yes');
+    if (secrecy) parts.add('secrecy=yes');
+    if (lure != LureType.none) parts.add('lure=${lure.wire}');
+    if (announcement) parts.add('announcement=yes');
+    if (priorSignals > 0) parts.add('prior_signals=$priorSignals');
     parts.add('signals=$strongSignalCount');
     return parts.join(', ');
   }
 
-  /// Counts the strong, independently-computed signals in these hints. Used by
-  /// [shouldAlert] as a hard gate so a weak model cannot raise an alert on a
-  /// message that carries no corroborating evidence. A shortened link counts as
-  /// two signals on its own: unsolicited short links are a strong scam tell, so
-  /// one is enough to clear the two-signal gate without a second corroborator.
-  int get strongSignalCount =>
-      [
-        asksForCode,
-        apkOrRemoteApp,
-        urgency,
-        moneyAsk,
-        movesOffPlatform,
-        callbackRequest,
-        legalThreat,
-        includeSender && senderType == SenderType.unsavedInternational,
-      ].where((signal) => signal).length +
-      (linkType == LinkType.shortened ? 2 : 0);
+  /// The distinct text-only signals in this message, by name. Used for the
+  /// count and to tell which tells an earlier message adds to the thread.
+  Set<String> get _signalKeys => {
+        if (asksForCode) 'asks_for_code',
+        if (apkOrRemoteApp) 'apk',
+        if (urgency) 'urgency',
+        if (moneyAsk) 'money',
+        if (movesOffPlatform) 'off_platform',
+        if (callbackRequest) 'callback',
+        if (legalThreat) 'legal',
+        if (callToAction) 'cta',
+        if (secrecy) 'secrecy',
+        if (lure.counts) 'lure',
+        if (includeSender && senderType == SenderType.unsavedInternational)
+          'sender',
+      };
 
-  /// Whether a verdict should actually raise an alert. The model's label and
-  /// confidence are necessary but not sufficient: a small model misfires on
-  /// short, vague or odd-looking messages, so an alert also requires high
-  /// confidence AND at least two corroborating signals from the cheap local
-  /// hints. `not_scam` and `unsure` never alert.
-  bool shouldAlert(String label, double confidence) {
-    if (label == 'not_scam' || label == 'unsure') return false;
-    return confidence >= 0.8 && strongSignalCount >= 2;
-  }
+  /// Signals from this message alone, links excluded.
+  int get messageSignalCount => _signalKeys.length;
+
+  /// Counts the strong, independently-computed signals in these hints. This is
+  /// rendered as `signals=N` for the model, which uses it as one more piece of
+  /// evidence. It does not gate alerts: the model's scam label is enough to
+  /// raise one. Any link counts [linkWeight] signals, and tells found in
+  /// earlier messages of the thread are added through [priorSignals].
+  int get strongSignalCount =>
+      messageSignalCount +
+      (linkType == LinkType.none ? 0 : linkWeight) +
+      priorSignals;
+
+  /// Same hints with [priorSignals] set.
+  ScamHints withPriorSignals(int count) => ScamHints(
+        senderType: senderType,
+        linkType: linkType,
+        asksForCode: asksForCode,
+        deliversCode: deliversCode,
+        apkOrRemoteApp: apkOrRemoteApp,
+        urgency: urgency,
+        moneyAsk: moneyAsk,
+        movesOffPlatform: movesOffPlatform,
+        brandMentioned: brandMentioned,
+        callbackRequest: callbackRequest,
+        legalThreat: legalThreat,
+        phoneInBody: phoneInBody,
+        callToAction: callToAction,
+        secrecy: secrecy,
+        lure: lure,
+        priorSignals: count,
+        eventCues: eventCues,
+        includeSender: includeSender,
+      );
 
   /// True when there is nothing suspicious at all, so the caller may skip the
   /// model entirely and treat the message as not a scam. Chat apps have no
@@ -148,12 +273,14 @@ class ScamHints {
   bool looksTrivial() =>
       (!includeSender ||
           senderType == SenderType.savedContact ||
+          senderType == SenderType.unregistered ||
           senderType == SenderType.name) &&
       linkType == LinkType.none &&
       !asksForCode &&
       !apkOrRemoteApp &&
       !moneyAsk &&
-      !movesOffPlatform;
+      !movesOffPlatform &&
+      priorSignals == 0;
 }
 
 /// Builds [ScamHints] from the cheap, local facts about a message.
@@ -174,7 +301,7 @@ class ScamHintBuilder {
   );
 
   static final RegExp _asksCode = RegExp(
-    r'\b(send|reply|share|tell|give|provide|forward|read)\b.{0,40}\b(otp|code|pin|password|passcode)\b',
+    r"(?<!\b(?:not|never|don.t|dont|cannot|can.t)\s)(?<!\b(?:not|never|don.t|dont)\s+(?:ever|to)\s)\b(send|reply|share|tell|give|provide|forward|read)\b.{0,40}\b(otp|codes?|pin|password|passcode)\b",
     caseSensitive: false,
     dotAll: true,
   );
@@ -184,19 +311,99 @@ class ScamHintBuilder {
     dotAll: true,
   );
   static final RegExp _apk = RegExp(
-    r'\.apk\b|install (the |this )?(app|apk)|unknown sources|anydesk|teamviewer|quicksupport|remote (access|support)',
+    r'\.apk\b|install (the |this )?(app|apk)|unknown sources|anydesk|teamviewer|quicksupport|remote (access|support)|screen.?shar\w*',
     caseSensitive: false,
   );
   static final RegExp _urgent = RegExp(
-    r'\b(urgent|immediately|asap|last chance|final notice|within \d+\s?(h|hr|hrs|hours|min|minutes)|expires?|suspended|locked|blocked|legal action|arrest)\b',
+    r'\b(urgent(ly)?|immediately|asap|last chance|final notice|final warning|last warning|act now|overdue|within \d+\s?(h|hr|hrs|hours|min|minutes)|expires?|suspended|locked|blocked|legal action|arrest)\b',
     caseSensitive: false,
   );
+  // A currency amount needs an explicit marker ($50, S$50, SGD 50). A bare "s"
+  // followed by a digit ("has 5 slots") must not count as money.
   static final RegExp _money = RegExp(
-    r'\b(pay|payment|fee|transfer|deposit|gift ?card|crypto|usdt|bitcoin|top.?up)\b|[$S]\$?\s?\d+',
+    r'\b(pay|payment|fee|transfer|deposit|gift ?cards?|crypto|usdt|bitcoin|top.?up)\b|\$\s?\d|\bsgd\s?\d',
     caseSensitive: false,
   );
+
+  // "click here", "tap now", "verify now", "open the link" — an imperative
+  // aimed at a link, the usual first half of a two-message lure.
+  static final RegExp _cta = RegExp(
+    r'\b(click|tap)\b.{0,15}\b(here|now|link|below|this)\b|\bopen (the |this )?link\b|\b(verify|confirm|update|log ?in|claim|track|re-?schedule)\s+(now|here|today|immediately|below)\b',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // A phone number in the body: international (+65 8123 4567), SG mobile or
+  // landline (8123 4567), toll-free (1800 123 4567) or a 0-prefixed number.
+  // Letters or dots on either side rule out reference codes and decimals.
+  static final RegExp _phoneNumber = RegExp(
+    r'(?<![\w.])(?:\+\d[\d\s-]{7,16}\d|0\d{9,10}|1[389]00[\s-]?\d{3}[\s-]?\d{3,4}|[3689]\d{3}[\s-]?\d{4})(?!\w)',
+  );
+
+  // "don't tell anyone", "keep this confidential", "do not hang up" — scripts
+  // that isolate the victim from family, bank and police.
+  static final RegExp _secrecy = RegExp(
+    r'\b(do not|dont|don.t)\s+(tell|inform|disclose)\b.{0,25}\b(anyone|family|bank|police|staff)\b|\bkeep (this|it)\b.{0,10}\b(confidential|secret|private)\b|\bconfidential (case|matter)\b|\bdo not hang up\b',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // Scam scripts. Each is checked in the order of [_lure]; the first match wins.
+  static final RegExp _lureJob = RegExp(
+    r'\bpart.?time (job|work|role)\b|\bwork from home\b|\b(simple|easy) (task|job|work)s?\b|\bcommission\b|\bno experience\b|\bearn\b.{0,30}\b(a day|per day|daily|per hour|hourly)\b|\b(liking|boosting|rating)\b.{0,20}\b(videos?|products?|shops?|pages?)\b',
+    caseSensitive: false,
+    dotAll: true,
+  );
+  static final RegExp _lurePrize = RegExp(
+    r"\b(you|u)(['’]?ve|\s+have)?\s+won\b|\bcongratulations\b.{0,40}\b(claim|selected|winner|prize)\b|\bclaim your\b|\b(tax )?refund\b|\brebate\b|\b(cdc|gst) voucher\b|\blucky (draw|winner)\b|\bunclaimed\b|\bcash prize\b",
+    caseSensitive: false,
+    dotAll: true,
+  );
+  static final RegExp _lureInvest = RegExp(
+    r'\bguaranteed (returns?|profits?|income)\b|\b(daily|weekly|monthly) (returns?|profits?|roi)\b|\b(trading|investment|vip|stock) (group|signals?|platform|tips|expert)\b|\bdouble your\b|\bhigh returns?\b',
+    caseSensitive: false,
+  );
+  static final RegExp _lureLoan = RegExp(
+    r'\b(instant|fast|quick) (loan|approval|cash)\b|\bpre.?approved\b|\bloan\b.{0,25}\b(approved|offer|available)\b|\bno (credit )?check\b|\blow interest\b|\bdebt consolidation\b',
+    caseSensitive: false,
+    dotAll: true,
+  );
+  static final RegExp _lureNewNumber = RegExp(
+    r'\bhi (mum|mom|dad|mama|papa)\b|\bnew number\b|\b(lost|broke|broken|dropped|cracked) my (phone|sim)\b|\bsave (this|my)( new)? number\b|\bwrong number\b',
+    caseSensitive: false,
+  );
+  static final RegExp _lureAccount = RegExp(
+    r'\bunauthori[sz]ed\b|\bunusual (login|activity|sign.?in)\b|\bverify your (identity|account|details|information)\b|\baccount\b.{0,25}\b(suspend|lock|block|restrict|deactivat|compromis)\w*|\b(toll|fine|parcel|delivery|redelivery|customs|shipping) fee\b|\bunpaid\b|\bsecurity alert\b',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
+  // Event-notice cues. Any two of these in a longer message, with no scam
+  // signal at all, mark an ordinary community announcement.
+  static final RegExp _eventWord = RegExp(
+    r'\b(workshop|seminar|webinar|meet-?up|talk|session|event|class|lesson|tournament|orientation|briefing|bazaar|gathering|rehearsal|training|camp|hackathon|meeting|rsvp)\b',
+    caseSensitive: false,
+  );
+  static final RegExp _dateTime = RegExp(
+    r'\b\d{1,2}([.:]\d{2})?\s?(am|pm)\b|\b\d{1,2}(st|nd|rd|th)?\s(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b|\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+    caseSensitive: false,
+  );
+  static final RegExp _venue = RegExp(
+    r'\b(location|venue|room|hall|blk|block|studio|library|auditorium|campus)\b|#\d{1,3}-\d{1,3}|📍',
+    caseSensitive: false,
+  );
+
+  // Shortest message that can carry a real event notice; a one-line "join our
+  // event" lure stays below it.
+  static const int _announcementMinLength = 60;
+
+  // Most signals a thread can add on top of the current message, so a long
+  // chatty history cannot swamp the count.
+  static const int _maxPriorSignals = 4;
+
   static final RegExp _offPlatform = RegExp(
-    r'\b(telegram|t\.me|wa\.me|whatsapp|signal)\b',
+    r'\b(t\.me|wa\.me)\b|\b(add|message|msg|text|contact|chat|dm|reach|join|ping|talk|write)\b.{0,30}\b(telegram|whatsapp|signal)\b|\b(telegram|whatsapp|signal)\b.{0,15}(@\w|\+?\d{5,})',
+    dotAll: true,
     caseSensitive: false,
   );
 
@@ -215,10 +422,18 @@ class ScamHintBuilder {
     caseSensitive: false,
   );
 
+  // Government-official impersonation script: a "crime" tied to your identity,
+  // then a "safe account" to move money into.
+  static final RegExp _officialScript = RegExp(
+    r'\b(safe(ty)?|security) account\b|\bmoney laundering\b|\bunder investigation\b|\b(nric|identity|particulars)\b.{0,25}\b(misused|linked|involved)\b',
+    caseSensitive: false,
+    dotAll: true,
+  );
+
   // Market-specific brand list. Scammers copy local names, so this leans toward
   // the Singapore/SEA market the app targets.
   static final RegExp _brands = RegExp(
-    r'\b(dbs|ocbc|uob|posb|singpost|dhl|fedex|ica|iras|cpf|singpass|spf|lazada|shopee|grab|netflix|paypal|apple|amazon)\b',
+    r'\b(dbs|ocbc|uob|posb|maybank|hsbc|citibank|singpost|dhl|fedex|j&t|ninja ?van|ica|iras|cpf|singpass|spf|lta|hdb|ntuc|singtel|starhub|lazada|shopee|qoo10|carousell|foodpanda|grab|netflix|paypal|apple|amazon)\b',
     caseSensitive: false,
   );
 
@@ -227,12 +442,44 @@ class ScamHintBuilder {
   /// [isSmsSender] is false for chat apps, whose notification title is a
   /// display name: the sender hint is then omitted entirely. It defaults to
   /// true so direct callers keep the SMS behaviour.
+  ///
+  /// [priorMessages] are earlier messages of the same thread. Tells in them
+  /// that [message] does not repeat are added to the signal count, so a
+  /// "click now" followed by a bare link scores as one scam. They are ignored
+  /// for saved contacts.
   static ScamHints build({
     required String sender,
     required String message,
     required bool isSavedContact,
     String homeCountryCode = '+65',
     bool isSmsSender = true,
+    List<String> priorMessages = const [],
+  }) {
+    final hints = _buildSingle(
+      sender: sender,
+      message: message,
+      isSavedContact: isSavedContact,
+      homeCountryCode: homeCountryCode,
+      isSmsSender: isSmsSender,
+    );
+    if (priorMessages.isEmpty) return hints;
+    final prior = _priorSignalCount(
+      hints,
+      priorMessages,
+      sender: sender,
+      isSavedContact: isSavedContact,
+      homeCountryCode: homeCountryCode,
+      isSmsSender: isSmsSender,
+    );
+    return prior == 0 ? hints : hints.withPriorSignals(prior);
+  }
+
+  static ScamHints _buildSingle({
+    required String sender,
+    required String message,
+    required bool isSavedContact,
+    required String homeCountryCode,
+    required bool isSmsSender,
   }) {
     final senderType = _senderType(
       sender: sender,
@@ -241,9 +488,9 @@ class ScamHintBuilder {
     );
 
     // A message that is just a single URL (one whitespace-delimited token) is
-    // flagged as a bare link rather than by its TLD, so an odd domain on its
-    // own does not nudge the model toward a scam. A shortener still wins because
-    // hidden destinations are a stronger signal than the surrounding text.
+    // flagged as a bare link rather than by its TLD, so the model can see there
+    // is no surrounding text. A shortener still wins because hidden
+    // destinations are a stronger signal than the surrounding text.
     final isBareLink = _anyUrl.hasMatch(message) &&
         message.trim().split(RegExp(r'\s+')).length == 1;
     final LinkType linkType;
@@ -259,20 +506,85 @@ class ScamHintBuilder {
       linkType = LinkType.none;
     }
 
+    final deliversCode = _deliversCode.hasMatch(message);
+
     return ScamHints(
       senderType: senderType,
       linkType: linkType,
       asksForCode: _asksCode.hasMatch(message),
-      deliversCode: _deliversCode.hasMatch(message),
+      deliversCode: deliversCode,
       apkOrRemoteApp: _apk.hasMatch(message),
       urgency: _urgent.hasMatch(message),
       moneyAsk: _money.hasMatch(message),
       movesOffPlatform: _offPlatform.hasMatch(message),
       brandMentioned: _brands.hasMatch(message),
       callbackRequest: _callback.hasMatch(message),
-      legalThreat: _legalThreat.hasMatch(message),
+      legalThreat:
+          _legalThreat.hasMatch(message) || _officialScript.hasMatch(message),
+      // An 8-digit one-time code looks like a phone number; a message that
+      // delivers a code is not advertising a number.
+      phoneInBody: !deliversCode && _phoneNumber.hasMatch(message),
+      callToAction: _cta.hasMatch(message),
+      secrecy: _secrecy.hasMatch(message),
+      lure: _lure(message),
+      eventCues: _eventCues(message),
       includeSender: isSmsSender,
     );
+  }
+
+  static LureType _lure(String message) {
+    if (_lureJob.hasMatch(message)) return LureType.job;
+    if (_lurePrize.hasMatch(message)) return LureType.prize;
+    if (_lureInvest.hasMatch(message)) return LureType.invest;
+    if (_lureLoan.hasMatch(message)) return LureType.loan;
+    if (_lureNewNumber.hasMatch(message)) return LureType.newNumber;
+    if (_lureAccount.hasMatch(message)) return LureType.account;
+    return LureType.none;
+  }
+
+  /// Signals the earlier messages add beyond [current]: each distinct text
+  /// tell once, plus [ScamHints.linkWeight] when an earlier message carried a
+  /// link and the current one does not. Zero for a saved contact, whose chat
+  /// history should never accumulate into an alarm.
+  static int _priorSignalCount(
+    ScamHints current,
+    List<String> priorMessages, {
+    required String sender,
+    required bool isSavedContact,
+    required String homeCountryCode,
+    required bool isSmsSender,
+  }) {
+    if (current.includeSender && current.senderType == SenderType.savedContact) {
+      return 0;
+    }
+    final seen = <String>{};
+    var priorLink = false;
+    for (final prior in priorMessages) {
+      final hints = _buildSingle(
+        sender: sender,
+        message: prior,
+        isSavedContact: isSavedContact,
+        homeCountryCode: homeCountryCode,
+        isSmsSender: isSmsSender,
+      );
+      seen.addAll(hints._signalKeys);
+      if (hints.linkType != LinkType.none) priorLink = true;
+    }
+    // The sender is the same on every turn, so it is not new evidence.
+    seen.remove('sender');
+    seen.removeAll(current._signalKeys);
+    var total = seen.length;
+    if (priorLink && current.linkType == LinkType.none) {
+      total += ScamHints.linkWeight;
+    }
+    return total > _maxPriorSignals ? _maxPriorSignals : total;
+  }
+
+  static int _eventCues(String message) {
+    if (message.trim().length < _announcementMinLength) return 0;
+    return [_eventWord, _dateTime, _venue]
+        .where((cue) => cue.hasMatch(message))
+        .length;
   }
 
   static SenderType _senderType({
@@ -282,6 +594,7 @@ class ScamHintBuilder {
   }) {
     final trimmed = sender.trim();
     if (isSavedContact) return SenderType.savedContact;
+    if (isLikelyScamLabel(trimmed)) return SenderType.unregistered;
     if (trimmed.startsWith('+') && !trimmed.startsWith(homeCountryCode)) {
       return SenderType.unsavedInternational;
     }
@@ -306,9 +619,12 @@ class ScamHintBuilder {
   /// Only SMS-style apps get a sender hint. For a chat app the title is the
   /// other user's display name, so the contacts are not consulted at all and
   /// no `sender=` token is produced.
+  ///
+  /// [priorMessages] are earlier messages of the same thread (see [build]).
   static Future<ScamHints> fromRecord(
     NotificationRecord record, {
     String homeCountryCode = '+65',
+    List<String> priorMessages = const [],
   }) async {
     final isSms = isSmsApp(record.packageName);
     final sender = record.title.trim();
@@ -319,6 +635,7 @@ class ScamHintBuilder {
       isSavedContact: isSaved,
       homeCountryCode: homeCountryCode,
       isSmsSender: isSms,
+      priorMessages: priorMessages,
     );
   }
 

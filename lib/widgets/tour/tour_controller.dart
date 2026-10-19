@@ -8,11 +8,21 @@ import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 /// itself; `HomePage` supplies [onShowTab] so each step's tab is on screen
 /// before the overlay spotlights it. `CoachMarkOverlay` listens and rebuilds.
 class TourController extends ChangeNotifier {
-  TourController({required this.steps, ProtectionSettings? settings})
-      : _settings = settings ?? ProtectionSettings();
+  /// [readSeen] and [writeSeen] let a secondary tour (e.g. the post screen's)
+  /// keep its own "already shown" flag. They default to the app-wide tour flag.
+  TourController({
+    required this.steps,
+    ProtectionSettings? settings,
+    Future<bool> Function()? readSeen,
+    Future<void> Function()? writeSeen,
+  })  : _settings = settings ?? ProtectionSettings(),
+        _readSeen = readSeen,
+        _writeSeen = writeSeen;
 
   final List<TourStep> steps;
   final ProtectionSettings _settings;
+  final Future<bool> Function()? _readSeen;
+  final Future<void> Function()? _writeSeen;
 
   /// Invoked with the tab index each step wants on screen. Set by `HomePage`.
   void Function(int tabIndex)? onShowTab;
@@ -68,13 +78,18 @@ class TourController extends ChangeNotifier {
     _active = false;
     _index = 0;
     // Fire-and-forget: persisting the flag must not block the UI teardown.
-    _settings.setSeenTutorial(true);
+    final writeSeen = _writeSeen;
+    if (writeSeen != null) {
+      writeSeen();
+    } else {
+      _settings.setSeenTutorial(true);
+    }
     notifyListeners();
   }
 
   /// Returns true when the first-launch tour has not been shown yet.
   Future<bool> shouldAutoStart() async {
-    final seen = await _settings.seenTutorial();
+    final seen = await (_readSeen?.call() ?? _settings.seenTutorial());
     return !seen;
   }
 

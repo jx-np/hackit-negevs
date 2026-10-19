@@ -181,6 +181,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   /// newly added photo forces a fresh review.
   bool _reviewed = false;
 
+  /// Attached to the review checkbox so we can scroll it into view once the
+  /// images are ready.
+  final GlobalKey _reviewKey = GlobalKey();
+
   /// True when at least one screenshot is attached.
   bool get _hasImages => _images.isNotEmpty;
 
@@ -403,6 +407,10 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         // show the censored image rather than the raw local file. Best-effort:
         // a failure leaves the original on screen and a tap-to-edit retries.
         unawaited(_ensureRedacted(image));
+        // Once the last image is ready, lead the user to the review tick.
+        if (_allImagesReady && !_anyImagePending && !_reviewed) {
+          _guideToReview();
+        }
         // Slot freed — let the next queued image start its check.
         _processNextCheck();
       } else if (progress.isFailed) {
@@ -712,6 +720,22 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     }
   }
 
+  /// Scrolls the review checkbox into view so the user sees the tick they need
+  /// to press before sharing. Waits a frame so a just-ready image has laid out.
+  void _guideToReview() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final BuildContext? target = _reviewKey.currentContext;
+      if (target == null) return;
+      Scrollable.ensureVisible(
+        target,
+        alignment: 0.6,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
   Future<void> _pasteMessage() async {
     final l10n = AppLocalizations.of(context);
     final ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -1003,7 +1027,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         phase: phase,
         submitting: _submitting,
         label: submitLabel,
-        onPressed: _submit,
+        // In the review phase the button points the user at the tick instead
+        // of posting; sharing only happens once the images are reviewed.
+        onPressed: phase == _SubmitPhase.review ? _guideToReview : _submit,
       ),
       body: Form(
         key: _formKey,
@@ -1151,11 +1177,17 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       // be shared. Ticking this flips the submit button to its ready state.
       if (_hasImages) ...[
         const _SectionGap(),
-        _ReviewCheckbox(
-          value: _reviewed,
-          label: l10n.reportTabReviewCheckbox,
-          enabled: _allImagesReady && !_anyImagePending && !_submitting,
-          onChanged: (bool value) => setState(() => _reviewed = value),
+        // Spotlit by the app tour's review step when photos are attached;
+        // otherwise the tour falls back to the Report nav tab.
+        KeyedSubtree(
+          key: CoachMarkTargets.keyOf(context, TourTarget.reportReview),
+          child: _ReviewCheckbox(
+            key: _reviewKey,
+            value: _reviewed,
+            label: l10n.reportTabReviewCheckbox,
+            enabled: _allImagesReady && !_anyImagePending && !_submitting,
+            onChanged: (bool value) => setState(() => _reviewed = value),
+          ),
         ),
       ],
     ];
@@ -2123,6 +2155,7 @@ class _SuccessView extends StatelessWidget {
 /// become the normal "Share" action. Disabled (greyed) until images are ready.
 class _ReviewCheckbox extends StatelessWidget {
   const _ReviewCheckbox({
+    super.key,
     required this.value,
     required this.label,
     required this.enabled,
@@ -2147,11 +2180,11 @@ class _ReviewCheckbox extends StatelessWidget {
           : scheme.onSurface.withValues(alpha: 0.03),
       shape: RoundedRectangleBorder(
         borderRadius: tokens.radii.mdRadius,
+        // Ready but not yet ticked: draw a thicker primary border so the
+        // checkbox stands out as the next thing to do.
         side: BorderSide(
-          color: value && enabled
-              ? scheme.primary
-              : scheme.outlineVariant,
-          width: 1.5,
+          color: enabled ? scheme.primary : scheme.outlineVariant,
+          width: enabled && !value ? 2.5 : 1.5,
         ),
       ),
       clipBehavior: Clip.antiAlias,

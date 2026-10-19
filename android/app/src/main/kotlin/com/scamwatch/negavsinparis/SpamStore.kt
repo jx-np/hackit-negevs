@@ -41,6 +41,21 @@ object SpamStore {
         return key.isNotEmpty() && blockedNumbers(context).contains(key)
     }
 
+    /**
+     * Adds a number to the same list the Dart UI reads (`spam_blocked_numbers`)
+     * and turns call protection on, so the call-screening service rejects it
+     * from now on. The Dart side must `reload()` its prefs to see the change.
+     */
+    fun block(context: Context, rawNumber: String?) {
+        val key = canonical(rawNumber)
+        if (key.isEmpty()) return
+        val updated = blockedNumbers(context) + key
+        prefs(context).edit()
+            .putString(KEY_BLOCKED, updated.joinToString(","))
+            .putBoolean(KEY_ENABLED, true)
+            .apply()
+    }
+
     private fun prefs(context: Context) =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 }

@@ -3,13 +3,17 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 
+/// What the user chose on the full-screen warning.
+enum HighRiskCallAction { blocked, dismissed }
+
 /// A full-screen, hard-to-miss warning shown when a caller's number is rated
 /// `high_risk` by the trust-score API.
 ///
 /// Shown for an incoming/ongoing call from a high-risk number (see the call
 /// history screen's call-event hook) and previewable from the dev menu. The
 /// screen is intentionally loud: a saturated danger background, a large shield
-/// icon, the offending number, and a single dismiss action.
+/// icon, the offending number, and two large actions — block the caller, or
+/// dismiss the warning.
 class HighRiskCallAlert extends StatelessWidget {
   const HighRiskCallAlert({
     super.key,
@@ -27,15 +31,18 @@ class HighRiskCallAlert extends StatelessWidget {
   /// How many times the number was reported. Null/0 hides the count line.
   final int? reportCount;
 
-  /// Pushes the alert as an opaque full-screen route. Returns when dismissed.
-  static Future<void> show(
+  /// Pushes the alert as an opaque full-screen route. Returns what the user
+  /// chose so the caller can block the number when [HighRiskCallAction.blocked]
+  /// is returned.
+  static Future<HighRiskCallAction> show(
     BuildContext context, {
     required String phoneNumber,
     int? trustScore,
     int? reportCount,
-  }) {
-    return Navigator.of(context, rootNavigator: true).push<void>(
-      MaterialPageRoute<void>(
+  }) async {
+    final action = await Navigator.of(context, rootNavigator: true).push<
+        HighRiskCallAction>(
+      MaterialPageRoute<HighRiskCallAction>(
         fullscreenDialog: true,
         builder: (_) => HighRiskCallAlert(
           phoneNumber: phoneNumber,
@@ -44,6 +51,7 @@ class HighRiskCallAlert extends StatelessWidget {
         ),
       ),
     );
+    return action ?? HighRiskCallAction.dismissed;
   }
 
   @override
@@ -122,7 +130,7 @@ class HighRiskCallAlert extends StatelessWidget {
                                 phoneNumber,
                                 maxLines: 1,
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.titleLarge
+                                style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
@@ -134,11 +142,12 @@ class HighRiskCallAlert extends StatelessWidget {
                               Text(
                                 l10n.callHighRiskScore(trustScore!),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium
+                                style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(
                                       color: Colors.white.withValues(
                                         alpha: 0.92,
                                       ),
+                                      fontWeight: FontWeight.w600,
                                     ),
                               ),
                             ],
@@ -147,11 +156,12 @@ class HighRiskCallAlert extends StatelessWidget {
                               Text(
                                 l10n.callHighRiskReports(reportCount!),
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodyMedium
+                                style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(
                                       color: Colors.white.withValues(
                                         alpha: 0.92,
                                       ),
+                                      fontWeight: FontWeight.w600,
                                     ),
                               ),
                             ],
@@ -159,17 +169,33 @@ class HighRiskCallAlert extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      SizedBox(height: tokens.space.xl),
+                      SizedBox(height: tokens.space.lg),
                       FilledButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () => Navigator.of(context).pop(
+                          HighRiskCallAction.blocked,
+                        ),
                         style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(60),
+                          minimumSize: const Size.fromHeight(72),
                           backgroundColor: Colors.white,
                           foregroundColor: risk.danger,
                           textStyle: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
-                        child: Text(l10n.callHighRiskDismiss),
+                        child: Text(l10n.callHighRiskBlock),
+                      ),
+                      SizedBox(height: tokens.space.md),
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(
+                          HighRiskCallAction.dismissed,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(64),
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white, width: 2),
+                          textStyle: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        child: Text(l10n.callHighRiskSafe),
                       ),
                     ],
                   ),

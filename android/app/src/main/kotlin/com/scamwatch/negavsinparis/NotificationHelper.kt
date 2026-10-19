@@ -129,8 +129,19 @@ object NotificationHelper {
 
         val reportIntent = Intent(context, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra(EXTRA_REPORT_SUBJECT, sender)
-            putExtra(EXTRA_REPORT_CONTENT, message)
+            // The post title is the model's reason; the sender already sits on
+            // the first line of the body. Fall back to the detected label when
+            // the model gave no reason.
+            putExtra(EXTRA_REPORT_SUBJECT, reason.ifBlank { headline })
+            // Body order: notification title + notification text (`message` is
+            // already both), then the detected scam label as the tag.
+            putExtra(EXTRA_REPORT_CONTENT, buildString {
+                append(message)
+                if (headline.isNotEmpty()) {
+                    append('\n')
+                    append(headline)
+                }
+            })
             putExtra(EXTRA_REPORT_SOURCE, "notification")
             putExtra(EXTRA_REPORT_APP, appLabel)
             if (!notificationKey.isNullOrEmpty()) {

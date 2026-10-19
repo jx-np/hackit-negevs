@@ -133,12 +133,15 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
     );
     if (!mounted || !score.isHighRisk) return;
     _lastAlertedNumber = normalized;
-    await HighRiskCallAlert.show(
+    final action = await HighRiskCallAlert.show(
       context,
       phoneNumber: number,
       trustScore: score.trustScore,
       reportCount: score.reportCount,
     );
+    if (action == HighRiskCallAction.blocked && mounted) {
+      await _blockAndReportNumber(number);
+    }
   }
 
   String _canonical(String? raw) {
@@ -150,6 +153,8 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   Future<void> _loadBlockedNumbers() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // The native overlay can block numbers while the UI is closed.
+      await prefs.reload();
       final stored = prefs.getString(_blockedPrefsKey) ?? '';
       if (!mounted) return;
       setState(() {
@@ -449,6 +454,32 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   Future<void> _blockAndReport(CallRecord record) async {
     await _block(record);
     await _report(record);
+  }
+
+  /// Blocks (and reports) a number chosen from the full-screen high-risk
+  /// warning, where no [CallRecord] exists yet.
+  Future<void> _blockAndReportNumber(String rawNumber) async {
+    final normalized = _canonical(rawNumber);
+    if (normalized.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final detection = DetectionService(context.read<ApiClient>());
+    setState(() => _blockedNumbers.add(normalized));
+    await _saveBlockedNumbers();
+    try {
+      await detection.reportPhoneNumber(
+        phoneNumber: rawNumber,
+        reason: 'scam',
+      );
+    } catch (_) {
+      // The local block still stands even if the report couldn't be sent.
+    }
+    if (!mounted) return;
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.callBlocked(rawNumber))),
+    );
+    await _refreshFromDb();
+    await _ensureCallScreeningRole();
   }
 
   Future<void> _onMenuAction(String action, CallRecord record) async {

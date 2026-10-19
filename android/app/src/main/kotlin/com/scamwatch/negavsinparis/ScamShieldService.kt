@@ -384,9 +384,22 @@ object ScamOverlayController {
                 hide()
                 val intent = Intent(context, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    putExtra(NotificationHelper.EXTRA_REPORT_SUBJECT, sender)
-                    // Report keeps the full body (sender + text) as content.
-                    putExtra(NotificationHelper.EXTRA_REPORT_CONTENT, message)
+                    // The post title is the model's reason; the sender already
+                    // sits on the first line of the body. Fall back to the
+                    // detected label when the model gave no reason.
+                    putExtra(
+                        NotificationHelper.EXTRA_REPORT_SUBJECT,
+                        reason.ifBlank { headline },
+                    )
+                    // Body order: notification title + notification text
+                    // (`message` is already both), then the scam label as tag.
+                    putExtra(NotificationHelper.EXTRA_REPORT_CONTENT, buildString {
+                        append(message)
+                        if (headline.isNotEmpty()) {
+                            append('\n')
+                            append(headline)
+                        }
+                    })
                     putExtra(NotificationHelper.EXTRA_REPORT_SOURCE, "notification")
                     putExtra(NotificationHelper.EXTRA_REPORT_APP, appLabel)
                     if (!notificationKey.isNullOrEmpty()) {

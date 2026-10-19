@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:scamwatch_mobile_app/theme/app_tokens.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
+import 'package:scamwatch_mobile_app/widgets/tour/tour_controller.dart';
 
 import '../../state/auth_controller.dart';
 
@@ -29,15 +30,31 @@ class AuthGate extends StatelessWidget {
 
     if (isSignedIn) return child;
 
+    // While the app tour runs, show the real screen unblurred so the coach
+    // mark can spotlight its content. The tour scrim already blocks input.
+    // The child stays at the same position in the Stack either way, so its
+    // state survives the overlay appearing or disappearing.
+    final tourActive = _isTourActive(context);
+
     return Stack(
       children: [
         // The real screen, kept visible but non-interactive behind the gate.
         Positioned.fill(
           child: IgnorePointer(child: child),
         ),
-        const Positioned.fill(child: _AuthGateOverlay()),
+        if (!tourActive) const Positioned.fill(child: _AuthGateOverlay()),
       ],
     );
+  }
+
+  /// True while the tour is running. False when no [TourController] is
+  /// provided (e.g. in tests).
+  static bool _isTourActive(BuildContext context) {
+    try {
+      return context.select<TourController, bool>((tour) => tour.active);
+    } on ProviderNotFoundException {
+      return false;
+    }
   }
 }
 

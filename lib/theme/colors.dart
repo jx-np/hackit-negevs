@@ -70,7 +70,6 @@ extension FColorsExtensions on FColors {
 /// Add your fields below, then implement [copyWith], [lerp], [==], and [hashCode].
 /// See https://api.flutter.dev/flutter/material/ThemeExtension-class.html.
 class AppColors extends ThemeExtension<AppColors> {
-  // TODO: add your color fields here:
   // final Color accent;
 
   const AppColors();

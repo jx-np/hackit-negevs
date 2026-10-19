@@ -254,6 +254,7 @@ class PostComment {
     this.parentId,
     required this.authorId,
     required this.authorLabel,
+    this.isBot = false,
     required this.body,
     required this.status,
     required this.createdAt,
@@ -264,12 +265,23 @@ class PostComment {
   final String? parentId;
   final String authorId;
   final String authorLabel;
+
+  /// Whether this comment was written by the service's AI helper (summoned
+  /// with `@help`) rather than a human author. Clients can surface an "AI"
+  /// badge for it.
+  final bool isBot;
   final String body;
   final String status;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
   bool get isReply => (parentId ?? '').isNotEmpty;
+
+  /// Name shown in the UI. The backend labels the bot "Grok"; the app shows it
+  /// as [botDisplayName].
+  String get displayLabel => isBot ? botDisplayName : authorLabel;
+
+  static const String botDisplayName = 'NegevAI';
 
   factory PostComment.fromJson(Map<String, dynamic> json) {
     final parent = json['parent_id'];
@@ -280,6 +292,7 @@ class PostComment {
       parentId: parent == null ? null : '$parent',
       authorId: '${json['author_id']}',
       authorLabel: (json['author_label'] as String?) ?? 'removed user',
+      isBot: json['is_bot'] == true,
       body: (json['body'] as String?) ?? '',
       status: (json['status'] as String?) ?? 'visible',
       createdAt: created is String ? DateTime.tryParse(created) : null,

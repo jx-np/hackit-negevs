@@ -30,6 +30,7 @@ class _BlockedNumbersScreenState extends State<BlockedNumbersScreen> {
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
     final stored = prefs.getString(_prefsKey) ?? '';
     if (!mounted) return;
     setState(() {

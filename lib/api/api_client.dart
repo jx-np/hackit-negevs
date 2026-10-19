@@ -27,6 +27,15 @@ class ApiResponse {
   List<dynamic> get list => body is List ? body as List : const [];
 }
 
+/// One dispatched Server-Sent Event: its `event:` name (defaults to
+/// `message`) and the joined `data:` payload.
+class SseEvent {
+  const SseEvent({required this.event, required this.data});
+
+  final String event;
+  final String data;
+}
+
 class ApiClient {
   ApiClient({
     http.Client? httpClient,
@@ -206,6 +215,72 @@ class ApiClient {
     }
 
     return response.bodyBytes;
+  }
+
+  /// Opens a Server-Sent Events stream at [path] and yields each event.
+  ///
+  /// Uses a dedicated HTTP client so cancelling the subscription tears the
+  /// connection down. The server sends a keepalive every ~15s, so a stream
+  /// idle for longer than [idleTimeout] errors out and the caller should
+  /// reconnect. A non-2xx response throws an [ApiException].
+  Stream<SseEvent> sse(
+    String path, {
+    Duration idleTimeout = const Duration(seconds: 45),
+  }) async* {
+    final client = http.Client();
+    try {
+      http.StreamedResponse response;
+      try {
+        final request = http.Request('GET', ApiConfig.uri(path))
+          ..headers.addAll({
+            'Accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+          });
+        response = await client.send(request).timeout(_timeout);
+      } catch (error) {
+        throw ApiException.network(error);
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final raw = await response.stream.bytesToString();
+        final Object? parsed = _decode(raw);
+        throw ApiException.fromResponse(
+          response.statusCode,
+          parsed is Map<String, dynamic>
+              ? parsed
+              : {'request_id': response.headers['x-request-id']},
+        );
+      }
+
+      String? event;
+      final data = <String>[];
+      final lines = response.stream
+          .timeout(idleTimeout)
+          .transform(utf8.decoder)
+          .transform(const LineSplitter());
+      await for (final line in lines) {
+        if (line.isEmpty) {
+          if (data.isNotEmpty) {
+            yield SseEvent(event: event ?? 'message', data: data.join('\n'));
+          }
+          event = null;
+          data.clear();
+          continue;
+        }
+        if (line.startsWith(':')) continue;
+        final colon = line.indexOf(':');
+        final field = colon < 0 ? line : line.substring(0, colon);
+        var value = colon < 0 ? '' : line.substring(colon + 1);
+        if (value.startsWith(' ')) value = value.substring(1);
+        if (field == 'event') {
+          event = value;
+        } else if (field == 'data') {
+          data.add(value);
+        }
+      }
+    } finally {
+      client.close();
+    }
   }
 
   Future<ApiResponse> _send(

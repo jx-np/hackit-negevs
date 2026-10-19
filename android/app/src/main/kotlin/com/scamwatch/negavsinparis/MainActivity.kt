@@ -31,6 +31,17 @@ class MainActivity : FlutterActivity() {
         requestListenerRebind()
     }
 
+    override fun onResume() {
+        super.onResume()
+        HighRiskCallOverlay.appInForeground = true
+        HighRiskCallOverlay.dismiss()
+    }
+
+    override fun onPause() {
+        HighRiskCallOverlay.appInForeground = false
+        super.onPause()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         deeplinkChannel?.let { deliverDeeplink(intent, it) }

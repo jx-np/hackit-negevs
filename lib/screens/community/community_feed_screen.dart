@@ -122,9 +122,18 @@ class _CommunityFeedScreenState extends State<CommunityFeedScreen> {
   Widget _buildBody(ThemeData theme, AppLocalizations l10n) {
     final tokens = context.tokens;
     if (_loading && _posts.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      // Keep the view scrollable so pull-to-refresh still works while the
+      // first load is in flight or when the list is empty.
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 120),
+          Center(child: CircularProgressIndicator()),
+        ],
+      );
     }
     return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.only(top: tokens.space.sm, bottom: tokens.space.xl2),
       children: [
         if (_categories.isNotEmpty) _filterChips(theme, l10n),

@@ -1,4 +1,8 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
@@ -9,7 +13,11 @@ import '../../models/api/community_models.dart';
 import '../../services/api/community_service.dart';
 import '../../services/api/discussion_service.dart';
 import '../../state/auth_controller.dart';
+import '../../services/protection_settings.dart';
 import '../../theme/app_tokens.dart';
+import '../../widgets/tour/coach_mark_overlay.dart';
+import '../../widgets/tour/tour_controller.dart';
+import '../../widgets/tour/tour_models.dart';
 import '../../widgets/ui/app_card.dart';
 import '../../widgets/ui/app_screen.dart';
 
@@ -41,20 +49,180 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   String? _editingCommentId;
   bool _savingEdit = false;
 
+  static const String _helpHandle = 'help';
+  static final RegExp _mentionAtCursor = RegExp(r'(?:^|\s)@(\w*)$');
+  final FocusNode _commentFocus = FocusNode();
+  String? _mentionQuery;
+
+  StreamSubscription<SseEvent>? _eventsSub;
+  Timer? _reconnectTimer;
+  bool _hasBeenReady = false;
+  String? _thinkingTriggerId;
+
+  final ProtectionSettings _settings = ProtectionSettings();
+  final CoachMarkTargets _tourTargets = CoachMarkTargets(0);
+  late final TourController _tour = TourController(
+    steps: kPostTourSteps,
+    settings: _settings,
+    readSeen: _settings.seenPostTour,
+    writeSeen: () => _settings.setSeenPostTour(true),
+  );
+  bool _tourChecked = false;
+
   @override
   void initState() {
     super.initState();
+    _commentController.addListener(_onCommentChanged);
+    _tour.addListener(_onTourChanged);
     _load();
+    _connectEvents();
+  }
+
+  void _onTourChanged() {
+    if (mounted) setState(() {});
+  }
+
+  /// Offers the post tour once, the first time a post finishes loading.
+  Future<void> _maybeStartTour() async {
+    if (_tourChecked) return;
+    _tourChecked = true;
+    final shouldStart = await _tour.shouldAutoStart();
+    if (!shouldStart || !mounted || _post == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _tour.start();
+    });
   }
 
   @override
   void dispose() {
+    _tour.removeListener(_onTourChanged);
+    _tour.dispose();
+    _reconnectTimer?.cancel();
+    _eventsSub?.cancel();
+    _commentController.removeListener(_onCommentChanged);
     _commentController.dispose();
+    _commentFocus.dispose();
     _editController.dispose();
     super.dispose();
   }
 
   String? get _currentUserId => context.read<AuthController>().user?.id;
+
+  Future<List<PostComment>> _fetchComments() async {
+    final comments = <PostComment>[];
+    String? cursor;
+    do {
+      final page = await _discussion.comments(
+        postId: widget.postId,
+        limit: 100,
+        cursor: cursor,
+      );
+      comments.addAll(page.items);
+      cursor = page.hasMore ? page.nextCursor : null;
+    } while (cursor != null);
+    return comments;
+  }
+
+  /// Re-reads the comment list without the full-screen spinner. Used to fill
+  /// any gap after the live stream reconnects.
+  Future<void> _refreshComments() async {
+    try {
+      final comments = await _fetchComments();
+      if (!mounted) return;
+      setState(() => _comments = comments);
+    } on ApiException {
+      // Keep what is on screen; the next event or manual action retries.
+    }
+  }
+
+  void _connectEvents() {
+    _reconnectTimer?.cancel();
+    _eventsSub?.cancel();
+    _eventsSub = _discussion.events(widget.postId).listen(
+      _onEvent,
+      onError: (Object _) => _scheduleReconnect(),
+      onDone: _scheduleReconnect,
+      cancelOnError: true,
+    );
+  }
+
+  void _scheduleReconnect() {
+    if (!mounted) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) _connectEvents();
+    });
+  }
+
+  void _onEvent(SseEvent event) {
+    Map<String, dynamic> data;
+    try {
+      final decoded = jsonDecode(event.data);
+      if (decoded is! Map<String, dynamic>) return;
+      data = decoded;
+    } catch (_) {
+      return;
+    }
+    switch (event.event) {
+      case 'ready':
+        final reconnected = _hasBeenReady;
+        _hasBeenReady = true;
+        if (reconnected) {
+          if (_thinkingTriggerId != null) {
+            setState(() => _thinkingTriggerId = null);
+          }
+          _refreshComments();
+        }
+      case 'comment_created':
+        _mergeComment(PostComment.fromJson(data));
+      case 'help_thinking' || 'grok_thinking':
+        setState(() => _thinkingTriggerId = '${data['trigger_comment_id']}');
+      case 'help_replied' || 'grok_replied':
+        final comment = data['comment'];
+        setState(() => _thinkingTriggerId = null);
+        if (comment is Map<String, dynamic>) {
+          _mergeComment(PostComment.fromJson(comment));
+        } else {
+          _refreshComments();
+        }
+      case 'help_failed' || 'grok_failed':
+        setState(() => _thinkingTriggerId = null);
+    }
+  }
+
+  /// Adds [comment] to the thread unless it is already there (a bot reply is
+  /// announced by both `comment_created` and `grok_replied`).
+  void _mergeComment(PostComment comment) {
+    if (!mounted || comment.status == 'removed') return;
+    if (_comments.any((c) => c.commentId == comment.commentId)) return;
+    setState(() => _comments = [..._comments, comment]);
+  }
+
+  void _onCommentChanged() {
+    final value = _commentController.value;
+    String? query;
+    final selection = value.selection;
+    if (selection.isValid && selection.isCollapsed && selection.baseOffset <= value.text.length) {
+      final before = value.text.substring(0, selection.baseOffset);
+      query = _mentionAtCursor.firstMatch(before)?.group(1);
+    }
+    if (query != _mentionQuery) setState(() => _mentionQuery = query);
+  }
+
+  void _applyMention(String handle) {
+    final value = _commentController.value;
+    final cursor = value.selection.baseOffset;
+    if (cursor < 0 || cursor > value.text.length) return;
+    final before = value.text.substring(0, cursor);
+    final match = RegExp(r'@\w*$').firstMatch(before);
+    if (match == null) return;
+    final insert = '@$handle ';
+    _commentController.value = TextEditingValue(
+      text: before.substring(0, match.start) + insert + value.text.substring(cursor),
+      selection: TextSelection.collapsed(offset: match.start + insert.length),
+    );
+    _commentFocus.requestFocus();
+  }
 
   Future<void> _load() async {
     setState(() {
@@ -66,17 +234,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       final imageHeaders = post.imageUrls.isEmpty
           ? const <String, String>{}
           : await widget.client.authHeaders();
-      final comments = <PostComment>[];
-      String? cursor;
-      do {
-        final page = await _discussion.comments(
-          postId: widget.postId,
-          limit: 100,
-          cursor: cursor,
-        );
-        comments.addAll(page.items);
-        cursor = page.hasMore ? page.nextCursor : null;
-      } while (cursor != null);
+      final comments = await _fetchComments();
       if (!mounted) return;
       setState(() {
         _post = post;
@@ -84,6 +242,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         _comments = comments;
         _loading = false;
       });
+      unawaited(_maybeStartTour());
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -130,7 +289,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (body.isEmpty || _postingComment) return;
     setState(() => _postingComment = true);
     try {
-      await _discussion.addComment(
+      final created = await _discussion.addComment(
         postId: widget.postId,
         body: body,
         parentId: _replyParentId,
@@ -138,7 +297,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       _commentController.clear();
       _replyParentId = null;
       _replyParentLabel = null;
-      await _load();
+      _mergeComment(created);
     } on ApiException catch (e) {
       _showMessage(e.message);
     } finally {
@@ -150,7 +309,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     setState(() {
       _editingCommentId = null;
       _replyParentId = comment.parentId?.isNotEmpty == true ? comment.parentId : comment.commentId;
-      _replyParentLabel = comment.authorLabel;
+      _replyParentLabel = comment.displayLabel;
     });
   }
 
@@ -259,17 +418,21 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AppScreen(
-      title: l10n.postDetailTitle,
-      actions: [
-        IconButton(
-          icon: const Icon(LucideIcons.flag),
-          tooltip: l10n.postDetailReportTooltip,
-          onPressed: _post == null ? null : _flagPost,
-        ),
-      ],
-      scrollable: false,
-      body: _buildBody(Theme.of(context), l10n),
+    return CoachMarkOverlay(
+      controller: _tour,
+      targets: _tourTargets,
+      child: AppScreen(
+        title: l10n.postDetailTitle,
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.flag),
+            tooltip: l10n.postDetailReportTooltip,
+            onPressed: _post == null ? null : _flagPost,
+          ),
+        ],
+        scrollable: false,
+        body: _buildBody(Theme.of(context), l10n),
+      ),
     );
   }
 
@@ -302,6 +465,10 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     final userId = _currentUserId;
     final tokens = context.tokens;
     return ListView(
+      // Build every row while the tour runs so its targets are mounted even
+      // when they start off screen.
+      scrollCacheExtent:
+          _tour.active ? const ScrollCacheExtent.pixels(double.infinity) : null,
       padding: EdgeInsets.only(top: tokens.space.sm, bottom: tokens.space.xl2),
       children: [
         Text(post.title, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
@@ -316,6 +483,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         SizedBox(height: tokens.space.xl),
         Text(
           l10n.postDetailComments(_comments.length),
+          key: _tourTargets.keyFor(TourTarget.postComments),
           style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
         ),
         SizedBox(height: tokens.space.md),
@@ -489,12 +657,18 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
           children: [
             Row(
               children: [
-                Expanded(
+                Flexible(
                   child: Text(
-                    comment.authorLabel,
+                    comment.displayLabel,
                     style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (comment.isBot) ...[
+                  SizedBox(width: context.tokens.space.xs),
+                  _aiBadge(theme, l10n),
+                ],
+                const Spacer(),
                 if (wasEdited && !isRemoved)
                   Text(
                     l10n.postDetailEdited,
@@ -522,6 +696,31 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               _commentActions(theme, l10n, comment, isAuthor),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _aiBadge(ThemeData theme, AppLocalizations l10n) {
+    final tokens = context.tokens;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: tokens.space.sm, vertical: tokens.space.xs),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.secondaryContainer,
+        borderRadius: tokens.radii.pillRadius,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.sparkles, size: 14, color: theme.colorScheme.onSecondaryContainer),
+          SizedBox(width: tokens.space.xs),
+          Text(
+            l10n.postDetailAiBadge,
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.onSecondaryContainer,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -639,8 +838,42 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               ],
             ),
           ),
+        if (_thinkingTriggerId != null)
+          Padding(
+            padding: EdgeInsets.only(bottom: context.tokens.space.sm),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: context.tokens.space.sm),
+                Text(
+                  l10n.postDetailBotThinking,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+        if (_mentionQuery != null && _helpHandle.startsWith(_mentionQuery!.toLowerCase()))
+          Container(
+            margin: EdgeInsets.only(bottom: context.tokens.space.xs),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: context.tokens.radii.mdRadius,
+            ),
+            child: ListTile(
+              leading: Icon(LucideIcons.sparkles, color: theme.colorScheme.primary),
+              title: Text('@$_helpHandle', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              subtitle: Text(l10n.postDetailMentionHelpHint),
+              onTap: () => _applyMention(_helpHandle),
+            ),
+          ),
         TextField(
+          key: _tourTargets.keyFor(TourTarget.postCommentField),
           controller: _commentController,
+          focusNode: _commentFocus,
           minLines: 2,
           maxLines: 5,
           style: theme.textTheme.bodyLarge,

@@ -21,6 +21,10 @@ class DiscussionService {
     return Paginated.fromJson(response.json, PostComment.fromJson);
   }
 
+  /// Live discussion activity for a post: new comments and `@help` bot progress.
+  Stream<SseEvent> events(String postId) =>
+      _client.sse('/community/posts/$postId/sse');
+
   Future<PostComment> addComment({
     required String postId,
     required String body,

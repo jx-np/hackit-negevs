@@ -113,7 +113,7 @@ void main() {
 
     // Scroll to the end of the legend; every entry must lay out cleanly.
     await tester.scrollUntilVisible(
-      find.text('Show the app tour again'),
+      find.text('Show tour again'),
       200,
       scrollable: find.byType(Scrollable).last,
     );

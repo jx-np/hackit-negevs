@@ -1,13 +1,37 @@
 {
   "ms": [
-    "reportTabEditorLoadFailed"
+    "postDetailMentionHelpHint",
+    "postDetailBotThinking",
+    "tourReviewTitle",
+    "tourReviewBody",
+    "tourPostHelpTitle",
+    "tourPostHelpBody",
+    "tourPostAiTitle",
+    "tourPostAiBody",
+    "tourPostSampleReply"
   ],
 
   "ta": [
-    "reportTabEditorLoadFailed"
+    "postDetailMentionHelpHint",
+    "postDetailBotThinking",
+    "tourReviewTitle",
+    "tourReviewBody",
+    "tourPostHelpTitle",
+    "tourPostHelpBody",
+    "tourPostAiTitle",
+    "tourPostAiBody",
+    "tourPostSampleReply"
   ],
 
   "zh": [
-    "reportTabEditorLoadFailed"
+    "postDetailMentionHelpHint",
+    "postDetailBotThinking",
+    "tourReviewTitle",
+    "tourReviewBody",
+    "tourPostHelpTitle",
+    "tourPostHelpBody",
+    "tourPostAiTitle",
+    "tourPostAiBody",
+    "tourPostSampleReply"
   ]
 }

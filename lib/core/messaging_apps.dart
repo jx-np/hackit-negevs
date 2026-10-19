@@ -1,3 +1,10 @@
+import 'package:flutter/foundation.dart';
+
+/// Package of the throwaway test sender in `tools/notif_sender`. It is honoured
+/// in debug builds only, as an SMS-style source: its notification title is the
+/// sender and its text is the message. Release builds ignore it entirely.
+const String kDebugSenderPackage = 'com.scamwatch.notifsender';
+
 const Map<String, String> kMessagingApps = {
   'com.google.android.apps.messaging': 'Google Messages',
   'com.samsung.android.messaging': 'Samsung Messages',
@@ -43,10 +50,15 @@ const Set<String> kSmsPackageNames = {
   'com.textra',
 };
 
-bool isSmsApp(String packageName) => kSmsPackageNames.contains(packageName);
+bool _isDebugSender(String packageName) =>
+    kDebugMode && packageName == kDebugSenderPackage;
+
+bool isSmsApp(String packageName) =>
+    kSmsPackageNames.contains(packageName) || _isDebugSender(packageName);
 
 bool isMessagingApp(String packageName) {
   if (kMessagingApps.containsKey(packageName)) return true;
+  if (_isDebugSender(packageName)) return true;
   final lower = packageName.toLowerCase();
   return lower.contains('.messaging') ||
       lower.endsWith('.mms') ||
@@ -56,5 +68,6 @@ bool isMessagingApp(String packageName) {
 }
 
 String appLabelFor(String packageName) =>
+    (_isDebugSender(packageName) ? 'Test SMS' : null) ??
     kMessagingApps[packageName] ??
     packageName.split('.').last.replaceAll('_', ' ');

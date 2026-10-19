@@ -487,7 +487,9 @@ class _SafetyScreenState extends State<SafetyScreen>
                   icon: const Icon(Icons.info_outline),
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
-                      builder: (_) => const NotificationsScreen(),
+                      builder: (_) => const NotificationsScreen(
+                        showTestCard: true,
+                      ),
                     ),
                   ),
                 ),
@@ -760,8 +762,9 @@ class _SafetyScreenState extends State<SafetyScreen>
   }
 }
 
-/// The body of a scam alert. Long messages are clipped to a few lines with a
-/// large "Show more" toggle so the alert card stays easy to scan.
+/// The body of a scam alert. Messages that fit in a few lines are shown in
+/// full straight away; only genuinely long messages are clipped, with a large
+/// full-width "Show more" button that is easy to hit and read.
 class _AlertMessage extends StatefulWidget {
   const _AlertMessage({required this.text});
 
@@ -773,7 +776,7 @@ class _AlertMessage extends StatefulWidget {
 
 class _AlertMessageState extends State<_AlertMessage> {
   static const int _collapsedLines = 4;
-  static const int _longThreshold = 160;
+  static const int _autoExpandLines = 8;
 
   bool _expanded = false;
 
@@ -781,27 +784,53 @@ class _AlertMessageState extends State<_AlertMessage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final isLong = widget.text.length > _longThreshold ||
-        '\n'.allMatches(widget.text).length >= _collapsedLines;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.text,
-          style: theme.textTheme.bodyLarge,
-          maxLines: isLong && !_expanded ? _collapsedLines : null,
-          overflow: isLong && !_expanded ? TextOverflow.ellipsis : null,
-        ),
-        if (isLong)
-          TextButton(
-            style: TextButton.styleFrom(
-              minimumSize: const Size(48, 48),
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+    final style = theme.textTheme.bodyLarge;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Measure the real wrapped height at the current width and text scale:
+        // anything that fits in eight lines is shown in full straight away.
+        final painter = TextPainter(
+          text: TextSpan(text: widget.text, style: style),
+          maxLines: _autoExpandLines,
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout(maxWidth: constraints.maxWidth);
+        final isLong = painter.didExceedMaxLines;
+        final collapsed = isLong && !_expanded;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.text,
+              style: style,
+              maxLines: collapsed ? _collapsedLines : null,
+              overflow: collapsed ? TextOverflow.ellipsis : null,
             ),
-            onPressed: () => setState(() => _expanded = !_expanded),
-            child: Text(_expanded ? l10n.safetyShowLess : l10n.safetyShowMore),
-          ),
-      ],
+            if (isLong) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(60),
+                    textStyle: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                  icon: Icon(
+                    _expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 26,
+                  ),
+                  label: Text(
+                    _expanded ? l10n.safetyShowLess : l10n.safetyShowMore,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

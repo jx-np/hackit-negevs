@@ -10,7 +10,10 @@ import '../../widgets/ui/app_screen.dart';
 import 'activity_tab.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  const NotificationsScreen({super.key, this.showTestCard = false});
+
+  /// Show the developer "test a message" card above the activity list.
+  final bool showTestCard;
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -86,22 +89,25 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AppScreen(
-      title: l10n.notificationsTitle,
+      title: widget.showTestCard
+          ? l10n.notificationsTitle
+          : l10n.activityTitle,
       scrollable: false,
       padBody: false,
       body: Column(
         children: [
           // Flexible + scroll so the test card can shrink at large text sizes
           // instead of overflowing the activity list below.
-          Flexible(
-            child: SingleChildScrollView(
-              child: _TestEvaluateCard(
-                controller: _testController,
-                sending: _sending,
-                onRun: _runTest,
+          if (widget.showTestCard)
+            Flexible(
+              child: SingleChildScrollView(
+                child: _TestEvaluateCard(
+                  controller: _testController,
+                  sending: _sending,
+                  onRun: _runTest,
+                ),
               ),
             ),
-          ),
           Expanded(
             child: ActivityTab(
               entries: _entries,

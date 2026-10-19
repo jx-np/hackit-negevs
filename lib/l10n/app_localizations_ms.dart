@@ -36,7 +36,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get commonNoPostsYet => 'Tiada siaran lagi';
 
   @override
-  String get commonShareWithCommunity => 'Kongsi dengan komuniti';
+  String get commonShareWithCommunity => 'Kongsi';
 
   @override
   String get commonShare => 'Kongsi';
@@ -54,14 +54,14 @@ class AppLocalizationsMs extends AppLocalizations {
   String get commonMessage => 'Mesej';
 
   @override
-  String get commonMessageHint => 'Tampal mesej penipuan di sini';
+  String get commonMessageHint => 'Tampal mesej';
 
   @override
-  String get commonWhatKindOfScam => 'Jenis penipuan apa?';
+  String get commonWhatKindOfScam => 'Jenis penipuan';
 
   @override
   String get commonShareIntro =>
-      'Bantu orang lain dengan berkongsi penipuan yang anda terima. Buang sebarang maklumat peribadi dahulu.';
+      'Kongsi penipuan. Buang maklumat peribadi dahulu.';
 
   @override
   String get commonPhotos => 'Foto (pilihan)';
@@ -77,30 +77,27 @@ class AppLocalizationsMs extends AppLocalizations {
       'Setiap imej mestilah 10 MB atau lebih kecil.';
 
   @override
-  String get reportTabPhotoProcessing => 'Menganalisis...';
+  String get reportTabPhotoProcessing => 'Menyemak…';
 
   @override
-  String get reportTabPhotoFailed => 'Gagal dianalisis';
+  String get reportTabPhotoFailed => 'Tidak dapat semak';
 
   @override
-  String get reportTabProcessingTitle => 'Jangan tutup aplikasi. Memproses';
+  String get reportTabProcessingTitle => 'Sedang diproses. Jangan tutup apl.';
 
   @override
-  String get reportTabSignInToAddPhotos => 'Log masuk untuk melampirkan foto.';
+  String get reportTabSignInToAddPhotos => 'Log masuk untuk tambah foto.';
 
   @override
-  String get reportTabFailedDialogTitle =>
-      'Sesetengah foto tidak dapat dianalisis';
+  String get reportTabFailedDialogTitle => 'Ada foto gagal';
 
   @override
   String reportTabFailedDialogBody(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other:
-          '$count foto gagal dimuat naik atau dianalisis. Cuba semula, atau siar tanpanya?',
-      one:
-          '1 foto gagal dimuat naik atau dianalisis. Cuba semula, atau siar tanpanya?',
+      other: '$count foto gagal. Cuba lagi, atau siar tanpanya?',
+      one: '1 foto gagal. Cuba lagi, atau siar tanpanya?',
     );
     return '$_temp0';
   }
@@ -112,32 +109,30 @@ class AppLocalizationsMs extends AppLocalizations {
   String get reportTabFailedPostWithout => 'Siar tanpa foto';
 
   @override
-  String get reportTabWaitForImages => 'Tunggu imej diproses';
+  String get reportTabWaitForImages => 'Tunggu foto';
 
   @override
-  String get reportTabCheckImages => 'Semak imej';
+  String get reportTabCheckImages => 'Semak foto';
 
   @override
-  String get reportTabReviewCheckbox =>
-      'Saya telah menyemak imej dan butiran peribadi disembunyikan dengan betul';
+  String get reportTabReviewCheckbox => 'Saya setuju untuk siarkan foto ini';
 
   @override
-  String get reportTabEditImage => 'Edit imej';
+  String get reportTabEditImage => 'Edit foto';
 
   @override
-  String get reportTabReuploading =>
-      'Memuat naik semula imej yang disunting...';
+  String get reportTabReuploading => 'Menyimpan foto yang disunting…';
 
   @override
   String get reportTabPosting => 'Menyiarkan...';
 
   @override
   String get reportTabEditorSaveFailed =>
-      'Tidak dapat memuat naik semula imej yang disunting. Cuba lagi.';
+      'Tidak dapat simpan foto yang disunting. Cuba lagi.';
 
   @override
   String get reportTabEditorLoadFailed =>
-      'Couldn\'t load the image to edit. Try again.';
+      'Tidak dapat buka foto itu. Cuba lagi.';
 
   @override
   String get reportTabViewPost => 'Lihat siaran anda';
@@ -146,57 +141,56 @@ class AppLocalizationsMs extends AppLocalizations {
   String get homeTitle => 'Utama';
 
   @override
-  String get homeWelcomePrefix => 'Selamat datang, ';
+  String get homeWelcomePrefix => 'Hai, ';
 
   @override
-  String get homeWelcomeGuest => 'Welcome';
+  String get homeWelcomeGuest => 'Hai';
 
   @override
-  String get myProfileTitle => 'Profil Saya';
+  String get myProfileTitle => 'Profil';
 
   @override
   String get myProfileMemberSince => 'Ahli sejak';
 
   @override
-  String get myProfilePosts => 'Kiriman';
+  String get myProfilePosts => 'Siaran';
 
   @override
   String get myProfileSignOut => 'Log keluar';
 
   @override
   String get myProfileSignOutHint =>
-      'Anda boleh log masuk semula pada bila-bila masa';
+      'Anda boleh log masuk semula bila-bila masa.';
 
   @override
-  String get myProfileNotSignedInTitle => 'Anda belum log masuk';
+  String get myProfileNotSignedInTitle => 'Belum log masuk';
 
   @override
-  String get myProfileNotSignedInBody =>
-      'Log masuk untuk melihat butiran akaun anda dan mengurus profil anda.';
+  String get myProfileNotSignedInBody => 'Log masuk untuk lihat akaun anda.';
 
   @override
   String get myProfileSignIn => 'Log masuk';
 
   @override
-  String get homeNewsTitle => 'Amaran penipuan & berita';
+  String get homeNewsTitle => 'Amaran penipuan';
 
   @override
-  String get homeNewsError => 'Tidak dapat memuatkan amaran terkini.';
+  String get homeNewsError => 'Tidak dapat muat amaran.';
 
   @override
   String get homeNewsRetry => 'Cuba semula';
 
   @override
-  String get homeQuickActionsTitle => 'Apa yang anda mahu lakukan?';
+  String get homeQuickActionsTitle => 'Apa yang anda mahu buat?';
 
   @override
-  String get homeActionProfile => 'Profil saya';
+  String get homeActionProfile => 'Profil';
 
   @override
-  String get homeActionProfileBody => 'Lihat butiran anda dan kiriman anda';
+  String get homeActionProfileBody => 'Butiran dan siaran anda';
 
   @override
-  String get homeActionCalls => 'Panggilan terkini';
+  String get homeActionCalls => 'Panggilan';
 
   @override
   String get homeActionCallsBody =>
@@ -206,35 +200,31 @@ class AppLocalizationsMs extends AppLocalizations {
   String get homeActionReport => 'Laporkan penipuan';
 
   @override
-  String get homeActionReportBody => 'Ingatkan orang lain dalam komuniti';
+  String get homeActionReportBody => 'Ingatkan orang lain';
 
   @override
-  String get homeStatusOnBody =>
-      'Kami sedang menyemak mesej anda untuk mengesan penipuan.';
+  String get homeStatusOnBody => 'Menyemak mesej anda untuk penipuan.';
 
   @override
-  String get homeStatusOffBody =>
-      'Hidupkannya supaya kami dapat memberi amaran kepada anda tentang mesej penipuan.';
+  String get homeStatusOffBody => 'Hidupkan untuk dapat amaran penipuan.';
 
   @override
-  String get homeStatusProblemTitle => 'Perlindungan memerlukan perhatian';
+  String get homeStatusProblemTitle => 'Perlindungan perlu dibaiki';
 
   @override
-  String get homeStatusProblemBody =>
-      'Sesuatu tidak kena. Ketik di bawah untuk membaikinya.';
+  String get homeStatusProblemBody => 'Ada masalah. Ketik untuk baiki.';
 
   @override
-  String get homeStatusStartingTitle => 'Sedang bersedia';
+  String get homeStatusStartingTitle => 'Sedang bermula…';
 
   @override
-  String get homeStatusStartingBody =>
-      'Perlindungan sedang bermula. Ini mungkin mengambil masa seminit.';
+  String get homeStatusStartingBody => 'Ini mungkin ambil masa seminit.';
 
   @override
-  String get homeStatusOpen => 'Lihat butiran';
+  String get homeStatusOpen => 'Butiran';
 
   @override
-  String get homeStatusFix => 'Baiki sekarang';
+  String get homeStatusFix => 'Baiki';
 
   @override
   String get homeNewsReadMore => 'Baca lagi';
@@ -248,28 +238,28 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get homeNewsPrevious => 'Amaran sebelumnya';
+  String get homeNewsPrevious => 'Sebelum';
 
   @override
-  String get homeNewsNext => 'Amaran seterusnya';
+  String get homeNewsNext => 'Seterusnya';
 
   @override
   String get settingsProtection => 'Perlindungan';
 
   @override
-  String get settingsStopProtection => 'Hentikan perlindungan latar belakang';
+  String get settingsStopProtection => 'Jeda perlindungan';
 
   @override
-  String get settingsServiceRunning => 'Perkhidmatan berjalan';
+  String get settingsServiceRunning => 'Hidup';
 
   @override
-  String get settingsServiceStopped => 'Perkhidmatan dihentikan';
+  String get settingsServiceStopped => 'Dijeda';
 
   @override
-  String get settingsShowTutorial => 'Tunjuk tutorial semula';
+  String get settingsShowTutorial => 'Tunjuk lawatan semula';
 
   @override
-  String get settingsReplayTour => 'Main semula gambaran keseluruhan ciri apl';
+  String get settingsReplayTour => 'Lawatan pantas apl';
 
   @override
   String get settingsRemove => 'Buang';
@@ -286,16 +276,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsLanguage => 'Bahasa';
 
   @override
-  String get settingsLanguageSystem => 'Lalai sistem';
+  String get settingsLanguageSystem => 'Lalai telefon';
 
   @override
   String get settingsStatusTitle => 'Status';
 
   @override
-  String get settingsGettingReady => 'Sedang bersedia…';
+  String get settingsGettingReady => 'Sedang bermula…';
 
   @override
-  String get settingsNeedsDownload => 'Perlindungan memerlukan muat turun';
+  String get settingsNeedsDownload => 'Perlu muat turun';
 
   @override
   String settingsModelReady(String name) {
@@ -322,7 +312,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get settingsCheckerCaption =>
-      'Menyemak mesej anda pada telefon anda. Tiada apa-apa dihantar keluar.';
+      'Menyemak mesej pada telefon anda. Tiada apa keluar dari telefon.';
 
   @override
   String get settingsCheckingSupport => 'Menyemak telefon anda…';
@@ -334,8 +324,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsReadyShort => 'Sedia';
 
   @override
-  String get settingsBuiltInSubtitle =>
-      'Terbina dalam telefon anda. Tiada muat turun.';
+  String get settingsBuiltInSubtitle => 'Terbina dalam. Tiada muat turun.';
 
   @override
   String settingsAboutMb(int mb) {
@@ -350,7 +339,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get settingsSpeedCaption =>
-      'Biarkan ini pada Automatik melainkan penyemak menghadapi masalah.';
+      'Biarkan Automatik kecuali penyemak ada masalah.';
 
   @override
   String get settingsSpeedAuto => 'Automatik';
@@ -369,20 +358,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsSpeedGpu => 'Lebih pantas';
 
   @override
-  String get settingsSpeedGpuBody => 'Menggunakan cip grafik telefon anda';
+  String get settingsSpeedGpuBody => 'Guna cip grafik';
 
   @override
   String get settingsSpeedNpu => 'Paling pantas';
 
   @override
-  String get settingsSpeedNpuBody =>
-      'Hanya pada sesetengah telefon yang lebih baharu';
+  String get settingsSpeedNpuBody => 'Telefon baharu sahaja';
 
   @override
   String get settingsAppSection => 'Apl';
 
   @override
-  String get settingsAppearance => 'Penampilan';
+  String get settingsAppearance => 'Tema';
 
   @override
   String get settingsThemeLight => 'Cerah';
@@ -391,16 +379,14 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsThemeDark => 'Gelap';
 
   @override
-  String get settingsPermissionsSubtitle =>
-      'Lihat perkara yang apl dibenarkan lakukan';
+  String get settingsPermissionsSubtitle => 'Lihat apa apl boleh buat';
 
   @override
-  String get settingsSignInSubtitle =>
-      'Diperlukan untuk menyiarkan dalam komuniti';
+  String get settingsSignInSubtitle => 'Perlu untuk siar';
 
   @override
   String callIncoming(String who) {
-    return 'Panggilan masuk: $who';
+    return 'Panggilan dari $who';
   }
 
   @override
@@ -410,7 +396,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String callUnblocked(String number) {
-    return 'Nyahsekat $number';
+    return 'Dinyahsekat $number';
   }
 
   @override
@@ -449,26 +435,26 @@ class AppLocalizationsMs extends AppLocalizations {
   String get navProfile => 'Profil';
 
   @override
-  String get callHistoryTitle => 'Sejarah Panggilan';
+  String get callHistoryTitle => 'Panggilan';
 
   @override
   String get callBlockedNumbers => 'Nombor disekat';
 
   @override
-  String get callNoUnknown => 'Tiada panggilan nombor tidak diketahui dijumpai';
+  String get callNoUnknown => 'Tiada panggilan dari nombor tidak dikenali';
 
   @override
-  String get callPhonePermNeeded => 'Kebenaran telefon diperlukan';
+  String get callPhonePermNeeded => 'Benarkan akses telefon';
 
   @override
   String get callPhonePermBody =>
-      'Call Manager memerlukan kebenaran Telefon untuk membaca sejarah panggilan anda.';
+      'Perlu untuk tunjuk panggilan dan kesan penipuan.';
 
   @override
-  String get callGrantPhone => 'Beri kebenaran telefon';
+  String get callGrantPhone => 'Benarkan';
 
   @override
-  String get callCouldNotLoad => 'Tidak dapat memuatkan sejarah panggilan';
+  String get callCouldNotLoad => 'Tidak dapat tunjuk panggilan';
 
   @override
   String callDurationSuffix(int seconds) {
@@ -483,77 +469,80 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get callBlockNeedsScreening =>
-      'Untuk menghentikan nombor yang disekat daripada berbunyi, pilih aplikasi ini untuk penapisan panggilan.';
+      'Untuk sekat panggilan, tetapkan apl ini sebagai penyekat panggilan.';
 
   @override
-  String get callHighRiskTitle => 'Pemanggil berisiko tinggi';
+  String get callHighRiskTitle => 'Panggilan mungkin penipuan';
 
   @override
   String get callHighRiskBody =>
-      'Nombor ini telah dilaporkan sebagai penipuan. Jangan kongsi butiran peribadi atau wang.';
+      'Orang ramai lapor nombor ini sebagai penipuan. Jangan kongsi wang atau maklumat peribadi.';
 
   @override
   String callHighRiskScore(int score) {
-    return 'Skor kepercayaan: $score/100';
+    return 'Skor: $score/100';
   }
 
   @override
   String callHighRiskReports(int count) {
-    return 'Dilaporkan $count kali';
+    return '$count laporan';
   }
 
   @override
-  String get callHighRiskDismiss => 'Tolak';
+  String get callHighRiskDismiss => 'Faham';
 
   @override
-  String get callChecking => 'Menyemak nombor...';
+  String get callHighRiskBlock => 'Ini Penipuan – Sekat';
 
   @override
-  String get callCheckTitle => 'Semakan nombor';
+  String get callHighRiskSafe => 'Selamat / Tutup';
+
+  @override
+  String get callChecking => 'Menyemak…';
+
+  @override
+  String get callCheckTitle => 'Semak nombor';
 
   @override
   String get callCheckNumberLabel => 'Nombor yang disemak';
 
   @override
-  String get callCheckResultHighRisk => 'Nombor berisiko tinggi';
+  String get callCheckResultHighRisk => 'Mungkin penipuan';
 
   @override
-  String get callCheckResultUnknown => 'Tiada rekod lagi';
+  String get callCheckResultUnknown => 'Tiada laporan';
 
   @override
   String get callCheckResultSafe => 'Nampak selamat';
 
   @override
-  String get callCheckResultFailed => 'Semakan gagal';
+  String get callCheckResultFailed => 'Tidak dapat semak';
 
   @override
   String get callCheckDetailHighRisk =>
-      'Nombor ini telah dilaporkan sebagai penipuan. Jangan kongsi maklumat peribadi atau wang.';
+      'Orang ramai lapor nombor ini sebagai penipuan. Jangan hubungi semula.';
 
   @override
-  String get callCheckDetailUnknown =>
-      'Tiada laporan untuk nombor ini. Kekal berwaspada.';
+  String get callCheckDetailUnknown => 'Tiada laporan. Tetap berhati-hati.';
 
   @override
-  String get callCheckDetailSafe => 'Nombor ini tiada laporan penipuan.';
+  String get callCheckDetailSafe => 'Nampak selamat. Tetap berhati-hati.';
 
   @override
-  String get callCheckDetailFailed =>
-      'Tidak dapat menyemak nombor ini sekarang. Sila cuba lagi.';
+  String get callCheckDetailFailed => 'Semak internet anda dan cuba lagi.';
 
   @override
   String callCheckScore(int score) {
-    return 'Skor kepercayaan: $score/100';
+    return 'Skor: $score/100';
   }
 
   @override
   String callCheckReports(int count) {
-    return 'Dilaporkan $count kali';
+    return '$count laporan';
   }
 
   @override
-  String get reportNotSent =>
-      'Laporan tidak dihantar — titik akhir pelaporan belum dikonfigurasi';
+  String get reportNotSent => 'Tidak dapat hantar. Laporan belum disediakan.';
 
   @override
   String get reportSpam => 'Spam';
@@ -575,134 +564,130 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get permConfirmScreening =>
-      'Sahkan Call Manager untuk penyaringan panggilan';
+      'Tetapkan apl ini sebagai penyemak panggilan';
 
   @override
   String get permScreeningUnavailable =>
-      'Penyaringan panggilan tidak tersedia pada peranti ini';
+      'Penyaringan panggilan tiada pada telefon ini';
 
   @override
-  String get permNotificationAccess => 'Akses pemberitahuan';
+  String get permNotificationAccess => 'Semak mesej';
 
   @override
   String get permNotificationAccessSub =>
-      'Membaca mesej daripada pemberitahuan';
+      'Membaca mesej baharu untuk kesan penipuan';
 
   @override
-  String get permOverlay => 'Papar di atas apl lain';
+  String get permOverlay => 'Amaran panggilan';
 
   @override
-  String get permOverlaySub =>
-      'Menunjukkan amaran penipuan semasa panggilan berdering';
+  String get permOverlaySub => 'Tunjuk amaran semasa panggilan';
 
   @override
-  String get permAlerts => 'Amaran dibenarkan';
+  String get permAlerts => 'Amaran';
 
   @override
-  String get permAlertsSub =>
-      'Menyiarkan amaran penipuan sebagai pemberitahuan';
+  String get permAlertsSub => 'Hantar amaran penipuan';
 
   @override
-  String get permBackground => 'Jalankan di latar belakang';
+  String get permBackground => 'Terus berjalan';
 
   @override
-  String get permBackgroundSub =>
-      'Abaikan pengoptimuman bateri supaya perlindungan terus berjalan';
+  String get permBackgroundSub => 'Berfungsi bila skrin mati';
 
   @override
-  String get permBatterySettings => 'Tetapan pengoptimuman bateri';
+  String get permBatterySettings => 'Jangan jeda apl';
 
   @override
   String get permBatterySettingsSub =>
-      'Sesetengah telefon tetap mengehadkan aplikasi. Buka senarai dan tetapkan aplikasi ini kepada \"Jangan optimumkan\".';
+      'Tetapkan apl ini kepada \"Jangan optimumkan\".';
 
   @override
-  String get permGranted => 'Diberikan';
+  String get permGranted => 'Hidup';
 
   @override
-  String get permGrant => 'Beri';
+  String get permGrant => 'Hidupkan';
 
   @override
-  String get permScreeningRole => 'Peranan penyaringan panggilan';
+  String get permScreeningRole => 'Semak panggilan';
 
   @override
   String get permScreeningRoleSub =>
-      'Membolehkan apl menyaring panggilan masuk dan menyekat nombor yang anda tandakan sebagai spam.';
+      'Menyemak panggilan dan menyekat nombor pilihan anda.';
 
   @override
-  String get permScreeningActive => 'Penyaringan aktif';
+  String get permScreeningActive => 'Hidup';
 
   @override
-  String get permEnableScreening => 'Dayakan penyaringan panggilan';
+  String get permEnableScreening => 'Hidupkan';
 
   @override
-  String get permScreeningNotGranted => 'Penyaringan panggilan belum diberikan';
+  String get permScreeningNotGranted => 'Semakan panggilan dimatikan';
 
   @override
-  String get permScreeningTapHint =>
-      'Ketik \"Dayakan penyaringan panggilan\" di atas, jika tidak panggilan masih akan berdering masuk.';
+  String get permScreeningTapHint => 'Ketik \"Hidupkan\" di atas.';
 
   @override
   String get permTitle => 'Kebenaran';
 
   @override
-  String get permGrantFollowing => 'Beri kebenaran berikut untuk akses penuh.';
+  String get permGrantFollowing => 'Hidupkan ini untuk perlindungan penuh.';
 
   @override
-  String get permPhoneCallLog => 'Telefon & Log Panggilan';
+  String get permPhoneCallLog => 'Panggilan telefon';
 
   @override
-  String get permPhoneGranted => 'Kebenaran telefon diberikan';
+  String get permPhoneGranted => 'Akses telefon dibenarkan';
 
   @override
   String get permContacts => 'Kenalan';
 
   @override
-  String get permContactsGranted => 'Kebenaran kenalan diberikan';
+  String get permContactsGranted => 'Kenalan dibenarkan';
 
   @override
   String get permNotifications => 'Pemberitahuan';
 
   @override
-  String get permNotificationsGranted => 'Kebenaran pemberitahuan diberikan';
+  String get permNotificationsGranted => 'Pemberitahuan dibenarkan';
 
   @override
   String get permStillNotWorking => 'Masih tidak berfungsi?';
 
   @override
   String get permOpenSettingsBody =>
-      'Buka tetapan sistem untuk apl ini untuk menetapkan peranan penyaringan panggilan dan kebenaran secara manual.';
+      'Hidupkan kebenaran dalam tetapan telefon anda.';
 
   @override
-  String get permOpenAppSettings => 'Buka Tetapan Apl';
+  String get permOpenAppSettings => 'Buka tetapan';
 
   @override
   String get permNotChecked => 'Belum disemak';
 
   @override
-  String get permStatusDenied => 'Dinafikan';
+  String get permStatusDenied => 'Mati';
 
   @override
-  String get permPermanentlyDenied => 'Dinafikan secara kekal';
+  String get permPermanentlyDenied => 'Mati. Hidupkan di tetapan';
 
   @override
-  String get permNotGranted => 'Tidak diberikan';
+  String get permNotGranted => 'Mati';
 
   @override
   String get contactsPermRequired =>
-      'Kebenaran kenalan diperlukan untuk melihat kenalan';
+      'Benarkan kenalan untuk lihat kenalan anda.';
 
   @override
   String get contactsTitle => 'Kenalan';
 
   @override
-  String get contactsSearchHint => 'Cari kenalan...';
+  String get contactsSearchHint => 'Cari nama atau nombor';
 
   @override
-  String get contactsCouldNotLoad => 'Tidak dapat memuatkan kenalan';
+  String get contactsCouldNotLoad => 'Tidak dapat muat kenalan';
 
   @override
-  String get contactsNoneFound => 'Tiada kenalan dijumpai';
+  String get contactsNoneFound => 'Tiada kenalan';
 
   @override
   String get contactsNoDetails => 'Tiada butiran';
@@ -717,17 +702,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get safetyRecentAlerts => 'Amaran terkini';
 
   @override
-  String get safetyProtectedOn => 'Anda dilindungi';
+  String get safetyProtectedOn => 'Dilindungi';
 
   @override
-  String get safetyProtectedOff => 'Perlindungan dimatikan';
+  String get safetyProtectedOff => 'Perlindungan mati';
 
   @override
-  String get safetyWeCheck => 'Kami menyemak mesej anda untuk penipuan.';
+  String get safetyWeCheck => 'Menyemak mesej anda untuk penipuan.';
 
   @override
-  String get safetyTurnOnToCheck =>
-      'Hidupkan ini untuk menyemak mesej untuk penipuan.';
+  String get safetyTurnOnToCheck => 'Hidupkan untuk semak mesej.';
 
   @override
   String get safetyTurnOff => 'Matikan perlindungan';
@@ -739,23 +723,23 @@ class AppLocalizationsMs extends AppLocalizations {
   String get safetyPressToStart => 'Tekan untuk mula';
 
   @override
-  String get safetyDownloadingModel => 'Memuat turun model…';
+  String get safetyDownloadingModel => 'Memuat turun…';
 
   @override
-  String get safetySettingUpModel => 'Menyediakan model…';
+  String get safetySettingUpModel => 'Menyediakan…';
 
   @override
-  String get safetyNoScams => 'Tiada penipuan dijumpai';
+  String get safetyNoScams => 'Tiada penipuan';
 
   @override
-  String get safetyNoScamsBody => 'Mesej mencurigakan akan dipaparkan di sini.';
+  String get safetyNoScamsBody => 'Penipuan akan dipaparkan di sini.';
 
   @override
   String get safetyMeteredTitle => 'Guna data mudah alih?';
 
   @override
   String safetyMeteredBody(int mb) {
-    return 'Muat turun ini kira-kira $mb MB. Wi-Fi lebih baik.';
+    return 'Muat turun kira-kira $mb MB. Wi-Fi lebih baik.';
   }
 
   @override
@@ -766,7 +750,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get safetyCouldNotStart =>
-      'Perlindungan tidak dapat dimulakan. Sila cuba lagi.';
+      'Tidak dapat mulakan perlindungan. Cuba lagi.';
 
   @override
   String get safetyShowMore => 'Tunjuk lagi';
@@ -778,16 +762,16 @@ class AppLocalizationsMs extends AppLocalizations {
   String get safetyPillOn => 'Dilindungi';
 
   @override
-  String get safetyPillOff => 'Dimatikan';
+  String get safetyPillOff => 'Mati';
 
   @override
-  String get safetyPillError => 'Perlukan perhatian';
+  String get safetyPillError => 'Perlu dibaiki';
 
   @override
   String get safetyPillChecking => 'Menyemak';
 
   @override
-  String get safetyHeroOnBody => 'Disemak secara peribadi pada telefon anda.';
+  String get safetyHeroOnBody => 'Disemak pada telefon anda.';
 
   @override
   String get protectionChecked => 'Disemak';
@@ -817,13 +801,13 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get activityNoMessages => 'Belum ada mesej ditangkap.';
+  String get activityNoMessages => 'Belum ada mesej.';
 
   @override
   String get activityNotCheckedSuffix => ' · belum disemak';
 
   @override
-  String get activityCloudSuffix => ' · awan';
+  String get activityCloudSuffix => ' · dalam talian';
 
   @override
   String get activityNotCheckedYet => 'Belum disemak.';
@@ -839,18 +823,17 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String activityEscalatedSuffix(String wire) {
-    return '$wire (ditingkatkan)';
+    return '$wire (dalam talian)';
   }
 
   @override
   String get activityReason => 'Sebab';
 
   @override
-  String get activityAiThinking => 'Pemikiran AI';
+  String get activityAiThinking => 'Keputusan penuh';
 
   @override
-  String get activityNoOutput =>
-      '(model tidak menghasilkan output yang boleh dibaca)';
+  String get activityNoOutput => '(Tiada keputusan)';
 
   @override
   String get blockedNumbersTitle => 'Nombor Disekat';
@@ -860,6 +843,9 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get notificationsTitle => 'Pemberitahuan';
+
+  @override
+  String get activityTitle => 'Aktiviti';
 
   @override
   String get notificationsTestTitle => 'Uji mesej';
@@ -890,7 +876,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get onboardingBack => 'Kembali';
 
   @override
-  String get onboardingStart => 'Mari mula';
+  String get onboardingStart => 'Mula';
 
   @override
   String get onboardingAllow => 'Benarkan';
@@ -902,7 +888,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get onboardingNotNow => 'Bukan sekarang';
 
   @override
-  String get onboardingFinish => 'Pergi ke aplikasi';
+  String get onboardingFinish => 'Buka apl';
 
   @override
   String onboardingStepCount(int step, int total) {
@@ -910,100 +896,97 @@ class AppLocalizationsMs extends AppLocalizations {
   }
 
   @override
-  String get onboardingWelcomeTitle => 'Selamat datang';
+  String get onboardingWelcomeTitle => 'Jauhi penipuan';
 
   @override
   String get onboardingWelcomeBody =>
-      'Aplikasi ini membantu anda mengenal pasti panggilan dan mesej penipuan. Untuk itu, ia memerlukan beberapa kebenaran daripada telefon anda. Kita akan melaluinya satu demi satu.';
+      'Kami beri amaran tentang panggilan dan mesej penipuan. Persediaan pantas.';
 
   @override
   String get onboardingWelcomeNote =>
-      'Semuanya kekal di telefon anda. Anda boleh menukar pilihan ini pada bila-bila masa di Tetapan.';
+      'Anda boleh ubah ini kemudian di Tetapan.';
 
   @override
   String get onboardingPhoneTitle => 'Panggilan telefon';
 
   @override
-  String get onboardingPhoneBody =>
-      'Ini membolehkan aplikasi melihat siapa yang menghubungi anda, supaya ia boleh memberitahu jika nombor itu dikenali sebagai penipuan.';
+  String get onboardingPhoneBody => 'Lihat siapa yang memanggil.';
 
   @override
   String get onboardingContactsTitle => 'Kenalan';
 
   @override
   String get onboardingContactsBody =>
-      'Ini membolehkan aplikasi mengenali orang yang anda kenali, supaya panggilan mereka tidak ditanda sebagai mencurigakan.';
+      'Panggilan daripada orang yang anda kenal tidak ditanda.';
 
   @override
-  String get onboardingScreeningTitle => 'Semakan panggilan';
+  String get onboardingScreeningTitle => 'Semak panggilan';
 
   @override
   String get onboardingScreeningBody =>
-      'Ini membolehkan aplikasi menyemak panggilan masuk dan menyekat nombor yang telah anda sekat. Telefon anda akan meminta anda memilih aplikasi ini untuk saringan panggilan.';
+      'Semak panggilan dan sekat nombor pilihan anda.';
 
   @override
-  String get onboardingNotificationsTitle => 'Makluman';
+  String get onboardingNotificationsTitle => 'Amaran';
 
   @override
   String get onboardingNotificationsBody =>
-      'Ini membolehkan aplikasi menghantar makluman ringkas apabila sesuatu kelihatan seperti penipuan.';
+      'Dapat amaran jika ada kemungkinan penipuan.';
 
   @override
-  String get onboardingMessagesTitle => 'Semakan mesej';
+  String get onboardingMessagesTitle => 'Semak mesej';
 
   @override
   String get onboardingMessagesBody =>
-      'Ini membolehkan aplikasi membaca mesej baharu apabila ia tiba, supaya ia boleh memberi amaran tentang pautan mencurigakan atau permintaan wang.';
+      'Baca mesej baharu untuk kesan penipuan.';
 
   @override
-  String get onboardingOverlayTitle => 'Tunjukkan amaran semasa panggilan';
+  String get onboardingOverlayTitle => 'Amaran panggilan';
 
   @override
   String get onboardingOverlayBody =>
-      'Ini membolehkan aplikasi menunjukkan notis kecil di skrin semasa panggilan mencurigakan berdering.';
+      'Tunjuk amaran semasa panggilan berisiko.';
 
   @override
-  String get onboardingBackgroundTitle => 'Terus berjalan di latar belakang';
+  String get onboardingBackgroundTitle => 'Terus berjalan';
 
   @override
-  String get onboardingBackgroundBody =>
-      'Benarkan aplikasi mengabaikan pengoptimuman bateri supaya ia boleh terus mengawasi penipuan walaupun skrin anda dimatikan.';
+  String get onboardingBackgroundBody => 'Terus semak bila skrin mati.';
 
   @override
-  String get onboardingBatterySettingsTitle => 'Hentikan pengoptimuman bateri';
+  String get onboardingBatterySettingsTitle => 'Jangan jeda apl';
 
   @override
   String get onboardingBatterySettingsBody =>
-      'Sesetengah telefon terus mengehadkan aplikasi walaupun selepas gesaan pertama. Buka tetapan bateri, cari aplikasi ini, dan tetapkannya kepada \"Jangan optimumkan\" supaya perlindungan tidak pernah berhenti.';
+      'Halang telefon daripada menjeda apl.';
 
   @override
   String get onboardingSettingsHint =>
-      'Tetapan telefon anda akan dibuka. Cari aplikasi ini dalam senarai, hidupkannya, kemudian kembali ke sini.';
+      'Tetapan akan dibuka. Cari apl ini dan hidupkannya.';
 
   @override
-  String get onboardingStatusOn => 'Ini telah dihidupkan.';
+  String get onboardingStatusOn => 'Hidup.';
 
   @override
   String get onboardingStatusSkipped =>
-      'Ini belum dihidupkan. Anda boleh cuba lagi, atau hidupkannya kemudian di Tetapan.';
+      'Tidak hidup. Anda boleh hidupkan di Tetapan.';
 
   @override
   String get onboardingStatusBlocked =>
-      'Telefon anda tidak akan bertanya lagi. Ketik \"Buka tetapan\" untuk menghidupkannya sendiri.';
+      'Telefon anda tidak akan tanya lagi. Ketik \"Buka tetapan\".';
 
   @override
   String get onboardingDoneTitle => 'Semuanya sedia';
 
   @override
-  String get onboardingDoneBody =>
-      'Aplikasi kini memerhati panggilan dan mesej penipuan untuk anda.';
+  String get onboardingDoneBody => 'Kami sedang memantau penipuan.';
 
   @override
   String get onboardingDonePartialTitle => 'Hampir selesai';
 
   @override
   String get onboardingDonePartialBody =>
-      'Sesetengah perlindungan belum dihidupkan. Aplikasi masih berfungsi, dan anda boleh menghidupkan selebihnya kemudian di Tetapan.';
+      'Ada yang belum hidup. Anda boleh hidupkan di Tetapan.';
 
   @override
   String onboardingGrantedCount(int granted, int total) {
@@ -1015,11 +998,11 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get onboardingScreeningWhy =>
-      'Telefon anda akan meminta anda memilih apl ini. Pilihnya supaya panggilan dapat disemak.';
+      'Pilih apl ini supaya panggilan boleh disemak.';
 
   @override
   String get onboardingMessagesWhy =>
-      'Kami mencari tanda penipuan, seperti pautan pelik atau permintaan wang.';
+      'Kami cari pautan pelik atau permintaan wang.';
 
   @override
   String get onboardingBatterySettingsHint =>
@@ -1050,41 +1033,41 @@ class AppLocalizationsMs extends AppLocalizations {
       'Anda boleh teruskan. Muat turun diteruskan.';
 
   @override
-  String get onboardingModelReady => 'Sedia digunakan.';
+  String get onboardingModelReady => 'Sedia.';
 
   @override
   String get onboardingModelFailed =>
-      'Muat turun tidak selesai. Cuba lagi, atau kemudian di Tetapan.';
+      'Muat turun tidak selesai. Cuba lagi atau guna Tetapan.';
 
   @override
   String get onboardingModelMeteredTitle => 'Guna data mudah alih?';
 
   @override
   String onboardingModelMeteredBody(String size) {
-    return 'Anda tidak menggunakan Wi-Fi. Ini menggunakan kira-kira $size data.';
+    return 'Anda tidak guna Wi-Fi. Ini guna kira-kira $size.';
   }
 
   @override
   String get setupOpenSettingsFailed => 'Tidak dapat membuka tetapan.';
 
   @override
-  String get authEnterEmail => 'Sila masukkan e-mel anda.';
+  String get authEnterEmail => 'Masukkan e-mel anda.';
 
   @override
-  String get authValidEmail => 'Sila masukkan e-mel yang sah.';
+  String get authValidEmail => 'Masukkan e-mel yang sah.';
 
   @override
-  String get authEnterPassword => 'Sila masukkan kata laluan anda.';
+  String get authEnterPassword => 'Masukkan kata laluan anda.';
 
   @override
-  String get authPasswordLength => 'Gunakan sekurang-kurangnya 8 aksara.';
+  String get authPasswordLength => 'Guna sekurang-kurangnya 8 aksara.';
 
   @override
-  String get authEnterName => 'Sila masukkan nama anda.';
+  String get authEnterName => 'Masukkan nama anda.';
 
   @override
   String get authNameInvalid =>
-      'Gunakan huruf dan nombor sahaja, dengan paling banyak satu ruang antara dua perkataan.';
+      'Huruf dan nombor sahaja. Satu ruang dibenarkan.';
 
   @override
   String get authCreateAccount => 'Cipta akaun';
@@ -1093,12 +1076,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get authSignIn => 'Log masuk';
 
   @override
-  String get authRegisterIntro =>
-      'Sertai komuniti untuk berkongsi dan belajar tentang penipuan.';
+  String get authRegisterIntro => 'Sertai untuk kongsi penipuan.';
 
   @override
-  String get authLoginIntro =>
-      'Log masuk untuk menyiarkan dan menyertai perbincangan.';
+  String get authLoginIntro => 'Log masuk untuk siar dan komen.';
 
   @override
   String get authYourName => 'Nama anda';
@@ -1119,6 +1100,12 @@ class AppLocalizationsMs extends AppLocalizations {
   String get authPasswordHint => 'Masukkan kata laluan anda';
 
   @override
+  String get authShowPassword => 'Tunjuk kata laluan';
+
+  @override
+  String get authHidePassword => 'Sembunyi kata laluan';
+
+  @override
   String get authToggleToLogin => 'Sudah ada akaun? Log masuk';
 
   @override
@@ -1128,8 +1115,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get authGateTitle => 'Log masuk untuk meneruskan';
 
   @override
-  String get authGateBody =>
-      'Ciri ini memerlukan akaun. Log masuk untuk menyiarkan ke komuniti, menyelaraskan laporan anda, dan menyimpan semuanya di satu tempat.';
+  String get authGateBody => 'Anda perlu akaun. Ia percuma.';
 
   @override
   String get authGateAction => 'Log masuk';
@@ -1145,36 +1131,36 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get communityNoPostsBody =>
-      'Laporan penipuan yang dikongsi oleh komuniti akan dipaparkan di sini.';
+      'Penipuan yang dikongsi akan dipaparkan di sini.';
 
   @override
-  String get createChooseType => 'Sila pilih jenis penipuan.';
+  String get createChooseType => 'Pilih jenis penipuan.';
 
   @override
-  String get createAddTitle => 'Sila tambah tajuk.';
+  String get createAddTitle => 'Tambah tajuk.';
 
   @override
-  String get createAddMessage => 'Sila tambah teks mesej.';
+  String get createAddMessage => 'Tambah teks mesej.';
 
   @override
   String get reportTabTitle => 'Lapor';
 
   @override
-  String get reportTabThankYou => 'Dikongsi dengan komuniti. Terima kasih!';
+  String get reportTabThankYou => 'Dikongsi. Terima kasih!';
 
   @override
   String get reportTabTrackIt =>
-      'Dikongsi dengan komuniti. Semak Siaran saya untuk menjejakinya.';
+      'Dikongsi. Lihat Profil Saya untuk menjejakinya.';
 
   @override
   String get reportTabHeroTitle => 'Ingatkan orang lain tentang penipuan';
 
   @override
-  String get reportTabNumberHeroTitle => 'Laporkan nombor telefon';
+  String get reportTabNumberHeroTitle => 'Laporkan nombor';
 
   @override
   String get reportTabNumberHeroBody =>
-      'Beritahu kami mengapa nombor ini mencurigakan. Laporan anda membantu melindungi orang lain.';
+      'Beritahu kenapa nombor ini mencurigakan. Laporan anda membantu orang lain.';
 
   @override
   String get reportTabPaste => 'Tampal';
@@ -1190,7 +1176,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get reportTabNumberHint => 'cth. +65 9123 4567';
 
   @override
-  String get reportTabNumberRequired => 'Sila masukkan nombor telefon.';
+  String get reportTabNumberRequired => 'Masukkan nombor telefon.';
 
   @override
   String get reportTabReasonLabel => 'Apa yang berlaku?';
@@ -1207,7 +1193,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get reportTabReasonOtherBody => 'Ada sesuatu yang tidak kena';
 
   @override
-  String get reportTabSuccessTitle => 'Terima kasih kerana membantu';
+  String get reportTabSuccessTitle => 'Terima kasih';
 
   @override
   String get reportTabReportAnother => 'Laporkan satu lagi';
@@ -1220,7 +1206,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get myPostsNoneBody =>
-      'Penipuan yang anda laporkan akan dipaparkan di sini supaya anda boleh menjejakinya.';
+      'Laporan yang anda kongsi akan dipaparkan di sini.';
 
   @override
   String get myPostsDelete => 'Padam';
@@ -1230,7 +1216,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get myPostsDeleteConfirmBody =>
-      'Ini mengeluarkannya daripada komuniti. Tindakan ini tidak boleh dibatalkan.';
+      'Ia akan dibuang untuk semua orang. Ini tidak boleh dibatalkan.';
 
   @override
   String get myPostsEdit => 'Edit';
@@ -1239,27 +1225,26 @@ class AppLocalizationsMs extends AppLocalizations {
   String get editPostTitle => 'Edit siaran';
 
   @override
-  String get editPostSave => 'Simpan perubahan';
+  String get editPostSave => 'Simpan';
 
   @override
   String get editPostSaving => 'Menyimpan...';
 
   @override
-  String get editPostSaved => 'Perubahan disimpan.';
+  String get editPostSaved => 'Disimpan.';
 
   @override
   String get editPostReReview =>
-      'Mengedit mesej menghantar semula siaran untuk semakan.';
+      'Suntingan menghantar siaran semula untuk semakan.';
 
   @override
-  String get postDetailThankYou =>
-      'Terima kasih. Pasukan kami akan menyemak siaran ini.';
+  String get postDetailThankYou => 'Terima kasih. Kami akan semak siaran ini.';
 
   @override
   String get postDetailTitle => 'Siaran';
 
   @override
-  String get postDetailReportTooltip => 'Lapor siaran ini';
+  String get postDetailReportTooltip => 'Lapor siaran';
 
   @override
   String postDetailComments(int count) {
@@ -1273,13 +1258,13 @@ class AppLocalizationsMs extends AppLocalizations {
   String get postDetailWriteComment => 'Tulis komen';
 
   @override
-  String get postDetailPostComment => 'Siarkan komen';
+  String get postDetailPostComment => 'Siar';
 
   @override
   String get postDetailFlagPersonalInfo => 'Menunjukkan maklumat peribadi';
 
   @override
-  String get postDetailFlagHarmful => 'Berbahaya atau merbahaya';
+  String get postDetailFlagHarmful => 'Berbahaya';
 
   @override
   String get postDetailFlagSpam => 'Spam';
@@ -1326,10 +1311,19 @@ class AppLocalizationsMs extends AppLocalizations {
   String get postDetailRemovedComment => 'Komen ini telah dialih keluar.';
 
   @override
+  String get postDetailAiBadge => 'AI';
+
+  @override
+  String get postDetailMentionHelpHint => 'Ask NegevAI about this post';
+
+  @override
+  String get postDetailBotThinking => 'NegevAI is thinking...';
+
+  @override
   String get guidanceClickedLink => 'Saya klik pautan';
 
   @override
-  String get guidanceGotMessage => 'Saya baru terima mesej';
+  String get guidanceGotMessage => 'Saya terima mesej';
 
   @override
   String get guidanceSharedPassword => 'Saya kongsi kata laluan saya';
@@ -1338,10 +1332,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get guidanceSentMoney => 'Saya hantar wang';
 
   @override
-  String get guidanceCouldNotOpenLink => 'Tidak dapat membuka pautan.';
+  String get guidanceCouldNotOpenLink => 'Tidak dapat buka pautan.';
 
   @override
-  String get guidanceCouldNotCall => 'Tidak dapat memulakan panggilan.';
+  String get guidanceCouldNotCall => 'Tidak dapat mulakan panggilan.';
 
   @override
   String get guidanceTitle => 'Dapatkan bantuan';
@@ -1363,56 +1357,79 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get guidanceNoAdviceBody =>
-      'Pilih apa yang berlaku di atas untuk melihat langkah yang boleh anda ambil.';
+      'Pilih apa yang berlaku untuk lihat apa perlu buat.';
 
   @override
-  String get tourHomeTitle => 'Utama';
+  String get tourHomeTitle => 'Perlindungan';
 
   @override
   String get tourHomeBody =>
-      'Ini ialah skrin utama anda. Lihat amaran penipuan terkini dan capai dengan pantas segala yang aplikasi ini boleh lakukan.';
+      'Hijau bermaksud dilindungi. Ketik jika tidak hijau.';
 
   @override
-  String get tourCallsTitle => 'Panggilan';
+  String get tourCallsTitle => 'Panggilan merah';
 
   @override
   String get tourCallsBody =>
-      'Di sinilah panggilan daripada nombor tidak diketahui muncul. Ketik panggilan untuk melihat butiran, dan gunakan ikon sekat di penjuru atas untuk mengurus nombor yang anda tidak mahu dengar lagi.';
+      'Panggilan merah mungkin penipuan. Jangan jawab atau hubungi semula.';
 
   @override
-  String get tourBlockedTitle => 'Nombor disekat anda';
+  String get tourBlockedTitle => 'Nombor disekat';
 
   @override
   String get tourBlockedBody =>
-      'Ketik perisai dengan garis melintang untuk melihat nombor yang anda sekat.';
+      'Ketik perisai bergaris untuk lihat nombor disekat.';
 
   @override
   String get tourHelpTitle => 'Perlukan bantuan?';
 
   @override
-  String get tourHelpBody =>
-      'Ketik ? pada mana-mana skrin untuk melihat maksudnya.';
+  String get tourHelpBody => 'Ketik ? pada mana-mana skrin.';
 
   @override
-  String get tourSafetyTitle => 'Keselamatan';
+  String get tourSafetyTitle => 'Hidupkan perlindungan';
 
   @override
   String get tourSafetyBody =>
-      'Hidupkan perlindungan di sini. Setelah model dimuat turun, Scam Shield membaca mesej masuk pada peranti anda dan memberi amaran tentang kemungkinan penipuan.';
+      'Hidupkan atau matikan di sini. Kami beri amaran tentang mesej penipuan.';
 
   @override
-  String get tourReportTitle => 'Lapor';
+  String get tourReportTitle => 'Laporkan penipuan';
 
   @override
-  String get tourReportBody =>
-      'Nampak penipuan? Kongsikannya dengan komuniti dari tab ini supaya orang lain dapat mengenali helah yang sama dan kekal selamat.';
+  String get tourReportBody => 'Beritahu orang lain supaya mereka selamat.';
 
   @override
-  String get tourProfileTitle => 'Profil Anda';
+  String get tourReviewTitle => 'Tick the box';
+
+  @override
+  String get tourReviewBody =>
+      'After you add photos, check them. Then tick this box to share.';
+
+  @override
+  String get tourPostHelpTitle => 'Ask the AI helper';
+
+  @override
+  String get tourPostHelpBody =>
+      'Not sure if this is a scam? Type @help in a comment. Our AI scam helper will reply.';
+
+  @override
+  String get tourPostAiTitle => 'Read the replies';
+
+  @override
+  String get tourPostAiBody =>
+      'Replies with an AI tag come from the helper. It can make mistakes, so ask someone you trust too.';
+
+  @override
+  String get tourPostSampleReply =>
+      'This looks like a scam. Do not click the link.';
+
+  @override
+  String get tourProfileTitle => 'Profil';
 
   @override
   String get tourProfileBody =>
-      'Lihat butiran akaun anda dan semua kiriman anda di satu tempat. Buka tetapan atau log keluar daripada butang di bahagian atas.';
+      'Lihat siaran dan tetapan anda di sini. Anda boleh ulang lawatan ini di Tetapan.';
 
   @override
   String tourStepCounter(int current, int total) {
@@ -1438,7 +1455,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get helpGotIt => 'Faham';
 
   @override
-  String get helpShowTour => 'Tunjuk semula gambaran keseluruhan apl';
+  String get helpShowTour => 'Tunjuk lawatan semula';
 
   @override
   String get helpCallsTitle => 'Maksud setiap perkara';
@@ -1453,17 +1470,17 @@ class AppLocalizationsMs extends AppLocalizations {
   String get helpCallsNormalTitle => 'Panggilan biasa';
 
   @override
-  String get helpCallsNormalBody => 'Tiada laporan penipuan untuk nombor ini.';
+  String get helpCallsNormalBody => 'Tiada laporan penipuan.';
 
   @override
   String get helpCallsBlockedRowTitle => 'Panggilan disekat';
 
   @override
   String get helpCallsBlockedRowBody =>
-      'Anda menyekat nombor ini. Ia tidak boleh menghubungi anda.';
+      'Nombor ini tidak boleh menghubungi anda.';
 
   @override
-  String get helpCallsBlockedListTitle => 'Nombor disekat anda';
+  String get helpCallsBlockedListTitle => 'Nombor disekat';
 
   @override
   String get helpCallsBlockedListBody =>
@@ -1479,7 +1496,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get helpCallsRefreshTitle => 'Muat semula';
 
   @override
-  String get helpCallsRefreshBody => 'Semak semula panggilan anda.';
+  String get helpCallsRefreshBody => 'Semak panggilan semula.';
 
   @override
   String get helpCallsMissedBody => 'Anda tidak menjawab panggilan ini.';
@@ -1491,7 +1508,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get helpCallsRejectedBody => 'Anda menolak panggilan ini.';
 
   @override
-  String get helpCallsBlockedIconBody => 'Panggilan ini telah dihentikan.';
+  String get helpCallsBlockedIconBody => 'Panggilan ini disekat.';
 
   @override
   String get helpCallsOutgoingBody => 'Anda memanggil nombor ini.';
@@ -1515,7 +1532,7 @@ class AppLocalizationsMs extends AppLocalizations {
   String get callsCheckNumber => 'Semak nombor';
 
   @override
-  String get callsLoadFailedBody => 'Sila cuba lagi.';
+  String get callsLoadFailedBody => 'Cuba lagi.';
 
   @override
   String get callsBlockedEmptyBody =>
@@ -1523,7 +1540,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get callsContactsLoadFailed =>
-      'Tidak dapat memaparkan kenalan anda. Sila cuba lagi.';
+      'Tidak dapat tunjuk kenalan. Cuba lagi.';
 
   @override
   String get callsCallTooltip => 'Panggil';

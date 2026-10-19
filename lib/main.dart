@@ -7,6 +7,8 @@ import 'package:forui/forui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:scamwatch_mobile_app/api/api_client.dart';
+import 'package:scamwatch_mobile_app/api/api_config.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:scamwatch_mobile_app/background/background_runner.dart';
 import 'package:scamwatch_mobile_app/screens/calls/call_history_screen.dart';
 import 'package:scamwatch_mobile_app/screens/home/home_screen.dart';
@@ -19,6 +21,7 @@ import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
 import 'package:scamwatch_mobile_app/state/auth_controller.dart';
 import 'package:scamwatch_mobile_app/state/locale_controller.dart';
 import 'package:scamwatch_mobile_app/state/posts_refresh_signal.dart';
+import 'package:scamwatch_mobile_app/state/text_size_controller.dart';
 import 'package:scamwatch_mobile_app/state/theme_controller.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/auth_gate.dart';
 import 'package:scamwatch_mobile_app/widgets/auth/require_login.dart';
@@ -31,6 +34,7 @@ import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  _mirrorApiBaseUrl();
   final apiClient = ApiClient();
   final authController = AuthController(client: apiClient);
   authController.bootstrap();
@@ -40,6 +44,8 @@ void main() {
   localeController.load();
   final themeController = ThemeController();
   themeController.load();
+  final textSizeController = TextSizeController();
+  textSizeController.load();
   runApp(
     MyApp(
       apiClient: apiClient,
@@ -48,8 +54,18 @@ void main() {
       tourController: tourController,
       localeController: localeController,
       themeController: themeController,
+      textSizeController: textSizeController,
     ),
   );
+}
+
+/// The native high-risk call overlay runs without Flutter and reads the API
+/// base URL from the legacy shared-preferences file (`flutter.api_base_url`).
+Future<void> _mirrorApiBaseUrl() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('api_base_url', ApiConfig.baseUrl);
+  } catch (_) {}
 }
 
 @pragma('vm:entry-point')
@@ -70,6 +86,7 @@ class MyApp extends StatelessWidget {
     required this.tourController,
     required this.localeController,
     required this.themeController,
+    required this.textSizeController,
   });
 
   final ApiClient apiClient;
@@ -78,6 +95,7 @@ class MyApp extends StatelessWidget {
   final TourController tourController;
   final LocaleController localeController;
   final ThemeController themeController;
+  final TextSizeController textSizeController;
 
   @override
   Widget build(BuildContext context) {
@@ -89,45 +107,59 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<TourController>.value(value: tourController),
         ChangeNotifierProvider<LocaleController>.value(value: localeController),
         ChangeNotifierProvider<ThemeController>.value(value: themeController),
+        ChangeNotifierProvider<TextSizeController>.value(
+          value: textSizeController,
+        ),
         ChangeNotifierProvider<PostsRefreshSignal>(
           create: (_) => PostsRefreshSignal(),
         ),
       ],
-      child: Consumer2<LocaleController, ThemeController>(
-        builder: (context, localeController, themeController, _) => MaterialApp(
-          title: 'Call Manager',
-          locale: localeController.locale,
-          supportedLocales: const [
-            ...kAppSupportedLocales,
-            ...FLocalizations.supportedLocales,
-          ],
-          localizationsDelegates: const [
-            ...AppLocalizations.localizationsDelegates,
-            ...FLocalizations.localizationsDelegates,
-          ],
-          theme: _materialTheme(lightColors),
-          darkTheme: _materialTheme(darkColors),
-          themeMode: themeController.mode,
-          builder: (context, child) {
-            final media = MediaQuery.of(context);
-            final clamped = media.textScaler.clamp(
-              minScaleFactor: 1.0,
-              maxScaleFactor: 1.8,
-            );
-            return MediaQuery(
-              data: media.copyWith(textScaler: clamped),
-              child: FTheme(
-                data: Theme.brightnessOf(context) == Brightness.light
-                    ? lightTheme
-                    : darkTheme,
-                child: FToaster(
-                  child: FTooltipGroup(child: child ?? const SizedBox.shrink()),
-                ),
-              ),
-            );
-          },
-          home: const _RootGate(),
-        ),
+      child: Consumer3<LocaleController, ThemeController, TextSizeController>(
+        builder:
+            (
+              context,
+              localeController,
+              themeController,
+              textSizeController,
+              _,
+            ) => MaterialApp(
+              title: 'Call Manager',
+              locale: localeController.locale,
+              supportedLocales: const [
+                ...kAppSupportedLocales,
+                ...FLocalizations.supportedLocales,
+              ],
+              localizationsDelegates: const [
+                ...AppLocalizations.localizationsDelegates,
+                ...FLocalizations.localizationsDelegates,
+              ],
+              theme: _materialTheme(lightColors),
+              darkTheme: _materialTheme(darkColors),
+              themeMode: themeController.mode,
+              builder: (context, child) {
+                final media = MediaQuery.of(context);
+                // The device font-size setting and the in-app choice stack. Cap the
+                // product so "Extra large" on a phone already set to maximum stays
+                // usable instead of shredding every layout.
+                final systemScale = media.textScaler.scale(16) / 16;
+                final combined = (systemScale * textSizeController.size.factor)
+                    .clamp(1.0, 2.0);
+                return MediaQuery(
+                  data: media.copyWith(textScaler: TextScaler.linear(combined)),
+                  child: FTheme(
+                    data: Theme.brightnessOf(context) == Brightness.light
+                        ? lightTheme
+                        : darkTheme,
+                    child: FToaster(
+                      child: FTooltipGroup(
+                        child: child ?? const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              home: const _RootGate(),
+            ),
       ),
     );
   }
@@ -185,7 +217,10 @@ class _HomePageState extends State<HomePage> {
     _NavigationItem(icon: LucideIcons.house, label: (l10n) => l10n.navHome),
     _NavigationItem(icon: LucideIcons.phone, label: (l10n) => l10n.navCalls),
     _NavigationItem(icon: LucideIcons.shield, label: (l10n) => l10n.navSafety),
-    _NavigationItem(icon: LucideIcons.megaphone, label: (l10n) => l10n.navReport),
+    _NavigationItem(
+      icon: LucideIcons.megaphone,
+      label: (l10n) => l10n.navReport,
+    ),
     _NavigationItem(
       icon: LucideIcons.circleUserRound,
       label: (l10n) => l10n.navProfile,
@@ -228,19 +263,6 @@ class _HomePageState extends State<HomePage> {
     // polling survive, but only the active one lays out, paints, and ticks —
     // no scrolling through the heavy pages in between.
     setState(() => _currentIndex = tabIndex);
-  }
-
-  /// Swipe left to advance to the next tab, right to go back one. A velocity
-  /// threshold ignores slow or accidental drags, and the index is clamped so
-  /// swiping past the first/last tab is a no-op.
-  void _handleHorizontalSwipe(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-    const threshold = 200.0;
-    if (velocity <= -threshold) {
-      _showTab(_currentIndex + 1);
-    } else if (velocity >= threshold) {
-      _showTab(_currentIndex - 1);
-    }
   }
 
   Future<void> _maybeStartTour() async {
@@ -321,17 +343,10 @@ class _HomePageState extends State<HomePage> {
       child: Scaffold(
         body: SafeArea(
           bottom: false,
-          child: GestureDetector(
-            // Horizontal swipes move to the adjacent tab. We handle the gesture
-            // ourselves (instead of a scrolling PageView) so a swipe is just an
-            // index change with the same quick fade — no building or scrolling
-            // through the heavy pages in between.
-            onHorizontalDragEnd: _handleHorizontalSwipe,
-            child: _FadeIndexedStack(
-              index: _currentIndex,
-              children: screens,
-            ),
-          ),
+          // Tabs change only through the bottom nav. Horizontal swipes used to
+          // switch tabs too, but a tremor or an accidental drag while scrolling
+          // a list sent users to a different screen; taps are the only switch.
+          child: _FadeIndexedStack(index: _currentIndex, children: screens),
         ),
         bottomNavigationBar: _AppNavBar(
           items: _items,
@@ -351,10 +366,7 @@ class _HomePageState extends State<HomePage> {
 /// through the heavy pages in between (the old [PageView] built and laid out
 /// every intermediate screen mid-animation, which dropped frames).
 class _FadeIndexedStack extends StatefulWidget {
-  const _FadeIndexedStack({
-    required this.index,
-    required this.children,
-  });
+  const _FadeIndexedStack({required this.index, required this.children});
 
   final int index;
   final List<Widget> children;
@@ -393,10 +405,7 @@ class _FadeIndexedStackState extends State<_FadeIndexedStack>
     // ticks; IndexedStack's Offstage already stops their paint and hit-testing.
     final children = [
       for (var i = 0; i < widget.children.length; i++)
-        TickerMode(
-          enabled: i == widget.index,
-          child: widget.children[i],
-        ),
+        TickerMode(enabled: i == widget.index, child: widget.children[i]),
     ];
     return FadeTransition(
       opacity: _fade,
@@ -411,10 +420,10 @@ class _FadeIndexedStackState extends State<_FadeIndexedStack>
 
 /// Custom bottom navigation bar. Replaces Material's [NavigationBar], which
 /// clipped long labels like "Call History" (every destination gets equal width
-/// with no graceful shrink). Each tab shrinks its label to fit via [FittedBox],
-/// and the active tab shows a soft rounded pill behind the icon built from the
-/// app design tokens. Preserves the coach-mark [CoachMarkTargets] keys so the
-/// feature tour still points at the right tabs.
+/// with no graceful shrink). Each tab lets its label wrap to two lines instead
+/// of shrinking it, and the active tab shows a soft rounded pill behind the
+/// icon built from the app design tokens. Preserves the coach-mark
+/// [CoachMarkTargets] keys so the feature tour still points at the right tabs.
 class _AppNavBar extends StatelessWidget {
   const _AppNavBar({
     required this.items,
@@ -443,7 +452,7 @@ class _AppNavBar extends StatelessWidget {
         // Minimum height instead of a fixed one, so the bar grows with large
         // text sizes rather than clipping the labels.
         child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 72),
+          constraints: const BoxConstraints(minHeight: 84),
           child: Row(
             children: [
               for (var i = 0; i < items.length; i++)
@@ -500,45 +509,42 @@ class _NavTab extends StatelessWidget {
       onTap: onTap,
       customBorder: const StadiumBorder(),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 72),
+        constraints: const BoxConstraints(minHeight: 84),
         child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: space.xs,
-          vertical: space.sm,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              padding: EdgeInsets.symmetric(
-                horizontal: space.lg,
-                vertical: space.xs,
+          padding: EdgeInsets.symmetric(
+            horizontal: space.xs,
+            vertical: space.sm,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.symmetric(
+                  horizontal: space.md,
+                  vertical: space.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: selected ? pill : Colors.transparent,
+                  borderRadius: radii.pillRadius,
+                ),
+                child: Icon(icon, size: 30, color: color),
               ),
-              decoration: BoxDecoration(
-                color: selected ? pill : Colors.transparent,
-                borderRadius: radii.pillRadius,
-              ),
-              child: Icon(icon, size: 26, color: color),
-            ),
-            SizedBox(height: space.xs),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
+              SizedBox(height: space.xs),
+              Text(
                 label,
-                maxLines: 1,
-                softWrap: false,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   height: 1.15,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
                   color: color,
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -567,4 +573,3 @@ class ReportDeepLinkPayload {
   final String app;
   final String notificationKey;
 }
-

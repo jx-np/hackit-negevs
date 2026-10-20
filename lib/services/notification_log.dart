@@ -147,5 +147,46 @@ class NotificationLog {
     await _prefs.setStringList(_key, raw);
   }
 
+  /// Removes [id] plus every other logged message from the same conversation.
+  ///
+  /// Reporting a scam must clear the whole thread, not just the reported row:
+  /// the background runner feeds earlier logged messages from the same
+  /// conversation back to the model as multi-turn context. Leaving them behind
+  /// would keep handing the reported scam text to the model and bias the verdict
+  /// on a later, legitimate message in that chat.
+  ///
+  /// Keyed notifications normally only keep one row per conversation (the id is
+  /// the notification key), so this is usually equivalent to [remove]. It
+  /// matters when the key is absent and rows accumulate per package+sender.
+  Future<void> removeThread(String id) async {
+    final raw = await _prefs.getStringList(_key) ?? <String>[];
+    String? threadKey;
+    for (final entry in raw) {
+      try {
+        final decoded = jsonDecode(entry) as Map<String, dynamic>;
+        if (decoded['id'] == id) {
+          threadKey =
+              LoggedNotification.fromJson(decoded).record.conversationKey;
+          break;
+        }
+      } catch (_) {}
+    }
+    if (threadKey == null) {
+      // Nothing matched (e.g. a legacy id); fall back to the exact row.
+      await remove(id);
+      return;
+    }
+    raw.removeWhere((entry) {
+      try {
+        final decoded = jsonDecode(entry) as Map<String, dynamic>;
+        return LoggedNotification.fromJson(decoded).record.conversationKey ==
+            threadKey;
+      } catch (_) {
+        return false;
+      }
+    });
+    await _prefs.setStringList(_key, raw);
+  }
+
   Future<void> clear() => _prefs.remove(_key);
 }

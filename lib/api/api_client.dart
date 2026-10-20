@@ -223,63 +223,96 @@ class ApiClient {
   /// connection down. The server sends a keepalive every ~15s, so a stream
   /// idle for longer than [idleTimeout] errors out and the caller should
   /// reconnect. A non-2xx response throws an [ApiException].
+  ///
+  /// Authenticates like every other request on this client: the bearer token
+  /// is attached when [auth] is set, and a 401 triggers a single token-refresh
+  /// retry via [onRefresh] before giving up (surfacing `onUnauthorized`).
   Stream<SseEvent> sse(
     String path, {
     Duration idleTimeout = const Duration(seconds: 45),
+    bool auth = true,
   }) async* {
-    final client = http.Client();
-    try {
-      http.StreamedResponse response;
+    // The retry loop re-opens the whole stream once after a token refresh.
+    var isRetry = false;
+    while (true) {
+      final client = http.Client();
       try {
-        final request = http.Request('GET', ApiConfig.uri(path))
-          ..headers.addAll({
+        http.StreamedResponse response;
+        try {
+          final headers = <String, String>{
             'Accept': 'text/event-stream',
             'Cache-Control': 'no-cache',
-          });
-        response = await client.send(request).timeout(_timeout);
-      } catch (error) {
-        throw ApiException.network(error);
-      }
-
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        final raw = await response.stream.bytesToString();
-        final Object? parsed = _decode(raw);
-        throw ApiException.fromResponse(
-          response.statusCode,
-          parsed is Map<String, dynamic>
-              ? parsed
-              : {'request_id': response.headers['x-request-id']},
-        );
-      }
-
-      String? event;
-      final data = <String>[];
-      final lines = response.stream
-          .timeout(idleTimeout)
-          .transform(utf8.decoder)
-          .transform(const LineSplitter());
-      await for (final line in lines) {
-        if (line.isEmpty) {
-          if (data.isNotEmpty) {
-            yield SseEvent(event: event ?? 'message', data: data.join('\n'));
+          };
+          if (auth) {
+            final token = await _tokens.accessToken();
+            if (token != null && token.isNotEmpty) {
+              headers['Authorization'] = 'Bearer $token';
+            }
           }
-          event = null;
-          data.clear();
-          continue;
+          final request = http.Request('GET', ApiConfig.uri(path))
+            ..headers.addAll(headers);
+          response = await client.send(request).timeout(_timeout);
+        } catch (error) {
+          throw ApiException.network(error);
         }
-        if (line.startsWith(':')) continue;
-        final colon = line.indexOf(':');
-        final field = colon < 0 ? line : line.substring(0, colon);
-        var value = colon < 0 ? '' : line.substring(colon + 1);
-        if (value.startsWith(' ')) value = value.substring(1);
-        if (field == 'event') {
-          event = value;
-        } else if (field == 'data') {
-          data.add(value);
+
+        if (response.statusCode == 401 && auth && !isRetry && onRefresh != null) {
+          // Drain then close before re-authenticating so the socket is freed.
+          await response.stream.bytesToString();
+          final refreshed = await onRefresh!.call();
+          if (refreshed) {
+            isRetry = true;
+            continue;
+          }
+          await onUnauthorized?.call();
+          throw ApiException.fromResponse(
+            response.statusCode,
+            {'request_id': response.headers['x-request-id']},
+          );
         }
+
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          final raw = await response.stream.bytesToString();
+          final Object? parsed = _decode(raw);
+          throw ApiException.fromResponse(
+            response.statusCode,
+            parsed is Map<String, dynamic>
+                ? parsed
+                : {'request_id': response.headers['x-request-id']},
+          );
+        }
+
+        String? event;
+        final data = <String>[];
+        final lines = response.stream
+            .timeout(idleTimeout)
+            .transform(utf8.decoder)
+            .transform(const LineSplitter());
+        await for (final line in lines) {
+          if (line.isEmpty) {
+            if (data.isNotEmpty) {
+              yield SseEvent(event: event ?? 'message', data: data.join('\n'));
+            }
+            event = null;
+            data.clear();
+            continue;
+          }
+          if (line.startsWith(':')) continue;
+          final colon = line.indexOf(':');
+          final field = colon < 0 ? line : line.substring(0, colon);
+          var value = colon < 0 ? '' : line.substring(colon + 1);
+          if (value.startsWith(' ')) value = value.substring(1);
+          if (field == 'event') {
+            event = value;
+          } else if (field == 'data') {
+            data.add(value);
+          }
+        }
+        // Stream ended cleanly; do not retry.
+        return;
+      } finally {
+        client.close();
       }
-    } finally {
-      client.close();
     }
   }
 

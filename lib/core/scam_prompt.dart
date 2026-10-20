@@ -62,7 +62,8 @@ urgent_threat: threat (arrest, fine, virus, closure) plus an action to take
 prize_lottery: prize or refund plus a claim step or fee
 payment_request: asks you to pay or send money
 impersonation: claims to be a trusted person or organisation AND asks for money, credentials or an install
-other_scam: clear fraud with an ask that fits none above (task jobs, trading groups, a click-now hook followed by a link). Never for ordinary chat, prices or a shared link with no hook.
+abusive: rude, abusive or offensive language or slurs that ask for nothing (not a scam)
+other_scam: clear fraud with an ask that fits none above (task jobs, trading groups, a click-now hook followed by a link). Never for ordinary chat, prices, a shared link with no hook, or abuse.
 not_scam: everything else
 unsure: message cut off mid-sentence
 
@@ -81,17 +82,11 @@ Sender: +44 7700 900123 | Hints: sender=unsaved_international, link=shortened, u
 Sender: MyBank | Hints: sender=name, delivers_code=yes, signals=0 | "Your code is 482913. Never share it."
 {"label":"not_scam","confidence":0.95,"reason":"Only delivers a code."}
 
-Sender: HDFC | Hints: sender=name, callback_request=yes, phone_in_body=yes, signals=1 | "rs 8000 debited account xxxx1234 upi transaction done call 1800123456 for queries"
-{"label":"not_scam","confidence":0.8,"reason":"Reports a transaction, asks nothing."}
-
 Sender: Likely-SCAM | Hints: sender=unregistered_id, urgency=yes, money_ask=yes, brand_mentioned=yes, signals=2 | "Shopee: Enjoy \$2 off your next order! Use code SAVE2 before it expires. Never share your OTP."
 {"label":"not_scam","confidence":0.8,"reason":"Brand promo, asks for nothing."}
 
 Sender: Makers Club | Hints: sender=name, link=normal, announcement=yes, signals=2 | "Free Entrepreneurship Workshop, Wed 28 Oct 2.30pm at Bounce Blk 25 #01-01. Sign up: https://forms.gle/abc123 by 23 Oct."
 {"label":"not_scam","confidence":0.95,"reason":"Free event notice, sign-up is not a scam ask."}
-
-Sender: Jun Wen | Hints: link=normal, signals=2 | "Peking Duck - 48, Pork Rib - 26, Crispy Noodle - 33 (upsize). https://shop.com.sg/menu.pdf not final, need to swap in / out for equal value"
-{"label":"not_scam","confidence":0.95,"reason":"Friends sharing a menu with prices."}
 
 Earlier: "Your parcel could not be delivered. Click now to confirm."
 Sender: +65 9123 4567 | Hints: sender=unsaved_local, link=shortened, prior_signals=1, signals=3 | "bit.ly/dlv-sg8"
@@ -100,17 +95,14 @@ Sender: +65 9123 4567 | Hints: sender=unsaved_local, link=shortened, prior_signa
 Sender: +63 917 000 1234 | Hints: sender=unsaved_international, moves_off_platform=yes, lure=job, signals=3 | "Part-time job, earn 200-500 a day liking videos. Add me on Telegram @hr_anna."
 {"label":"other_scam","confidence":0.8,"reason":"Task-job hook moving you to Telegram."}
 
-Sender: Raj | Hints: sender=saved_contact, money_ask=yes, signals=1 | "can you pay me back the 15 for lunch? forgot my wallet"
-{"label":"not_scam","confidence":0.95,"reason":"Friend asking for a small amount."}
+Sender: Dan | Hints: sender=name, signals=0 | "you are such a (slur), shut up lah"
+{"label":"abusive","confidence":0.95,"reason":"Rude language, asks for nothing."}
 
 Sender: 8841 | Hints: sender=short_code, link=odd_tld, asks_for_code=yes, urgency=yes, lure=account, signals=4 | "Account locked. Verify at mybank-secure.top and reply with the OTP you receive."
-{"label":"asks_credentials","confidence":0.95,"reason":"Wants the OTP via lookalike site."}
-
-Sender: +1 415 555 0132 | Hints: sender=unsaved_international, asks_for_code=yes, urgency=yes, money_ask=yes, signals=4 | "Hi it's David (CEO). Need 5 x 100 dollar gift cards urgently, send me the codes."
-{"label":"impersonation","confidence":0.95,"reason":"Posing as boss, demanding gift cards."}''';
+{"label":"asks_credentials","confidence":0.95,"reason":"Wants the OTP via lookalike site."}''';
 
 /// How many examples the compact prompt keeps; the full prompt keeps all.
-const int _compactExampleCount = 9;
+const int _compactExampleCount = 8;
 
 /// Renders the worked-examples block with at most [count] examples (null keeps
 /// all of them; 0 or less renders nothing so the prompt can be measured with the
@@ -160,7 +152,13 @@ String buildScamPrompt({
   bool compact = false,
   List<String> priorMessages = const [],
   int? examples,
+  String? replyLanguage,
 }) {
+  final languageName = replyLanguageName(replyLanguage);
+  final languageLine = languageName == null
+      ? ''
+      : 'Write the "reason" value in $languageName. Keep "label" and every '
+          'other key in English exactly as in the format.\n';
   final examplesBlock =
       compact ? _examplesBlock(examples ?? _compactExampleCount) : _examplesBlock(null);
   final safeMessage = _sanitizeMessage(message);
@@ -176,9 +174,19 @@ Sender: $sender
 $hintsLine$recentBlock<message>
 $safeMessage
 </message>
-JSON:
+${languageLine}JSON:
 ''';
 }
+
+/// Language the model should write the verdict `reason` in, or null to keep the
+/// default English. Only the labels in the app's supported locales are mapped;
+/// anything else (including `en`) stays English.
+String? replyLanguageName(String? languageCode) => switch (languageCode) {
+      'zh' => 'Simplified Chinese (简体中文)',
+      'ms' => 'Malay (Bahasa Melayu)',
+      'ta' => 'Tamil (தமிழ்)',
+      _ => null,
+    };
 
 /// Closing markers of a reasoning model's private thinking block. Everything up
 /// to and including the last one is discarded so only the final answer is

@@ -24,6 +24,7 @@ object NotificationHelper {
     const val EXTRA_REPORT_SOURCE = "report_source"
     const val EXTRA_REPORT_APP = "report_app"
     const val EXTRA_REPORT_KEY = "report_notification_key"
+    const val EXTRA_REPORT_ID = "report_log_id"
 
     private fun notificationManager(context: Context): NotificationManager? =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -157,6 +158,7 @@ object NotificationHelper {
         text: String = message,
         reason: String = "",
         escalated: Boolean = false,
+        logId: String? = null,
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val mgr = notificationManager(context) ?: return
@@ -190,6 +192,9 @@ object NotificationHelper {
             if (!notificationKey.isNullOrEmpty()) {
                 putExtra(EXTRA_REPORT_KEY, notificationKey)
             }
+            if (!logId.isNullOrEmpty()) {
+                putExtra(EXTRA_REPORT_ID, logId)
+            }
         }
         val piFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -213,6 +218,7 @@ object NotificationHelper {
             confidence = confidence,
             notificationKey = notificationKey,
             escalated = escalated,
+            logId = logId,
         )
         val fullScreenPending =
             PendingIntent.getActivity(context, 1004, fullScreenIntent, piFlags)

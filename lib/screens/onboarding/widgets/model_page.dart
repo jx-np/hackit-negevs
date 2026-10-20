@@ -85,7 +85,7 @@ class ModelPage extends StatelessWidget {
             Text(
               l10n.onboardingModelKeepGoing,
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),

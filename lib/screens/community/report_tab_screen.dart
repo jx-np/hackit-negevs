@@ -120,6 +120,7 @@ class ReportTabScreen extends StatefulWidget {
     this.prefillText,
     this.numberReport = false,
     this.prefillNumber,
+    this.onReported,
   });
 
   final ApiClient client;
@@ -127,6 +128,11 @@ class ReportTabScreen extends StatefulWidget {
   final String? prefillText;
   final bool numberReport;
   final String? prefillNumber;
+
+  /// Called once the report has been posted successfully. Used by callers that
+  /// opened this screen for a detected scam so they can clear that alert from
+  /// the recent-alerts list (and its count) instead of leaving it behind.
+  final Future<void> Function()? onReported;
 
   @override
   State<ReportTabScreen> createState() => _ReportTabScreenState();
@@ -752,6 +758,19 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         TextSelection.collapsed(offset: _textController.text.length);
   }
 
+  /// Runs the caller's [ReportTabScreen.onReported] hook after a successful
+  /// post. A failure to clear the alert must never turn a successful report
+  /// into an error screen, so it is swallowed after logging.
+  Future<void> _notifyReported() async {
+    final onReported = widget.onReported;
+    if (onReported == null) return;
+    try {
+      await onReported();
+    } catch (error) {
+      debugPrint('[ScamShield] could not clear the reported alert: $error');
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
@@ -824,6 +843,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         );
         // Tell "My posts" to reload once; it ignores all other visits.
         postsSignal?.notifyPostCreated();
+        await _notifyReported();
         if (!mounted) return;
         setState(() {
           _posting = false;
@@ -833,6 +853,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         });
         return;
       }
+      await _notifyReported();
       if (!mounted) return;
       setState(() {
         _submitting = false;

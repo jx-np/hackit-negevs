@@ -61,13 +61,24 @@ class MainActivity : FlutterActivity() {
         val content = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_CONTENT) ?: ""
         val app = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_APP) ?: ""
         val key = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_KEY) ?: ""
-        channel.invokeMethod("openReport", mapOf(
+        // Id of the logged notification behind this alert, if any. Reporting it
+        // must clear that exact row from the recent-alerts list.
+        val notificationId = intent.getStringExtra(NotificationHelper.EXTRA_REPORT_ID) ?: ""
+        val payload = mapOf(
             "subject" to subject,
             "content" to content,
             "source" to source,
             "app" to app,
             "notificationKey" to key,
-        ))
+            "notificationId" to notificationId,
+        )
+        // Always remember the latest report deeplink. configureFlutterEngine
+        // runs before Dart has registered its handler, so a notification tap
+        // that cold-starts the app would otherwise be delivered into the void
+        // and silently dropped. The Dart side pulls this buffer once its
+        // handler is live (see "getPendingReport" below).
+        pendingReport = payload
+        channel.invokeMethod("openReport", payload)
     }
 
     /**
@@ -166,6 +177,8 @@ class MainActivity : FlutterActivity() {
                         ScamShieldEngineHolder.control("warmUp", null) { result.success(it) }
                     "syncSettings" ->
                         ScamShieldEngineHolder.control("syncSettings", null) { result.success(it) }
+                    "syncAlerts" ->
+                        ScamShieldEngineHolder.control("syncAlerts", null) { result.success(it) }
                     "setShieldEnabled" -> {
                         SpamStore.setShieldEnabled(
                             this,
@@ -202,6 +215,18 @@ class MainActivity : FlutterActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             DEEPLINK_CHANNEL,
         )
+        // Lets Dart fetch a report deeplink that arrived before its handler was
+        // registered (cold start from a notification). One-shot: cleared on read
+        // so reopening the app from the launcher doesn't re-show a stale report.
+        deeplinkChannel!!.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getPendingReport" -> {
+                    result.success(pendingReport)
+                    pendingReport = null
+                }
+                else -> result.notImplemented()
+            }
+        }
         deliverDeeplink(intent, deeplinkChannel!!)
     }
 
@@ -431,5 +456,9 @@ class MainActivity : FlutterActivity() {
         private const val DEEPLINK_CHANNEL = "report/deeplink"
         private const val ROLE_REQUEST_CODE = 12001
         private const val NOTIFICATION_REQUEST_CODE = 7717
+
+        /** Latest report deeplink awaiting a live Dart handler; see deliverDeeplink. */
+        @Volatile
+        private var pendingReport: Map<String, String>? = null
     }
 }

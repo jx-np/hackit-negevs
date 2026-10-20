@@ -28,7 +28,14 @@ object HighRiskCallOverlay {
     private const val PREFS_NAME = "FlutterSharedPreferences"
     private const val KEY_API_BASE_URL = "flutter.api_base_url"
     private const val RATING_HIGH_RISK = "high_risk"
-    private const val TIMEOUT_MS = 6000
+
+    /**
+     * Per-request connect/read timeout. Kept well under the ~10s
+     * [BroadcastReceiver.goAsync] window (with thread startup and TLS to a
+     * tunnelled backend on top) so a slow network can't push the phone-state
+     * broadcast past its budget and trigger a RemoteServiceException/ANR.
+     */
+    private const val TIMEOUT_MS = 4000
 
     private data class TrustScore(val rating: String, val score: Int?, val reportCount: Int)
 

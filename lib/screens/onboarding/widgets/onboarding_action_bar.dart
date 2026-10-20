@@ -87,7 +87,7 @@ class OnboardingActionBar extends StatelessWidget {
                     child: Text(
                       secondaryLabel!,
                       textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyLarge?.copyWith(
+                      style: theme.textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

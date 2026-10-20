@@ -792,6 +792,72 @@ abstract class AppLocalizations {
   /// **'Needed to post'**
   String get settingsSignInSubtitle;
 
+  /// No description provided for @settingsProtectionOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection is on'**
+  String get settingsProtectionOn;
+
+  /// No description provided for @settingsProtectionOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection is off'**
+  String get settingsProtectionOff;
+
+  /// No description provided for @settingsProtectionNeedsModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Protection needs a checker'**
+  String get settingsProtectionNeedsModel;
+
+  /// No description provided for @settingsSettingUpProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Setting up… {pct}% · {got} of {total} MB'**
+  String settingsSettingUpProgress(int pct, int got, int total);
+
+  /// No description provided for @settingsTextSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Text size'**
+  String get settingsTextSize;
+
+  /// No description provided for @settingsTextNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get settingsTextNormal;
+
+  /// No description provided for @settingsTextLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get settingsTextLarge;
+
+  /// No description provided for @settingsTextExtraLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra large'**
+  String get settingsTextExtraLarge;
+
+  /// No description provided for @settingsSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get settingsSignOut;
+
+  /// No description provided for @settingsSignOutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You can sign back in any time'**
+  String get settingsSignOutSubtitle;
+
+  /// No description provided for @settingsSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get settingsSignIn;
+
   /// No description provided for @callIncoming.
   ///
   /// In en, this message translates to:
@@ -1749,13 +1815,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingWelcomeBody.
   ///
   /// In en, this message translates to:
-  /// **'We warn you about scam calls and messages. Setup is quick.'**
+  /// **'We warn you about scam calls and messages.'**
   String get onboardingWelcomeBody;
 
   /// No description provided for @onboardingWelcomeNote.
   ///
   /// In en, this message translates to:
-  /// **'You can change this later in Settings.'**
+  /// **'Setup takes about a minute.'**
   String get onboardingWelcomeNote;
 
   /// No description provided for @onboardingPhoneTitle.
@@ -1839,7 +1905,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingFullScreenBody.
   ///
   /// In en, this message translates to:
-  /// **'Wake the screen with the warning even when the phone is locked.'**
+  /// **'Show warnings on a locked phone.'**
   String get onboardingFullScreenBody;
 
   /// No description provided for @onboardingBackgroundTitle.
@@ -1869,7 +1935,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingSettingsHint.
   ///
   /// In en, this message translates to:
-  /// **'Settings will open. Find this app and turn it on.'**
+  /// **'Settings will open. Turn this app on.'**
   String get onboardingSettingsHint;
 
   /// No description provided for @onboardingStatusOn.
@@ -1881,13 +1947,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingStatusSkipped.
   ///
   /// In en, this message translates to:
-  /// **'Not on. You can turn it on in Settings.'**
+  /// **'Off. You can turn it on later in Settings.'**
   String get onboardingStatusSkipped;
 
   /// No description provided for @onboardingStatusBlocked.
   ///
   /// In en, this message translates to:
-  /// **'Your phone won\'t ask again. Tap \"Open settings\".'**
+  /// **'Tap \"Open settings\" to turn this on.'**
   String get onboardingStatusBlocked;
 
   /// No description provided for @onboardingDoneTitle.
@@ -1911,7 +1977,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingDonePartialBody.
   ///
   /// In en, this message translates to:
-  /// **'Some things are off. You can turn them on in Settings.'**
+  /// **'Some things are off. Turn them on in Settings.'**
   String get onboardingDonePartialBody;
 
   /// No description provided for @onboardingGrantedCount.
@@ -1941,7 +2007,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingBatterySettingsHint.
   ///
   /// In en, this message translates to:
-  /// **'Settings will open. Find this app and choose \"Don\'t optimize\".'**
+  /// **'Settings will open. Choose \"Don\'t optimize\".'**
   String get onboardingBatterySettingsHint;
 
   /// No description provided for @onboardingModelTitle.
@@ -1977,7 +2043,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingModelKeepGoing.
   ///
   /// In en, this message translates to:
-  /// **'You can continue. It keeps downloading.'**
+  /// **'You can continue. It keeps going.'**
   String get onboardingModelKeepGoing;
 
   /// No description provided for @onboardingModelReady.
@@ -1989,7 +2055,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingModelFailed.
   ///
   /// In en, this message translates to:
-  /// **'Download didn\'t finish. Try again or use Settings.'**
+  /// **'Download failed. Please try again.'**
   String get onboardingModelFailed;
 
   /// No description provided for @onboardingModelMeteredTitle.

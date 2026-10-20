@@ -184,9 +184,30 @@ class ScamShieldController {
       .invokeMethod<void>('setShieldEnabled', {'enabled': value});
 
   /// Dismisses the scam-alert notification and any overlay after the user has
-  /// acted on it (reported the message).
-  static Future<void> dismissScamAlert() =>
-      ScamShieldChannels.ui.invokeMethod<void>('dismissScamAlert');
+  /// acted on it (reported the message). Also re-syncs the background engine's
+  /// raised-alert count with the notifications still in the log, so the number
+  /// on the protected screen drops as soon as the reported alert is removed.
+  static Future<void> dismissScamAlert() async {
+    await ScamShieldChannels.ui.invokeMethod<void>('dismissScamAlert');
+    await syncAlerts();
+  }
+
+  /// Asks the background engine to recompute its raised-alert count from the
+  /// notification log. Call after removing or clearing logged alerts so the
+  /// count matches the list the user is looking at.
+  ///
+  /// This goes through the UI channel, which forwards to the background
+  /// engine's control channel natively: the UI engine cannot invoke
+  /// `scamshield/control` directly because that handler lives in the separate
+  /// background engine.
+  static Future<void> syncAlerts() async {
+    try {
+      await ScamShieldChannels.ui.invokeMethod<void>('syncAlerts');
+    } catch (_) {
+      // The background engine may be stopped; its in-memory count is gone with
+      // it, so there is nothing to sync.
+    }
+  }
 
   /// Total physical RAM in bytes as reported by the OS
   /// (`ActivityManager.MemoryInfo.totalMem`). Returns 0 when the value cannot

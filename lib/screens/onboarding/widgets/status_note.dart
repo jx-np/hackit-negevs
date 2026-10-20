@@ -36,7 +36,7 @@ class OnboardingStatusNote extends StatelessWidget {
             Expanded(
               child: Text(
                 text,
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
                 ),

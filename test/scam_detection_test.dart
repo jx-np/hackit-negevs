@@ -307,6 +307,18 @@ void main() {
     }
   });
 
+  test('abusive label and its synonyms never alert', () {
+    for (final label in ['abusive', 'Abusive Language', 'profanity', 'hate-speech']) {
+      final verdict = parseScamVerdict(
+        '{"label":"$label","confidence":0.95,"reason":"rude, no ask"}',
+        source: EvaluationSource.local,
+      );
+      expect(verdict.label, ScamLabel.abusive, reason: label);
+      expect(verdict.isScam, isFalse, reason: label);
+      expect(verdict.shouldAlert, isFalse, reason: label);
+    }
+  });
+
   test('router keeps the local verdict when the cloud is unavailable', () async {
     final router = EvaluationRouter(
       local: _FakeEvaluator(
@@ -374,7 +386,7 @@ void main() {
     expect(notification.content, 'Can you send me 20 dollars?');
   });
 
-  test('compact prompt is shorter than the full prompt', () {
+  test('compact prompt is never longer than the full prompt', () {
     final full = buildScamPrompt(
       appLabel: 'WhatsApp',
       sender: 'Ywx',
@@ -387,9 +399,10 @@ void main() {
       compact: true,
     );
     // Both variants carry the full instructions (the on-device window is
-    // 4096 tokens); compact only trims the worked examples, so it is shorter
-    // but no longer under half the length.
-    expect(compact.length, lessThan(full.length));
+    // 4096 tokens); compact only trims the worked examples. The example set is
+    // small enough that compact may keep all of them, so it can equal the full
+    // prompt but must never exceed it.
+    expect(compact.length, lessThanOrEqualTo(full.length));
     expect(compact, contains('not_scam'));
     expect(compact, contains('payment_request'));
     expect(compact, contains('App: WhatsApp'));

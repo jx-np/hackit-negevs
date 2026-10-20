@@ -137,6 +137,10 @@ class BackgroundRunner {
     // once the device is idle (see [_scheduleIdleUnload]).
     if (!_running) return;
     _setStatus('Waiting for messages');
+    // The raised-alert count mirrors the alerts still present in the log, so a
+    // restart shows the same number the user last saw instead of resetting to
+    // zero while old alerts are still listed.
+    await _syncAlerts();
     await _listen();
     unawaited(_catchUp());
   }
@@ -454,7 +458,7 @@ class BackgroundRunner {
       // an unsolicited "call this number" notice), and suppressing those made
       // the overlay disappear for cases the model correctly flags.
       if (verdict.shouldAlert) {
-        await _raiseAlert(record, verdict);
+        await _raiseAlert(id, record, verdict);
       }
     } finally {
       _busy = false;
@@ -537,6 +541,7 @@ class BackgroundRunner {
   }
 
   Future<void> _raiseAlert(
+    String logId,
     NotificationRecord record,
     ScamVerdict verdict,
   ) async {
@@ -544,6 +549,10 @@ class BackgroundRunner {
     _setStatus('Alert: ${verdict.label.title}');
     try {
       await ScamShieldChannels.native.invokeMethod<void>('showAlert', {
+        // The log id ties the native alert (and the report hand-off that
+        // follows it) back to this exact logged notification, so reporting it
+        // can remove that row and decrement the alert count.
+        'logId': logId,
         'appLabel': record.appLabel,
         'packageName': record.packageName,
         'sender': record.title,
@@ -586,6 +595,12 @@ class BackgroundRunner {
         return _statusMap();
       case 'syncSettings':
         await _applySelectedModel();
+        return _statusMap();
+      case 'syncAlerts':
+        // Recompute the raised-alert count from the log. Called after the user
+        // reports an alert (or clears the list) so the count on the protected
+        // screen drops to match what is actually still listed.
+        await _syncAlerts();
         return _statusMap();
       case 'testEvaluate':
         final text = (call.arguments as Map?)?['text'] as String? ?? '';
@@ -840,6 +855,26 @@ class BackgroundRunner {
         'brand_mentioned': hints.brandMentioned,
         'strong_signal_count': hints.strongSignalCount,
       };
+
+  /// Recomputes [_alertsRaised] from the notifications that are still logged
+  /// with an alerting verdict. Reporting an alert removes its row, so the
+  /// count falls with it and can never drift above what the user can see.
+  Future<void> _syncAlerts() async {
+    try {
+      final entries = await _log.all();
+      _alertsRaised = entries
+          .where((entry) => entry.verdict?.shouldAlert ?? false)
+          .length;
+      // The status line under the home-page stats still reads "Alert: …" from
+      // the last alert. Once no alerts remain it would keep advertising a scam
+      // the user has already reported, so drop it back to the idle message.
+      if (_alertsRaised == 0 && _lastMessage.startsWith('Alert:')) {
+        _setStatus('Waiting for messages');
+      }
+    } catch (error) {
+      _trace('alert sync failed: $error');
+    }
+  }
 
   void _setStatus(String message) {
     _lastMessage = message;

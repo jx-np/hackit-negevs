@@ -208,6 +208,7 @@ class ScamShieldService : Service() {
             val confidence = (arguments["confidence"] as? Number)?.toDouble() ?: 0.0
             val sender = (arguments["sender"] as? String)?.takeIf { it.isNotBlank() } ?: appLabel
             val notificationKey = arguments["notificationKey"] as? String
+            val logId = arguments["logId"] as? String
             val reason = arguments["reason"] as? String ?: ""
             val escalated = arguments["escalated"] as? Boolean ?: false
             // `text` is the notification text alone. Older callers only send
@@ -226,6 +227,7 @@ class ScamShieldService : Service() {
                 text,
                 reason,
                 escalated,
+                logId,
             )
             // Full-screen native warning. It is an Activity (not an overlay
             // window) so it is visible over the lock screen and over whatever
@@ -242,6 +244,7 @@ class ScamShieldService : Service() {
                 confidence = confidence,
                 notificationKey = notificationKey,
                 escalated = escalated,
+                logId = logId,
             )
         } catch (error: Exception) {
             // Never let the alert break the method channel: a lost result

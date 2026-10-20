@@ -391,6 +391,42 @@ class AppLocalizationsTa extends AppLocalizations {
   String get settingsSignInSubtitle => 'பதிவிட தேவை';
 
   @override
+  String get settingsProtectionOn => 'பாதுகாப்பு இயக்கத்தில் உள்ளது';
+
+  @override
+  String get settingsProtectionOff => 'பாதுகாப்பு நிறுத்தப்பட்டுள்ளது';
+
+  @override
+  String get settingsProtectionNeedsModel => 'பாதுகாப்புக்கு சரிபார்ப்பி தேவை';
+
+  @override
+  String settingsSettingUpProgress(int pct, int got, int total) {
+    return 'அமைக்கிறது… $pct% · $total MB இல் $got MB';
+  }
+
+  @override
+  String get settingsTextSize => 'எழுத்து அளவு';
+
+  @override
+  String get settingsTextNormal => 'இயல்பு';
+
+  @override
+  String get settingsTextLarge => 'பெரியது';
+
+  @override
+  String get settingsTextExtraLarge => 'மிகப் பெரியது';
+
+  @override
+  String get settingsSignOut => 'வெளியேறு';
+
+  @override
+  String get settingsSignOutSubtitle =>
+      'எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம்';
+
+  @override
+  String get settingsSignIn => 'உள்நுழை';
+
+  @override
   String callIncoming(String who) {
     return '$who இடமிருந்து அழைப்பு';
   }
@@ -600,10 +636,10 @@ class AppLocalizationsTa extends AppLocalizations {
   String get permAlertsSub => 'மோசடி எச்சரிக்கைகளை அனுப்புகிறது';
 
   @override
-  String get permFullScreen => 'Full-screen alerts';
+  String get permFullScreen => 'முழுத்திரை எச்சரிக்கைகள்';
 
   @override
-  String get permFullScreenSub => 'Wakes the screen when locked';
+  String get permFullScreenSub => 'பூட்டியிருக்கும் போது திரையை எழுப்பும்';
 
   @override
   String get permBackground => 'தொடர்ந்து இயங்கு';
@@ -915,10 +951,10 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get onboardingWelcomeBody =>
-      'மோசடி அழைப்புகள், செய்திகள் பற்றி எச்சரிக்கிறோம். அமைக்க சிறிது நேரம்தான்.';
+      'மோசடி அழைப்புகள், செய்திகள் பற்றி எச்சரிக்கிறோம்.';
 
   @override
-  String get onboardingWelcomeNote => 'இதை அமைப்புகளில் பின்னர் மாற்றலாம்.';
+  String get onboardingWelcomeNote => 'அமைக்க ஒரு நிமிடம் ஆகும்.';
 
   @override
   String get onboardingPhoneTitle => 'தொலைபேசி அழைப்புகள்';
@@ -961,11 +997,11 @@ class AppLocalizationsTa extends AppLocalizations {
   String get onboardingOverlayBody => 'ஆபத்தான அழைப்பில் எச்சரிக்கை காட்டும்.';
 
   @override
-  String get onboardingFullScreenTitle => 'Full-screen alerts';
+  String get onboardingFullScreenTitle => 'முழுத்திரை எச்சரிக்கைகள்';
 
   @override
   String get onboardingFullScreenBody =>
-      'Wake the screen with the warning even when the phone is locked.';
+      'பூட்டிய தொலைபேசியில் எச்சரிக்கை காட்டும்.';
 
   @override
   String get onboardingBackgroundTitle => 'தொடர்ந்து இயங்கட்டும்';
@@ -983,18 +1019,18 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get onboardingSettingsHint =>
-      'அமைப்புகள் திறக்கும். இந்த ஆப்ஸைத் தேடி இயக்கவும்.';
+      'அமைப்புகள் திறக்கும். இந்த ஆப்ஸை இயக்கவும்.';
 
   @override
   String get onboardingStatusOn => 'இயக்கத்தில்.';
 
   @override
   String get onboardingStatusSkipped =>
-      'இயக்கத்தில் இல்லை. அமைப்புகளில் இயக்கலாம்.';
+      'இயக்கத்தில் இல்லை. பின்னர் அமைப்புகளில் இயக்கலாம்.';
 
   @override
   String get onboardingStatusBlocked =>
-      'உங்கள் தொலைபேசி மீண்டும் கேட்காது. \"அமைப்புகளைத் திற\" என்பதைத் தட்டவும்.';
+      'இதை இயக்க \"அமைப்புகளைத் திற\" என்பதைத் தட்டவும்.';
 
   @override
   String get onboardingDoneTitle => 'எல்லாம் தயார்';
@@ -1007,7 +1043,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get onboardingDonePartialBody =>
-      'சிலவை அணைந்துள்ளன. அமைப்புகளில் இயக்கலாம்.';
+      'சிலவை அணைந்துள்ளன. அமைப்புகளில் இயக்கவும்.';
 
   @override
   String onboardingGrantedCount(int granted, int total) {
@@ -1027,7 +1063,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get onboardingBatterySettingsHint =>
-      'அமைப்புகள் திறக்கும். இந்த ஆப்ஸைத் தேடி \"மேம்படுத்த வேண்டாம்\" என்பதைத் தேர்ந்தெடுக்கவும்.';
+      'அமைப்புகள் திறக்கும். \"மேம்படுத்த வேண்டாம்\" என்பதைத் தேர்ந்தெடுக்கவும்.';
 
   @override
   String get onboardingModelTitle => 'மோசடி சரிபார்ப்பான்';
@@ -1057,7 +1093,7 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get onboardingModelFailed =>
-      'பதிவிறக்கம் முடியவில்லை. மீண்டும் முயற்சிக்கவும் அல்லது அமைப்புகளைப் பயன்படுத்தவும்.';
+      'பதிவிறக்கம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்.';
 
   @override
   String get onboardingModelMeteredTitle => 'மொபைல் தரவைப் பயன்படுத்தவா?';
@@ -1332,10 +1368,11 @@ class AppLocalizationsTa extends AppLocalizations {
   String get postDetailAiBadge => 'AI';
 
   @override
-  String get postDetailMentionHelpHint => 'Ask NegevAI about this post';
+  String get postDetailMentionHelpHint =>
+      'இந்தப் பதிவைப் பற்றி NegevAI இடம் கேளுங்கள்';
 
   @override
-  String get postDetailBotThinking => 'NegevAI is thinking...';
+  String get postDetailBotThinking => 'NegevAI யோசிக்கிறது...';
 
   @override
   String get guidanceClickedLink => 'நான் ஒரு இணைப்பைத் தட்டினேன்';
@@ -1418,29 +1455,29 @@ class AppLocalizationsTa extends AppLocalizations {
   String get tourReportBody => 'மற்றவர்கள் பாதுகாப்பாக இருக்கச் சொல்லுங்கள்.';
 
   @override
-  String get tourReviewTitle => 'Tick the box';
+  String get tourReviewTitle => 'பெட்டியைத் தேர்வு செய்யுங்கள்';
 
   @override
   String get tourReviewBody =>
-      'After you add photos, check them. Then tick this box to share.';
+      'புகைப்படங்களைச் சேர்த்த பிறகு சரிபார்க்கவும். பின்னர் பகிர இந்தப் பெட்டியைத் தேர்வு செய்யவும்.';
 
   @override
-  String get tourPostHelpTitle => 'Ask the AI helper';
+  String get tourPostHelpTitle => 'AI உதவியாளரிடம் கேளுங்கள்';
 
   @override
   String get tourPostHelpBody =>
-      'Not sure if this is a scam? Type @help in a comment. Our AI scam helper will reply.';
+      'இது மோசடியா என்று உறுதியாகத் தெரியவில்லையா? கருத்தில் @help என்று தட்டச்சு செய்யுங்கள். எங்கள் AI மோசடி உதவியாளர் பதிலளிப்பார்.';
 
   @override
-  String get tourPostAiTitle => 'Read the replies';
+  String get tourPostAiTitle => 'பதில்களைப் படியுங்கள்';
 
   @override
   String get tourPostAiBody =>
-      'Replies with an AI tag come from the helper. It can make mistakes, so ask someone you trust too.';
+      'AI குறியுடன் உள்ள பதில்கள் உதவியாளரிடமிருந்து வருபவை. அது தவறு செய்யலாம், எனவே நீங்கள் நம்பும் ஒருவரிடமும் கேளுங்கள்.';
 
   @override
   String get tourPostSampleReply =>
-      'This looks like a scam. Do not click the link.';
+      'இது மோசடி போல் தெரிகிறது. இணைப்பைக் கிளிக் செய்ய வேண்டாம்.';
 
   @override
   String get tourProfileTitle => 'சுயவிவரம்';

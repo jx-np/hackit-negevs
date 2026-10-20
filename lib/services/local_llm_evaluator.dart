@@ -250,7 +250,9 @@ class LocalLlmEvaluator implements ScamEvaluator {
         .map((m) => _truncate(m.trim(), _priorTurnChars))
         .where((m) => m.isNotEmpty)
         .toList();
+    final language = await _settings.replyLanguage();
     String build(String text) => buildScamPrompt(
+          replyLanguage: language,
           compact: true,
           appLabel: record.appLabel,
           sender: record.title,

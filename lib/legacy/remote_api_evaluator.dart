@@ -14,6 +14,7 @@ import '../core/notification_record.dart';
 import '../core/scam_hints.dart';
 import '../core/scam_prompt.dart';
 import '../core/scam_verdict.dart';
+import '../services/protection_settings.dart';
 import '../services/scam_evaluator.dart';
 
 /// Calls an OpenAI-compatible `/v1/chat/completions` endpoint (the cloud
@@ -77,6 +78,7 @@ class RemoteApiEvaluator implements ScamEvaluator {
       final hintsLine =
           (hints ?? await ScamHintBuilder.fromRecord(record)).render();
       final prompt = buildScamPrompt(
+        replyLanguage: await ProtectionSettings().replyLanguage(),
         appLabel: record.appLabel,
         sender: record.title,
         message: record.content,

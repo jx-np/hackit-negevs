@@ -28,7 +28,7 @@ class StepIndicator extends StatelessWidget {
           Text(
             label!,
             textAlign: TextAlign.center,
-            style: theme.textTheme.titleMedium?.copyWith(
+            style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
           ),

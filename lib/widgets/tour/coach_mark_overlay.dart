@@ -9,8 +9,8 @@ import 'package:scamwatch_mobile_app/widgets/tour/tour_models.dart';
 ///
 /// Wraps [child] and, while the tour is active, paints a dimming scrim with a
 /// rounded hole around the current step's target plus a bubble with
-/// Back / Skip / Next. The scrim swallows taps so an accidental tap never
-/// advances the tour or triggers the app underneath.
+/// Back / Skip / Next. Tapping anywhere on the scrim advances the tour, and
+/// the scrim swallows the tap so it never triggers the app underneath.
 ///
 /// Target resolution per step: the step's [TourStep.target] key, then the
 /// nav-tab key for [TourStep.tabIndex], then no spotlight (centred bubble).
@@ -207,12 +207,13 @@ class _CoachMarkLayer extends StatelessWidget {
         final size = constraints.biggest;
         return Stack(
           children: [
-            // The scrim absorbs every tap; only the bubble buttons move on.
+            // The scrim absorbs every tap and advances the tour; taps never
+            // reach the app underneath.
             Positioned.fill(
               child: ExcludeSemantics(
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: () {},
+                  onTap: controller.next,
                   onHorizontalDragEnd: (_) {},
                   onVerticalDragEnd: (_) {},
                   child: TweenAnimationBuilder<Rect?>(

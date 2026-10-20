@@ -123,7 +123,7 @@ class _WhyButtonState extends State<_WhyButton> {
               child: Text(
                 widget.text,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge?.copyWith(
+                style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),

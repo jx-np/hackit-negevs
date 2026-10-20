@@ -141,6 +141,20 @@
   "settingsThemeDark": "Dark",
   "settingsPermissionsSubtitle": "See what the app can do",
   "settingsSignInSubtitle": "Needed to post",
+  "settingsProtectionOn": "Protection is on",
+  "settingsProtectionOff": "Protection is off",
+  "settingsProtectionNeedsModel": "Protection needs a checker",
+  "settingsSettingUpProgress": "Setting up… {pct}% · {got} of {total} MB",
+  "@settingsSettingUpProgress": {
+    "placeholders": { "pct": { "type": "int" }, "got": { "type": "int" }, "total": { "type": "int" } }
+  },
+  "settingsTextSize": "Text size",
+  "settingsTextNormal": "Normal",
+  "settingsTextLarge": "Large",
+  "settingsTextExtraLarge": "Extra large",
+  "settingsSignOut": "Sign out",
+  "settingsSignOutSubtitle": "You can sign back in any time",
+  "settingsSignIn": "Sign in",
 
   "callIncoming": "Call from {who}",
   "@callIncoming": {
@@ -358,8 +372,8 @@
     "placeholders": { "step": { "type": "int" }, "total": { "type": "int" } }
   },
   "onboardingWelcomeTitle": "Stay safe from scams",
-  "onboardingWelcomeBody": "We warn you about scam calls and messages. Setup is quick.",
-  "onboardingWelcomeNote": "You can change this later in Settings.",
+  "onboardingWelcomeBody": "We warn you about scam calls and messages.",
+  "onboardingWelcomeNote": "Setup takes about a minute.",
   "onboardingPhoneTitle": "Phone calls",
   "onboardingPhoneBody": "See who is calling.",
   "onboardingContactsTitle": "Contacts",
@@ -373,19 +387,19 @@
   "onboardingOverlayTitle": "Call warnings",
   "onboardingOverlayBody": "Show a warning during a risky call.",
   "onboardingFullScreenTitle": "Full-screen alerts",
-  "onboardingFullScreenBody": "Wake the screen with the warning even when the phone is locked.",
+  "onboardingFullScreenBody": "Show warnings on a locked phone.",
   "onboardingBackgroundTitle": "Keep running",
   "onboardingBackgroundBody": "Keep checking when the screen is off.",
   "onboardingBatterySettingsTitle": "Don't pause the app",
   "onboardingBatterySettingsBody": "Stop your phone from pausing the app.",
-  "onboardingSettingsHint": "Settings will open. Find this app and turn it on.",
+  "onboardingSettingsHint": "Settings will open. Turn this app on.",
   "onboardingStatusOn": "On.",
-  "onboardingStatusSkipped": "Not on. You can turn it on in Settings.",
-  "onboardingStatusBlocked": "Your phone won't ask again. Tap \"Open settings\".",
+  "onboardingStatusSkipped": "Off. You can turn it on later in Settings.",
+  "onboardingStatusBlocked": "Tap \"Open settings\" to turn this on.",
   "onboardingDoneTitle": "You're all set",
   "onboardingDoneBody": "We are watching for scams.",
   "onboardingDonePartialTitle": "Almost done",
-  "onboardingDonePartialBody": "Some things are off. You can turn them on in Settings.",
+  "onboardingDonePartialBody": "Some things are off. Turn them on in Settings.",
   "onboardingGrantedCount": "{granted} of {total} on",
   "@onboardingGrantedCount": {
     "placeholders": { "granted": { "type": "int" }, "total": { "type": "int" } }
@@ -393,7 +407,7 @@
   "onboardingWhy": "Why?",
   "onboardingScreeningWhy": "Pick this app so calls can be checked.",
   "onboardingMessagesWhy": "We look for odd links or requests for money.",
-  "onboardingBatterySettingsHint": "Settings will open. Find this app and choose \"Don't optimize\".",
+  "onboardingBatterySettingsHint": "Settings will open. Choose \"Don't optimize\".",
   "onboardingModelTitle": "Scam checker",
   "onboardingModelBody": "Checks messages on your phone. Use Wi‑Fi.",
   "onboardingModelDownload": "Download ({size})",
@@ -405,9 +419,9 @@
   "@onboardingModelDownloading": {
     "placeholders": { "percent": { "type": "int" } }
   },
-  "onboardingModelKeepGoing": "You can continue. It keeps downloading.",
+  "onboardingModelKeepGoing": "You can continue. It keeps going.",
   "onboardingModelReady": "Ready.",
-  "onboardingModelFailed": "Download didn't finish. Try again or use Settings.",
+  "onboardingModelFailed": "Download failed. Please try again.",
   "onboardingModelMeteredTitle": "Use mobile data?",
   "onboardingModelMeteredBody": "You're not on Wi‑Fi. This uses about {size}.",
   "@onboardingModelMeteredBody": {

@@ -25,7 +25,7 @@ class WelcomePage extends StatelessWidget {
       footer: Text(
         l10n.onboardingWelcomeNote,
         textAlign: TextAlign.center,
-        style: theme.textTheme.bodyLarge?.copyWith(
+        style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),

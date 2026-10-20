@@ -6,6 +6,7 @@ import 'package:scamwatch_mobile_app/core/notification_record.dart';
 import 'package:scamwatch_mobile_app/core/scam_hints.dart';
 import 'package:scamwatch_mobile_app/core/scam_prompt.dart';
 import 'package:scamwatch_mobile_app/core/scam_verdict.dart';
+import 'package:scamwatch_mobile_app/services/protection_settings.dart';
 import 'package:scamwatch_mobile_app/services/scam_evaluator.dart';
 
 /// On-device scam evaluator for a `.gguf` file, run through llama.cpp via
@@ -163,7 +164,9 @@ class GgufLlmEvaluator implements ScamEvaluator {
         .map((m) => _truncate(m.trim(), _priorTurnChars))
         .where((m) => m.isNotEmpty)
         .toList();
+    final language = await ProtectionSettings().replyLanguage();
     String build(String text) => buildScamPrompt(
+          replyLanguage: language,
           compact: true,
           appLabel: record.appLabel,
           sender: record.title,

@@ -6,6 +6,7 @@ enum ScamLabel {
   paymentRequest('payment_request'),
   impersonation('impersonation'),
   otherScam('other_scam'),
+  abusive('abusive'),
   notScam('not_scam'),
   unsure('unsure');
 
@@ -63,10 +64,20 @@ enum ScamLabel {
     'no_scam': ScamLabel.notScam,
     'not_a_scam': ScamLabel.notScam,
     'not_scam_message': ScamLabel.notScam,
+    // Rude or offensive text that asks for nothing: shown, never alerted.
+    'abuse': ScamLabel.abusive,
+    'abusive_language': ScamLabel.abusive,
+    'offensive': ScamLabel.abusive,
+    'offensive_language': ScamLabel.abusive,
+    'profanity': ScamLabel.abusive,
+    'harassment': ScamLabel.abusive,
+    'hate_speech': ScamLabel.abusive,
   };
 
   bool get isScam =>
-      this != ScamLabel.notScam && this != ScamLabel.unsure;
+      this != ScamLabel.notScam &&
+      this != ScamLabel.abusive &&
+      this != ScamLabel.unsure;
 
   String get title => switch (this) {
         ScamLabel.asksAppInstall => 'Asks you to install an app',
@@ -76,6 +87,7 @@ enum ScamLabel {
         ScamLabel.paymentRequest => 'Asks for a payment',
         ScamLabel.impersonation => 'Pretends to be someone you trust',
         ScamLabel.otherScam => 'Looks like a scam',
+        ScamLabel.abusive => 'Rude language, not a scam',
         ScamLabel.notScam => 'Looks legitimate',
         ScamLabel.unsure => 'Cannot tell for sure',
       };

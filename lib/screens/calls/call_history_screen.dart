@@ -78,6 +78,9 @@ class _CallHistoryScreenState extends State<CallHistoryScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && mounted) {
       _loadHistory();
+      // The native high-risk alert can block a number while the app was in the
+      // background; pull it into the in-memory set so rows color correctly.
+      _loadBlockedNumbers();
     }
   }
 

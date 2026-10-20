@@ -57,6 +57,15 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   StreamSubscription<SseEvent>? _eventsSub;
   Timer? _reconnectTimer;
   bool _hasBeenReady = false;
+
+  /// Consecutive failed/closed connection attempts. Reset once the stream
+  /// reaches `ready`. After [_maxReconnectAttempts] the live stream is left
+  /// closed — the comment list still works via pull-to-refresh and manual
+  /// actions, and a hard failure (deleted post, expired session) must not spin
+  /// a request loop for as long as the screen happens to stay mounted.
+  int _reconnectAttempts = 0;
+  static const int _maxReconnectAttempts = 6;
+  static const Duration _reconnectBaseDelay = Duration(seconds: 3);
   String? _thinkingTriggerId;
 
   final ProtectionSettings _settings = ProtectionSettings();
@@ -149,7 +158,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   void _scheduleReconnect() {
     if (!mounted) return;
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 3), () {
+    _reconnectAttempts += 1;
+    if (_reconnectAttempts > _maxReconnectAttempts) return;
+    // Exponential backoff: 3s, 6s, 12s, 24s, 48s, 96s.
+    final delay = _reconnectBaseDelay * (1 << (_reconnectAttempts - 1));
+    _reconnectTimer = Timer(delay, () {
       if (mounted) _connectEvents();
     });
   }
@@ -167,6 +180,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       case 'ready':
         final reconnected = _hasBeenReady;
         _hasBeenReady = true;
+        // A healthy stream means the failure counter starts over.
+        _reconnectAttempts = 0;
         if (reconnected) {
           if (_thinkingTriggerId != null) {
             setState(() => _thinkingTriggerId = null);

@@ -385,6 +385,43 @@ class AppLocalizationsMs extends AppLocalizations {
   String get settingsSignInSubtitle => 'Perlu untuk siar';
 
   @override
+  String get settingsProtectionOn => 'Perlindungan dihidupkan';
+
+  @override
+  String get settingsProtectionOff => 'Perlindungan dimatikan';
+
+  @override
+  String get settingsProtectionNeedsModel =>
+      'Perlindungan memerlukan pemeriksa';
+
+  @override
+  String settingsSettingUpProgress(int pct, int got, int total) {
+    return 'Menyediakan… $pct% · $got daripada $total MB';
+  }
+
+  @override
+  String get settingsTextSize => 'Saiz teks';
+
+  @override
+  String get settingsTextNormal => 'Biasa';
+
+  @override
+  String get settingsTextLarge => 'Besar';
+
+  @override
+  String get settingsTextExtraLarge => 'Sangat besar';
+
+  @override
+  String get settingsSignOut => 'Log keluar';
+
+  @override
+  String get settingsSignOutSubtitle =>
+      'Anda boleh log masuk semula bila-bila masa';
+
+  @override
+  String get settingsSignIn => 'Log masuk';
+
+  @override
   String callIncoming(String who) {
     return 'Panggilan dari $who';
   }
@@ -590,10 +627,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get permAlertsSub => 'Hantar amaran penipuan';
 
   @override
-  String get permFullScreen => 'Full-screen alerts';
+  String get permFullScreen => 'Amaran skrin penuh';
 
   @override
-  String get permFullScreenSub => 'Wakes the screen when locked';
+  String get permFullScreenSub => 'Menghidupkan skrin apabila dikunci';
 
   @override
   String get permBackground => 'Terus berjalan';
@@ -906,11 +943,11 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get onboardingWelcomeBody =>
-      'Kami beri amaran tentang panggilan dan mesej penipuan. Persediaan pantas.';
+      'Kami beri amaran tentang panggilan dan mesej penipuan.';
 
   @override
   String get onboardingWelcomeNote =>
-      'Anda boleh ubah ini kemudian di Tetapan.';
+      'Persediaan ambil masa kira-kira satu minit.';
 
   @override
   String get onboardingPhoneTitle => 'Panggilan telefon';
@@ -954,11 +991,10 @@ class AppLocalizationsMs extends AppLocalizations {
       'Tunjuk amaran semasa panggilan berisiko.';
 
   @override
-  String get onboardingFullScreenTitle => 'Full-screen alerts';
+  String get onboardingFullScreenTitle => 'Amaran skrin penuh';
 
   @override
-  String get onboardingFullScreenBody =>
-      'Wake the screen with the warning even when the phone is locked.';
+  String get onboardingFullScreenBody => 'Tunjuk amaran pada telefon berkunci.';
 
   @override
   String get onboardingBackgroundTitle => 'Terus berjalan';
@@ -974,19 +1010,18 @@ class AppLocalizationsMs extends AppLocalizations {
       'Halang telefon daripada menjeda apl.';
 
   @override
-  String get onboardingSettingsHint =>
-      'Tetapan akan dibuka. Cari apl ini dan hidupkannya.';
+  String get onboardingSettingsHint => 'Tetapan akan dibuka. Hidupkan apl ini.';
 
   @override
   String get onboardingStatusOn => 'Hidup.';
 
   @override
   String get onboardingStatusSkipped =>
-      'Tidak hidup. Anda boleh hidupkan di Tetapan.';
+      'Tidak hidup. Boleh hidupkan kemudian di Tetapan.';
 
   @override
   String get onboardingStatusBlocked =>
-      'Telefon anda tidak akan tanya lagi. Ketik \"Buka tetapan\".';
+      'Ketik \"Buka tetapan\" untuk hidupkan ini.';
 
   @override
   String get onboardingDoneTitle => 'Semuanya sedia';
@@ -999,7 +1034,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get onboardingDonePartialBody =>
-      'Ada yang belum hidup. Anda boleh hidupkan di Tetapan.';
+      'Ada yang belum hidup. Hidupkan di Tetapan.';
 
   @override
   String onboardingGrantedCount(int granted, int total) {
@@ -1019,7 +1054,7 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get onboardingBatterySettingsHint =>
-      'Tetapan akan dibuka. Cari apl ini dan pilih \"Jangan optimumkan\".';
+      'Tetapan akan dibuka. Pilih \"Jangan optimumkan\".';
 
   @override
   String get onboardingModelTitle => 'Penyemak penipuan';
@@ -1043,14 +1078,13 @@ class AppLocalizationsMs extends AppLocalizations {
 
   @override
   String get onboardingModelKeepGoing =>
-      'Anda boleh teruskan. Muat turun diteruskan.';
+      'Boleh teruskan. Muat turun diteruskan.';
 
   @override
   String get onboardingModelReady => 'Sedia.';
 
   @override
-  String get onboardingModelFailed =>
-      'Muat turun tidak selesai. Cuba lagi atau guna Tetapan.';
+  String get onboardingModelFailed => 'Muat turun gagal. Sila cuba lagi.';
 
   @override
   String get onboardingModelMeteredTitle => 'Guna data mudah alih?';
@@ -1327,10 +1361,10 @@ class AppLocalizationsMs extends AppLocalizations {
   String get postDetailAiBadge => 'AI';
 
   @override
-  String get postDetailMentionHelpHint => 'Ask NegevAI about this post';
+  String get postDetailMentionHelpHint => 'Tanya NegevAI tentang siaran ini';
 
   @override
-  String get postDetailBotThinking => 'NegevAI is thinking...';
+  String get postDetailBotThinking => 'NegevAI sedang berfikir...';
 
   @override
   String get guidanceClickedLink => 'Saya klik pautan';
@@ -1413,29 +1447,29 @@ class AppLocalizationsMs extends AppLocalizations {
   String get tourReportBody => 'Beritahu orang lain supaya mereka selamat.';
 
   @override
-  String get tourReviewTitle => 'Tick the box';
+  String get tourReviewTitle => 'Tandakan kotak';
 
   @override
   String get tourReviewBody =>
-      'After you add photos, check them. Then tick this box to share.';
+      'Selepas menambah foto, semaknya. Kemudian tandakan kotak ini untuk berkongsi.';
 
   @override
-  String get tourPostHelpTitle => 'Ask the AI helper';
+  String get tourPostHelpTitle => 'Tanya pembantu AI';
 
   @override
   String get tourPostHelpBody =>
-      'Not sure if this is a scam? Type @help in a comment. Our AI scam helper will reply.';
+      'Tidak pasti sama ada ini penipuan? Taip @help dalam komen. Pembantu penipuan AI kami akan membalas.';
 
   @override
-  String get tourPostAiTitle => 'Read the replies';
+  String get tourPostAiTitle => 'Baca balasan';
 
   @override
   String get tourPostAiBody =>
-      'Replies with an AI tag come from the helper. It can make mistakes, so ask someone you trust too.';
+      'Balasan dengan tag AI datang daripada pembantu. Ia boleh membuat kesilapan, jadi tanya juga orang yang anda percayai.';
 
   @override
   String get tourPostSampleReply =>
-      'This looks like a scam. Do not click the link.';
+      'Ini nampak seperti penipuan. Jangan klik pautan.';
 
   @override
   String get tourProfileTitle => 'Profil';

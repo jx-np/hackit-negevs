@@ -16,6 +16,7 @@ import 'package:scamwatch_mobile_app/screens/community/report_tab_screen.dart';
 import 'package:scamwatch_mobile_app/screens/onboarding/onboarding_screen.dart';
 import 'package:scamwatch_mobile_app/screens/profile/my_profile_screen.dart';
 import 'package:scamwatch_mobile_app/screens/safety/safety_screen.dart';
+import 'package:scamwatch_mobile_app/services/notification_log.dart';
 import 'package:scamwatch_mobile_app/services/protection_settings.dart';
 import 'package:scamwatch_mobile_app/services/scamshield_channels.dart';
 import 'package:scamwatch_mobile_app/state/auth_controller.dart';
@@ -234,7 +235,24 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _syncShieldFlag();
     _deeplink.setMethodCallHandler(_onDeeplink);
+    // A notification's "Report" action can cold-start the app: the native side
+    // delivers the deeplink in configureFlutterEngine, before this handler
+    // exists, and buffers it. Pull that buffered report now that we're live.
+    _consumePendingReport();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  Future<void> _consumePendingReport() async {
+    try {
+      final pending = await _deeplink.invokeMethod<Map<dynamic, dynamic>>(
+        'getPendingReport',
+      );
+      if (pending != null) {
+        await _onDeeplink(MethodCall('openReport', pending));
+      }
+    } catch (_) {
+      // No buffered report or the native side isn't ready; nothing to do.
+    }
   }
 
   @override
@@ -251,6 +269,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     if (_tour?.onShowTab == _showTab) _tour?.onShowTab = null;
+    // Stop native from delivering report deeplinks to a dead State object.
+    _deeplink.setMethodCallHandler(null);
     super.dispose();
   }
 
@@ -276,11 +296,19 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _onDeeplink(MethodCall call) async {
     if (call.method != 'openReport') return;
-    final args = call.arguments as Map?;
-    if (args == null) return;
-    final subject = args['subject'] as String? ?? '';
-    final content = args['content'] as String? ?? '';
-    final source = args['source'] as String? ?? 'call';
+    final args = call.arguments;
+    if (args is! Map) return;
+    String str(String key) {
+      final value = args[key];
+      return value is String ? value : '';
+    }
+
+    final subject = str('subject');
+    final content = str('content');
+    final source = str('source').isEmpty ? 'call' : str('source');
+    // Identifies the logged notification this alert came from, so a successful
+    // report can remove it from the recent-alerts list.
+    final notificationId = str('notificationId');
     if (!mounted) return;
     final client = context.read<ApiClient>();
     if (source == 'call') {
@@ -307,9 +335,19 @@ class _HomePageState extends State<HomePage> {
           client: client,
           prefillTitle: subject,
           prefillText: content.isEmpty ? subject : content,
+          onReported: notificationId.isEmpty
+              ? null
+              : () => _clearReportedAlert(notificationId),
         ),
       ),
     );
+  }
+
+  /// Drops a reported scam notification and its conversation from the
+  /// recent-alerts list and re-syncs the protection screen's alert count.
+  Future<void> _clearReportedAlert(String notificationId) async {
+    await NotificationLog().removeThread(notificationId);
+    await ScamShieldController.dismissScamAlert();
   }
 
   Future<void> _syncShieldFlag() async {

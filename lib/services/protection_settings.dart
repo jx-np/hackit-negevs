@@ -116,6 +116,16 @@ class ProtectionSettings {
   Future<void> setSeenPostTour(bool value) =>
       _prefs.setBool(_kSeenPostTour, value);
 
+  /// Language code the verdict reason should be written in: the in-app
+  /// override saved by LocaleController (`app_locale`) if set, otherwise the
+  /// device locale. Read per call so a language change applies to the next
+  /// evaluation without restarting the background engine.
+  Future<String> replyLanguage() async {
+    final saved = await _prefs.getString('app_locale');
+    if (saved != null && saved.isNotEmpty) return saved;
+    return PlatformDispatcher.instance.locale.languageCode;
+  }
+
   Future<String> selectedModelId() async =>
       await _prefs.getString(_kModelId) ?? kDefaultModelId;
 

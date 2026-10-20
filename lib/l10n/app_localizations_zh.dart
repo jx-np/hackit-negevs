@@ -376,6 +376,41 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsSignInSubtitle => '发帖需要';
 
   @override
+  String get settingsProtectionOn => '保护已开启';
+
+  @override
+  String get settingsProtectionOff => '保护已关闭';
+
+  @override
+  String get settingsProtectionNeedsModel => '保护需要检查器';
+
+  @override
+  String settingsSettingUpProgress(int pct, int got, int total) {
+    return '正在设置… $pct% · $got / $total MB';
+  }
+
+  @override
+  String get settingsTextSize => '文字大小';
+
+  @override
+  String get settingsTextNormal => '标准';
+
+  @override
+  String get settingsTextLarge => '大';
+
+  @override
+  String get settingsTextExtraLarge => '特大';
+
+  @override
+  String get settingsSignOut => '退出登录';
+
+  @override
+  String get settingsSignOutSubtitle => '您可以随时重新登录';
+
+  @override
+  String get settingsSignIn => '登录';
+
+  @override
   String callIncoming(String who) {
     return '来自 $who 的来电';
   }
@@ -574,10 +609,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get permAlertsSub => '发送诈骗提醒';
 
   @override
-  String get permFullScreen => 'Full-screen alerts';
+  String get permFullScreen => '全屏提醒';
 
   @override
-  String get permFullScreenSub => 'Wakes the screen when locked';
+  String get permFullScreenSub => '锁屏时唤醒屏幕';
 
   @override
   String get permBackground => '保持运行';
@@ -883,10 +918,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingWelcomeTitle => '远离诈骗';
 
   @override
-  String get onboardingWelcomeBody => '我们会提醒你诈骗电话和消息。设置很快。';
+  String get onboardingWelcomeBody => '我们会提醒你诈骗电话和消息。';
 
   @override
-  String get onboardingWelcomeNote => '以后可以在设置中更改。';
+  String get onboardingWelcomeNote => '设置大约需要一分钟。';
 
   @override
   String get onboardingPhoneTitle => '电话';
@@ -925,11 +960,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingOverlayBody => '通话有风险时显示提醒。';
 
   @override
-  String get onboardingFullScreenTitle => 'Full-screen alerts';
+  String get onboardingFullScreenTitle => '全屏提醒';
 
   @override
-  String get onboardingFullScreenBody =>
-      'Wake the screen with the warning even when the phone is locked.';
+  String get onboardingFullScreenBody => '在锁屏时显示提醒。';
 
   @override
   String get onboardingBackgroundTitle => '保持运行';
@@ -944,16 +978,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingBatterySettingsBody => '别让手机暂停本应用。';
 
   @override
-  String get onboardingSettingsHint => '设置会打开。找到本应用并开启。';
+  String get onboardingSettingsHint => '设置会打开。请开启本应用。';
 
   @override
   String get onboardingStatusOn => '已开启。';
 
   @override
-  String get onboardingStatusSkipped => '未开启。可在设置中开启。';
+  String get onboardingStatusSkipped => '未开启。以后可在设置中开启。';
 
   @override
-  String get onboardingStatusBlocked => '手机不会再问。请点按“打开设置”。';
+  String get onboardingStatusBlocked => '请点按“打开设置”来开启。';
 
   @override
   String get onboardingDoneTitle => '都设置好了';
@@ -965,7 +999,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingDonePartialTitle => '快完成了';
 
   @override
-  String get onboardingDonePartialBody => '有些功能没开。可在设置中开启。';
+  String get onboardingDonePartialBody => '有些功能没开。请在设置中开启。';
 
   @override
   String onboardingGrantedCount(int granted, int total) {
@@ -982,7 +1016,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingMessagesWhy => '我们会留意奇怪的链接或要钱的话。';
 
   @override
-  String get onboardingBatterySettingsHint => '设置会打开。找到本应用并选择“不优化”。';
+  String get onboardingBatterySettingsHint => '设置会打开。请选择“不优化”。';
 
   @override
   String get onboardingModelTitle => '诈骗检查器';
@@ -1010,7 +1044,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get onboardingModelReady => '就绪。';
 
   @override
-  String get onboardingModelFailed => '下载没完成。请重试，或用设置。';
+  String get onboardingModelFailed => '下载失败。请重试。';
 
   @override
   String get onboardingModelMeteredTitle => '使用移动数据？';
@@ -1277,10 +1311,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get postDetailAiBadge => 'AI';
 
   @override
-  String get postDetailMentionHelpHint => 'Ask NegevAI about this post';
+  String get postDetailMentionHelpHint => '就这篇帖子询问 NegevAI';
 
   @override
-  String get postDetailBotThinking => 'NegevAI is thinking...';
+  String get postDetailBotThinking => 'NegevAI 正在思考...';
 
   @override
   String get guidanceClickedLink => '我点了链接';
@@ -1358,29 +1392,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tourReportBody => '告诉大家，让大家注意安全。';
 
   @override
-  String get tourReviewTitle => 'Tick the box';
+  String get tourReviewTitle => '勾选方框';
 
   @override
-  String get tourReviewBody =>
-      'After you add photos, check them. Then tick this box to share.';
+  String get tourReviewBody => '添加照片后请检查，然后勾选此框即可分享。';
 
   @override
-  String get tourPostHelpTitle => 'Ask the AI helper';
+  String get tourPostHelpTitle => '询问 AI 助手';
 
   @override
-  String get tourPostHelpBody =>
-      'Not sure if this is a scam? Type @help in a comment. Our AI scam helper will reply.';
+  String get tourPostHelpBody => '不确定是不是诈骗？在评论中输入 @help，我们的 AI 防诈骗助手会回复。';
 
   @override
-  String get tourPostAiTitle => 'Read the replies';
+  String get tourPostAiTitle => '查看回复';
 
   @override
-  String get tourPostAiBody =>
-      'Replies with an AI tag come from the helper. It can make mistakes, so ask someone you trust too.';
+  String get tourPostAiBody => '带 AI 标签的回复来自助手。它可能出错，请也向您信任的人确认。';
 
   @override
-  String get tourPostSampleReply =>
-      'This looks like a scam. Do not click the link.';
+  String get tourPostSampleReply => '这看起来是诈骗。请不要点击链接。';
 
   @override
   String get tourProfileTitle => '我的';

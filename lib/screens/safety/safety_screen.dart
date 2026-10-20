@@ -436,6 +436,7 @@ class _SafetyScreenState extends State<SafetyScreen>
 
   Future<void> _clear() async {
     await _log.clear();
+    await ScamShieldController.syncAlerts();
     await _refresh();
   }
 
@@ -463,6 +464,10 @@ class _SafetyScreenState extends State<SafetyScreen>
           client: client,
           prefillTitle: title,
           prefillText: buffer.toString(),
+          onReported: () async {
+            await _log.removeThread(entry.id);
+            await ScamShieldController.dismissScamAlert();
+          },
         ),
       ),
     );

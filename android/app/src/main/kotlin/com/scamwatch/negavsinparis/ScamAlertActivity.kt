@@ -9,6 +9,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.FrameLayout
@@ -63,6 +64,7 @@ class ScamAlertActivity : Activity() {
         val reason = intent.getStringExtra(EXTRA_REASON).orEmpty()
         val message = intent.getStringExtra(EXTRA_MESSAGE).orEmpty()
         val notificationKey = intent.getStringExtra(EXTRA_NOTIFICATION_KEY)
+        val logId = intent.getStringExtra(EXTRA_LOG_ID)
         val confidence = intent.getDoubleExtra(EXTRA_CONFIDENCE, 0.0)
         val escalated = intent.getBooleanExtra(EXTRA_ESCALATED, false)
 
@@ -78,7 +80,13 @@ class ScamAlertActivity : Activity() {
             }
         }
 
-        card.addView(
+        // Everything above the buttons lives in a scroll container so long
+        // message bodies never push the actions off screen.
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        body.addView(
             TextView(this).apply {
                 text = "⚠ $headline"
                 textSize = 22f
@@ -98,7 +106,7 @@ class ScamAlertActivity : Activity() {
             append("% confidence")
             if (escalated) append("  ·  checked online")
         }
-        card.addView(
+        body.addView(
             TextView(this).apply {
                 text = meta
                 textSize = 13f
@@ -112,7 +120,7 @@ class ScamAlertActivity : Activity() {
         )
 
         if (sender.isNotEmpty()) {
-            card.addView(
+            body.addView(
                 TextView(this).apply {
                     text = sender
                     textSize = 15f
@@ -128,7 +136,7 @@ class ScamAlertActivity : Activity() {
         }
 
         if (bodyText.isNotEmpty()) {
-            card.addView(
+            body.addView(
                 TextView(this).apply {
                     text = bodyText
                     textSize = 15f
@@ -143,7 +151,7 @@ class ScamAlertActivity : Activity() {
         }
 
         if (reason.isNotEmpty()) {
-            card.addView(
+            body.addView(
                 TextView(this).apply {
                     text = "Why flagged: $reason"
                     textSize = 14f
@@ -156,6 +164,25 @@ class ScamAlertActivity : Activity() {
                 ),
             )
         }
+
+        val bodyScroll = ScrollView(this).apply {
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
+            isVerticalScrollBarEnabled = true
+            addView(
+                body,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        card.addView(
+            bodyScroll,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
 
         card.addView(
             Button(this).apply {
@@ -170,7 +197,7 @@ class ScamAlertActivity : Activity() {
                     cornerRadius = dp(16).toFloat()
                     setColor(Color.parseColor("#B00020"))
                 }
-                setOnClickListener { report(headline, appLabel, message, reason, notificationKey) }
+                setOnClickListener { report(headline, appLabel, message, reason, notificationKey, logId) }
             },
             LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -204,23 +231,41 @@ class ScamAlertActivity : Activity() {
             gravity = Gravity.CENTER
             setPadding(dp(16), dp(48), dp(16), dp(32))
         }
-        content.addView(
-            card,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ),
+        val cardParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
         )
+        content.addView(card, cardParams)
+
+        // Keep the card within 80% of the screen height so the report and
+        // dismiss buttons are always visible. If the message is longer, only
+        // the body scrolls and the buttons stay pinned to the bottom.
+        val screenHeight = resources.displayMetrics.heightPixels
+        val maxCardHeight = (screenHeight * 0.8f).toInt()
+            .coerceAtMost(screenHeight - dp(48 + 32))
+        val bodyWidth = (resources.displayMetrics.widthPixels - dp(32 + 48)).coerceAtLeast(dp(1))
+        body.measure(
+            View.MeasureSpec.makeMeasureSpec(bodyWidth, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        val naturalCardHeight = body.measuredHeight + dp(24 + 20 + 64 + 10 + 56 + 16)
+        if (naturalCardHeight > maxCardHeight) {
+            cardParams.height = maxCardHeight
+            bodyScroll.layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+        }
 
         setContentView(
-            ScrollView(this).apply {
-                isFillViewport = true
+            FrameLayout(this).apply {
                 setBackgroundColor(Color.parseColor(BACKGROUND_COLOR))
                 addView(
                     content,
                     FrameLayout.LayoutParams(
                         FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT,
                     ),
                 )
             },
@@ -233,6 +278,7 @@ class ScamAlertActivity : Activity() {
         message: String,
         reason: String,
         notificationKey: String?,
+        logId: String?,
     ) {
         val intent = Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -248,6 +294,9 @@ class ScamAlertActivity : Activity() {
             putExtra(NotificationHelper.EXTRA_REPORT_APP, appLabel)
             if (!notificationKey.isNullOrEmpty()) {
                 putExtra(NotificationHelper.EXTRA_REPORT_KEY, notificationKey)
+            }
+            if (!logId.isNullOrEmpty()) {
+                putExtra(NotificationHelper.EXTRA_REPORT_ID, logId)
             }
         }
         startActivity(intent)
@@ -267,6 +316,7 @@ class ScamAlertActivity : Activity() {
         const val EXTRA_CONFIDENCE = "confidence"
         const val EXTRA_NOTIFICATION_KEY = "notification_key"
         const val EXTRA_ESCALATED = "escalated"
+        const val EXTRA_LOG_ID = "log_id"
 
         @Volatile
         private var current: ScamAlertActivity? = null
@@ -283,6 +333,7 @@ class ScamAlertActivity : Activity() {
             confidence: Double,
             notificationKey: String?,
             escalated: Boolean,
+            logId: String? = null,
         ): Intent = Intent(context, ScamAlertActivity::class.java).apply {
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -298,6 +349,7 @@ class ScamAlertActivity : Activity() {
             putExtra(EXTRA_CONFIDENCE, confidence)
             if (!notificationKey.isNullOrEmpty()) putExtra(EXTRA_NOTIFICATION_KEY, notificationKey)
             putExtra(EXTRA_ESCALATED, escalated)
+            if (!logId.isNullOrEmpty()) putExtra(EXTRA_LOG_ID, logId)
         }
 
         /**
@@ -316,6 +368,7 @@ class ScamAlertActivity : Activity() {
             confidence: Double,
             notificationKey: String?,
             escalated: Boolean,
+            logId: String? = null,
         ) {
             val intent = buildIntent(
                 context,
@@ -328,6 +381,7 @@ class ScamAlertActivity : Activity() {
                 confidence,
                 notificationKey,
                 escalated,
+                logId,
             )
             try {
                 context.startActivity(intent)

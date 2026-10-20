@@ -380,6 +380,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSignInSubtitle => 'Needed to post';
 
   @override
+  String get settingsProtectionOn => 'Protection is on';
+
+  @override
+  String get settingsProtectionOff => 'Protection is off';
+
+  @override
+  String get settingsProtectionNeedsModel => 'Protection needs a checker';
+
+  @override
+  String settingsSettingUpProgress(int pct, int got, int total) {
+    return 'Setting up… $pct% · $got of $total MB';
+  }
+
+  @override
+  String get settingsTextSize => 'Text size';
+
+  @override
+  String get settingsTextNormal => 'Normal';
+
+  @override
+  String get settingsTextLarge => 'Large';
+
+  @override
+  String get settingsTextExtraLarge => 'Extra large';
+
+  @override
+  String get settingsSignOut => 'Sign out';
+
+  @override
+  String get settingsSignOutSubtitle => 'You can sign back in any time';
+
+  @override
+  String get settingsSignIn => 'Sign in';
+
+  @override
   String callIncoming(String who) {
     return 'Call from $who';
   }
@@ -894,10 +929,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingWelcomeBody =>
-      'We warn you about scam calls and messages. Setup is quick.';
+      'We warn you about scam calls and messages.';
 
   @override
-  String get onboardingWelcomeNote => 'You can change this later in Settings.';
+  String get onboardingWelcomeNote => 'Setup takes about a minute.';
 
   @override
   String get onboardingPhoneTitle => 'Phone calls';
@@ -941,8 +976,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingFullScreenTitle => 'Full-screen alerts';
 
   @override
-  String get onboardingFullScreenBody =>
-      'Wake the screen with the warning even when the phone is locked.';
+  String get onboardingFullScreenBody => 'Show warnings on a locked phone.';
 
   @override
   String get onboardingBackgroundTitle => 'Keep running';
@@ -959,19 +993,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Stop your phone from pausing the app.';
 
   @override
-  String get onboardingSettingsHint =>
-      'Settings will open. Find this app and turn it on.';
+  String get onboardingSettingsHint => 'Settings will open. Turn this app on.';
 
   @override
   String get onboardingStatusOn => 'On.';
 
   @override
   String get onboardingStatusSkipped =>
-      'Not on. You can turn it on in Settings.';
+      'Off. You can turn it on later in Settings.';
 
   @override
   String get onboardingStatusBlocked =>
-      'Your phone won\'t ask again. Tap \"Open settings\".';
+      'Tap \"Open settings\" to turn this on.';
 
   @override
   String get onboardingDoneTitle => 'You\'re all set';
@@ -984,7 +1017,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingDonePartialBody =>
-      'Some things are off. You can turn them on in Settings.';
+      'Some things are off. Turn them on in Settings.';
 
   @override
   String onboardingGrantedCount(int granted, int total) {
@@ -1003,7 +1036,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingBatterySettingsHint =>
-      'Settings will open. Find this app and choose \"Don\'t optimize\".';
+      'Settings will open. Choose \"Don\'t optimize\".';
 
   @override
   String get onboardingModelTitle => 'Scam checker';
@@ -1025,15 +1058,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onboardingModelKeepGoing =>
-      'You can continue. It keeps downloading.';
+  String get onboardingModelKeepGoing => 'You can continue. It keeps going.';
 
   @override
   String get onboardingModelReady => 'Ready.';
 
   @override
-  String get onboardingModelFailed =>
-      'Download didn\'t finish. Try again or use Settings.';
+  String get onboardingModelFailed => 'Download failed. Please try again.';
 
   @override
   String get onboardingModelMeteredTitle => 'Use mobile data?';

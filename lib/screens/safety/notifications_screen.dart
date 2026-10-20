@@ -49,6 +49,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Future<void> _clear() async {
     await _log.clear();
+    await ScamShieldController.syncAlerts();
     await _load();
   }
 

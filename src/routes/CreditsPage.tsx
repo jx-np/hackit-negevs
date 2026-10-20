@@ -44,7 +44,7 @@ const MEMBERS: Member[] = [
     photo: '/jiaxuan.webp',
     shape: 'rounded',
   },
-  { name: 'Kenny', roles: ['Website', 'Mobile app', 'AI services'] },
+  { name: 'Kenny', roles: ['Website', 'Mobile app', 'AI services'], photo: '/kenny.png' },
   { name: 'Wen Xuan', roles: ['Website', 'Mobile app'], photo: '/wx.jpeg' },
   { name: 'Jun Wen', roles: ['Website', 'Mobile app'], photo: '/junwen.png' },
   { name: 'Darren', roles: ['Website', 'Mobile app'], photo: '/darren.png' },

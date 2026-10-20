@@ -105,8 +105,7 @@ class ScamNotificationListener : NotificationListenerService() {
                     val text = bundle.getCharSequence("text")?.toString()?.trim().orEmpty()
                     if (text.isEmpty()) return@mapNotNull null
                     val sender = bundle.getCharSequence("sender")?.toString()?.trim().orEmpty()
-                    val body = clip(text)
-                    if (sender.isEmpty()) body else "$sender: $body"
+                    if (sender.isEmpty()) text else "$sender: $text"
                 }
                 if (lines.isNotEmpty()) return recent(lines).joinToString("\n")
             }
@@ -120,13 +119,10 @@ class ScamNotificationListener : NotificationListenerService() {
         }
 
         val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim()
-        if (!bigText.isNullOrEmpty()) return clip(bigText)
+        if (!bigText.isNullOrEmpty()) return bigText
 
-        return clip(extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty())
+        return extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty()
     }
-
-    private fun clip(text: String): String =
-        if (text.length <= MAX_MESSAGE_CHARS) text else text.take(MAX_MESSAGE_CHARS) + "…"
 
     /** Telegram/WhatsApp bundle a whole chat into one notification; keep only
      *  the most recent messages so a long thread does not overwhelm the model. */
@@ -137,7 +133,6 @@ class ScamNotificationListener : NotificationListenerService() {
     companion object {
         private const val TAG = "ScamNotification"
         private const val MAX_BUNDLED_MESSAGES = 8
-        private const val MAX_MESSAGE_CHARS = 400
         private const val REBIND_SETTLE_MS = 1200L
         private const val TOGGLE_GAP_MS = 150L
 

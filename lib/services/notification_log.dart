@@ -53,6 +53,7 @@ class LoggedNotification {
 
 class NotificationLog {
   static const String _key = 'notification_log';
+  static const String _clearedKey = 'notification_thread_cleared';
   static const int _maxEntries = 200;
 
   final SharedPreferencesAsync _prefs = SharedPreferencesAsync();
@@ -188,5 +189,60 @@ class NotificationLog {
     await _prefs.setStringList(_key, raw);
   }
 
-  Future<void> clear() => _prefs.remove(_key);
+  Future<void> clear() async {
+    await _prefs.remove(_key);
+    await _prefs.remove(_clearedKey);
+  }
+
+  /// Marks [id]'s conversation as context-cleared from now on.
+  ///
+  /// The logged messages stay in [all] so they continue to show under Recent
+  /// alerts on the Safety tab, but the background runner stops feeding anything
+  /// captured at or before this moment to the model as multi-turn context. Used
+  /// when the user swipes the scam-alert notification away: they acknowledged
+  /// the warning, so the reported text must not prime the next verdict, without
+  /// hiding the alert from the safety list.
+  Future<void> clearThreadContext(String id) async {
+    if (id.isEmpty) return;
+    final threadKey = await _conversationKeyFor(id) ?? id;
+    final cleared = await _clearedThreads();
+    cleared[threadKey] = DateTime.now().millisecondsSinceEpoch;
+    await _prefs.setString(_clearedKey, jsonEncode(cleared));
+  }
+
+  /// When [conversationKey]'s context was last cleared, or null if never.
+  /// Messages captured at or before this instant are excluded from the
+  /// multi-turn prompt; newer messages start a fresh thread.
+  Future<DateTime?> threadClearedAt(String conversationKey) async {
+    final cleared = await _clearedThreads();
+    final millis = cleared[conversationKey];
+    if (millis is! int) return null;
+    return DateTime.fromMillisecondsSinceEpoch(millis);
+  }
+
+  Future<Map<String, dynamic>> _clearedThreads() async {
+    final raw = await _prefs.getString(_clearedKey);
+    if (raw == null || raw.isEmpty) return <String, dynamic>{};
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map
+          ? Map<String, dynamic>.from(decoded)
+          : <String, dynamic>{};
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  Future<String?> _conversationKeyFor(String id) async {
+    final raw = await _prefs.getStringList(_key) ?? const [];
+    for (final entry in raw) {
+      try {
+        final decoded = jsonDecode(entry) as Map<String, dynamic>;
+        if (decoded['id'] == id) {
+          return LoggedNotification.fromJson(decoded).record.conversationKey;
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
 }

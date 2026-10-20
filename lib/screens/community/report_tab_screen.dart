@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_editor_plus/image_editor_plus.dart';
+import 'package:pro_image_editor/pro_image_editor.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -232,9 +232,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     final bool signedIn = await requireLogin(context);
     if (!signedIn) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.reportTabSignInToAddPhotos)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reportTabSignInToAddPhotos)));
       return;
     }
     // `requireLogin` only confirms the UI "signed in" flag. The detection
@@ -245,9 +245,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     final bool hasToken = await widget.client.hasAccessToken();
     if (!mounted) return;
     if (!hasToken) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.reportTabSignInToAddPhotos)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reportTabSignInToAddPhotos)));
       return;
     }
     final List<XFile> picked = await _imagePicker.pickMultiImage();
@@ -279,9 +279,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       _reviewed = false;
     });
     if (rejected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.commonImageTooLarge)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.commonImageTooLarge)));
     }
     // Start every upload right away, in parallel — uploads are cheap on the
     // server. The detection *checks* are what we serialize: as each upload
@@ -612,9 +612,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     final File? redacted = await _ensureRedacted(image);
     if (!mounted) return;
     if (redacted == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.reportTabEditorLoadFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reportTabEditorLoadFailed)));
       return;
     }
     final Uint8List bytes = await redacted.readAsBytes();
@@ -623,7 +623,21 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     final Uint8List? edited = await Navigator.push<Uint8List>(
       context,
       MaterialPageRoute<Uint8List>(
-        builder: (_) => ImageEditor(image: bytes),
+        builder: (editorContext) => ProImageEditor.memory(
+          bytes,
+          configs: const ProImageEditorConfigs(
+            mainEditor: MainEditorConfigs(enableZoom: true, editorMaxScale: 10),
+            paintEditor: PaintEditorConfigs(
+              enableZoom: true,
+              editorMaxScale: 10,
+            ),
+          ),
+          callbacks: ProImageEditorCallbacks(
+            onImageEditingComplete: (Uint8List result) async {
+              Navigator.pop(editorContext, result);
+            },
+          ),
+        ),
       ),
     );
     if (!mounted || edited == null) return;
@@ -662,10 +676,7 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       // transiently failing delete must not block the edit.
       replacedUploadId = image.uploadId;
       await _discardUpload(replacedUploadId);
-      final Upload up = await _detection.uploadImage(
-        shrunk,
-        requireAuth: true,
-      );
+      final Upload up = await _detection.uploadImage(shrunk, requireAuth: true);
       if (!mounted || !_images.contains(image)) {
         // The image (or the whole form) went away while the edited bytes were
         // uploading — purge the fresh upload instead of orphaning it.
@@ -720,9 +731,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
         // the "saving" overlay and leave the image as it was.
         setState(() => image.reuploading = false);
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.reportTabEditorSaveFailed)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reportTabEditorSaveFailed)));
     }
   }
 
@@ -748,14 +759,15 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     if (!mounted) return;
     final String text = data?.text?.trim() ?? '';
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.reportTabPasteEmpty)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.reportTabPasteEmpty)));
       return;
     }
     _textController.text = text;
-    _textController.selection =
-        TextSelection.collapsed(offset: _textController.text.length);
+    _textController.selection = TextSelection.collapsed(
+      offset: _textController.text.length,
+    );
   }
 
   /// Runs the caller's [ReportTabScreen.onReported] hook after a successful
@@ -876,10 +888,8 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
     if (detail == null) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => PostDetailScreen(
-          client: widget.client,
-          postId: detail.postId,
-        ),
+        builder: (_) =>
+            PostDetailScreen(client: widget.client, postId: detail.postId),
       ),
     );
   }
@@ -905,8 +915,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
   /// stays on the report page) or dismissed the dialog without deciding.
   Future<bool> _resolveFailedImages() async {
     final l10n = AppLocalizations.of(context);
-    final int failedCount =
-        _images.where((image) => image.status == _UploadStatus.failed).length;
+    final int failedCount = _images
+        .where((image) => image.status == _UploadStatus.failed)
+        .length;
     final String? choice = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -979,23 +990,23 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
       for (final String reason in _reasons)
         switch (reason) {
           'spam' => _ReasonOption(
-              value: reason,
-              icon: LucideIcons.megaphone,
-              label: l10n.reportSpam,
-              description: l10n.reportTabReasonSpamBody,
-            ),
+            value: reason,
+            icon: LucideIcons.megaphone,
+            label: l10n.reportSpam,
+            description: l10n.reportTabReasonSpamBody,
+          ),
           'scam' => _ReasonOption(
-              value: reason,
-              icon: LucideIcons.shieldAlert,
-              label: l10n.reportScam,
-              description: l10n.reportTabReasonScamBody,
-            ),
+            value: reason,
+            icon: LucideIcons.shieldAlert,
+            label: l10n.reportScam,
+            description: l10n.reportTabReasonScamBody,
+          ),
           _ => _ReasonOption(
-              value: reason,
-              icon: LucideIcons.circleHelp,
-              label: l10n.reportOther,
-              description: l10n.reportTabReasonOtherBody,
-            ),
+            value: reason,
+            icon: LucideIcons.circleHelp,
+            label: l10n.reportOther,
+            description: l10n.reportTabReasonOtherBody,
+          ),
         },
     ];
   }
@@ -1155,9 +1166,9 @@ class _ReportTabScreenState extends State<ReportTabScreen> {
             icon: const Icon(LucideIcons.clipboardPaste, size: 24),
             label: Text(
               l10n.reportTabPaste,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
             style: TextButton.styleFrom(
               minimumSize: const Size(48, 48),
@@ -1238,7 +1249,9 @@ InputDecoration _fieldDecoration(
   return InputDecoration(
     hintText: hint,
     hintStyle: textTheme.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),
-    errorStyle: textTheme.bodyMedium?.copyWith(color: context.tokens.risk.danger),
+    errorStyle: textTheme.bodyMedium?.copyWith(
+      color: context.tokens.risk.danger,
+    ),
     filled: true,
     fillColor: Theme.of(context).cardColor,
     prefixIcon: prefixIcon == null
@@ -1340,9 +1353,7 @@ class _FieldLabel extends StatelessWidget {
     final theme = Theme.of(context);
     return Text(
       text,
-      style: theme.textTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w700,
-      ),
+      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
     );
   }
 }
@@ -1616,7 +1627,8 @@ class _PhotoThumbnail extends StatelessWidget {
     final bool showFailed = image.status == _UploadStatus.failed;
     // A ready image can be tapped to open the editor and fix the redaction,
     // but not while it's re-uploading an edit or still processing.
-    final bool canEdit = onEdit != null &&
+    final bool canEdit =
+        onEdit != null &&
         image.status == _UploadStatus.ready &&
         !image.reuploading;
     // The tile is a fixed-size thumbnail, so cap text scaling for its small
@@ -1624,207 +1636,213 @@ class _PhotoThumbnail extends StatelessWidget {
     return MediaQuery.withClampedTextScaling(
       maxScaleFactor: 1.3,
       child: SizedBox(
-      width: size,
-      height: size,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ClipRRect(
-            borderRadius: tokens.radii.mdRadius,
-            child: Image.file(
-              image.displayFile,
-              key: ValueKey<String>(image.displayFile.path),
-              fit: BoxFit.cover,
-              gaplessPlayback: true,
-            ),
-          ),
-          // Tap target for editing a ready image. Sits above the image but
-          // below the overlays and corner buttons.
-          if (canEdit)
-            Positioned.fill(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onEdit,
-                  borderRadius: tokens.radii.mdRadius,
-                ),
-              ),
-            ),
-          if (showProcessing)
+        width: size,
+        height: size,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
             ClipRRect(
               borderRadius: tokens.radii.mdRadius,
-              child: ColoredBox(
-                color: Colors.black54,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
-                    SizedBox(height: tokens.space.sm),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: tokens.space.xs,
-                      ),
-                      child: Text(
-                        processingLabel,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
+              child: Image.file(
+                image.displayFile,
+                key: ValueKey<String>(image.displayFile.path),
+                fit: BoxFit.cover,
+                gaplessPlayback: true,
               ),
             ),
-          if (showReuploading)
-            ClipRRect(
-              borderRadius: tokens.radii.mdRadius,
-              child: ColoredBox(
-                color: Colors.black54,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
-                    SizedBox(height: tokens.space.sm),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: tokens.space.xs,
-                      ),
-                      child: Text(
-                        reuploadingLabel,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (showFailed)
-            ClipRRect(
-              borderRadius: tokens.radii.mdRadius,
-              child: ColoredBox(
-                color: tokens.risk.danger.withValues(alpha: 0.72),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      LucideIcons.circleAlert,
-                      size: 24,
-                      color: Colors.white,
-                    ),
-                    SizedBox(height: tokens.space.sm),
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: tokens.space.xs,
-                      ),
-                      child: Text(
-                        failedLabel,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          // Edit hint badge on a ready, editable image (bottom-left).
-          if (canEdit)
-            Positioned(
-              bottom: tokens.space.xs,
-              left: tokens.space.xs,
-              child: IgnorePointer(
-                child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: tokens.space.sm,
-                    vertical: tokens.space.xs,
+            // Tap target for editing a ready image. Sits above the image but
+            // below the overlays and corner buttons.
+            if (canEdit)
+              Positioned.fill(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onEdit,
+                    borderRadius: tokens.radii.mdRadius,
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: tokens.radii.smRadius,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+              ),
+            if (showProcessing)
+              ClipRRect(
+                borderRadius: tokens.radii.mdRadius,
+                child: ColoredBox(
+                  color: Colors.black54,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        LucideIcons.pencil,
-                        size: 14,
-                        color: Colors.white,
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
                       ),
-                      SizedBox(width: tokens.space.xs),
-                      Text(
-                        editLabel,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
+                      SizedBox(height: tokens.space.sm),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.space.xs,
+                        ),
+                        child: Text(
+                          processingLabel,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-          Positioned(
-            top: 0,
-            right: 0,
-            child: IconButton(
-              tooltip: removeLabel,
-              onPressed: onRemove,
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              icon: Container(
-                width: 32,
-                height: 32,
-                decoration: const BoxDecoration(
-                  color: Colors.black87,
-                  shape: BoxShape.circle,
+            if (showReuploading)
+              ClipRRect(
+                borderRadius: tokens.radii.mdRadius,
+                child: ColoredBox(
+                  color: Colors.black54,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: tokens.space.sm),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.space.xs,
+                        ),
+                        child: Text(
+                          reuploadingLabel,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: const Icon(LucideIcons.x, size: 20, color: Colors.white),
+              ),
+            if (showFailed)
+              ClipRRect(
+                borderRadius: tokens.radii.mdRadius,
+                child: ColoredBox(
+                  color: tokens.risk.danger.withValues(alpha: 0.72),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        LucideIcons.circleAlert,
+                        size: 24,
+                        color: Colors.white,
+                      ),
+                      SizedBox(height: tokens.space.sm),
+                      Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: tokens.space.xs,
+                        ),
+                        child: Text(
+                          failedLabel,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            // Edit hint badge on a ready, editable image (bottom-left).
+            if (canEdit)
+              Positioned(
+                bottom: tokens.space.xs,
+                left: tokens.space.xs,
+                right: tokens.space.xs,
+                child: IgnorePointer(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: tokens.space.sm,
+                        vertical: tokens.space.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: tokens.radii.smRadius,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            LucideIcons.pencil,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          SizedBox(width: tokens.space.xs),
+                          Flexible(
+                            child: Text(
+                              editLabel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IconButton(
+                tooltip: removeLabel,
+                onPressed: onRemove,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                icon: Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    color: Colors.black87,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    LucideIcons.x,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -1967,17 +1985,17 @@ class _SubmitButtonState extends State<_SubmitButton>
             child: CircularProgressIndicator(strokeWidth: 2.5),
           )
         : waiting
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
-              )
-            : Icon(
-                widget.phase == _SubmitPhase.review
-                    ? LucideIcons.scanEye
-                    : LucideIcons.send,
-                size: 24,
-              );
+        ? const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2.5),
+          )
+        : Icon(
+            widget.phase == _SubmitPhase.review
+                ? LucideIcons.scanEye
+                : LucideIcons.send,
+            size: 24,
+          );
 
     final Widget button = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 60),
@@ -1989,10 +2007,9 @@ class _SubmitButtonState extends State<_SubmitButton>
         icon: icon,
         label: Text(
           widget.label,
-          style: Theme.of(context)
-              .textTheme
-              .titleMedium
-              ?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -2193,8 +2210,9 @@ class _ReviewCheckbox extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = context.tokens;
     final scheme = theme.colorScheme;
-    final Color textColor =
-        enabled ? scheme.onSurface : scheme.onSurfaceVariant.withValues(alpha: 0.6);
+    final Color textColor = enabled
+        ? scheme.onSurface
+        : scheme.onSurfaceVariant.withValues(alpha: 0.6);
     return Material(
       color: enabled
           ? scheme.primary.withValues(alpha: 0.06)
@@ -2218,8 +2236,7 @@ class _ReviewCheckbox extends StatelessWidget {
             children: [
               Checkbox(
                 value: value,
-                onChanged:
-                    enabled ? (bool? v) => onChanged(v ?? false) : null,
+                onChanged: enabled ? (bool? v) => onChanged(v ?? false) : null,
               ),
               SizedBox(width: tokens.space.sm),
               Expanded(

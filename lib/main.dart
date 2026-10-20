@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:scamwatch_mobile_app/l10n/app_localizations.dart';
 import 'package:forui/forui.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:material_ui/material_ui.dart' as material_ui;
 import 'package:provider/provider.dart';
 import 'package:scamwatch_mobile_app/api/api_client.dart';
 import 'package:scamwatch_mobile_app/api/api_config.dart';
@@ -130,9 +131,12 @@ class MyApp extends StatelessWidget {
                 ...kAppSupportedLocales,
                 ...FLocalizations.supportedLocales,
               ],
-              localizationsDelegates: const [
+              localizationsDelegates: [
                 ...AppLocalizations.localizationsDelegates,
                 ...FLocalizations.localizationsDelegates,
+                // pro_image_editor is built on material_ui, which looks up its
+                // own MaterialLocalizations rather than Flutter's.
+                ...material_ui.GlobalMaterialLocalizations.delegates,
               ],
               theme: _materialTheme(lightColors),
               darkTheme: _materialTheme(darkColors),

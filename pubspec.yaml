@@ -57,7 +57,7 @@ dependencies:
   http_parser: ^4.1.2
   flutter_secure_storage: ^9.2.2
   image_picker: ^1.1.2
-  image_editor_plus: ^1.0.8
+  pro_image_editor: 14.14.3
   image: ^4.12.0
 
 dev_dependencies:
@@ -72,25 +72,6 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   forui_cli: ^0.27.0
   shared_preferences_platform_interface: ^2.4.2
-
-# image_editor_plus pins permission_handler ^12, but the app uses ^13.0.2. The
-# only difference between 12 and 13 is the Android compileSdkVersion (35 vs 37);
-# there are no API changes and the editor only touches permission_handler for an
-# optional save-to-gallery path we don't use (we re-upload the edited bytes). So
-# force the whole tree onto 13 rather than splitting the native plugin version.
-# font_awesome_flutter 10.12.0 (pulled in transitively by image_editor_plus)
-# declares IconData subclasses that `extend IconData`, which no longer compiles
-# because Flutter 3.44+ marked IconData `final`. Upgrading to 11.0.0 breaks
-# image_editor_plus (its FaIconData is no longer an IconData, failing 7 call
-# sites), and image_editor_plus has no newer release. So we vendor a patched
-# copy of 10.12.0 under third_party/ that drops those IconData subclasses and
-# rewrites every icon constant to a plain IconData(...) with the right
-# fontFamily/fontPackage — same rendered icons, keeps the 10.x API that
-# image_editor_plus expects. We don't use font_awesome directly.
-dependency_overrides:
-  permission_handler: ^13.0.2
-  font_awesome_flutter:
-    path: third_party/font_awesome_flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

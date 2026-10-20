@@ -89,7 +89,7 @@ class ScamAlertActivity : Activity() {
         body.addView(
             TextView(this).apply {
                 text = "⚠ $headline"
-                textSize = 22f
+                textSize = 28f
                 setTextColor(Color.parseColor("#B00020"))
                 setTypeface(typeface, Typeface.BOLD)
             },
@@ -109,7 +109,7 @@ class ScamAlertActivity : Activity() {
         body.addView(
             TextView(this).apply {
                 text = meta
-                textSize = 13f
+                textSize = 17f
                 setTextColor(Color.parseColor("#666666"))
                 setPadding(0, dp(4), 0, 0)
             },
@@ -123,7 +123,7 @@ class ScamAlertActivity : Activity() {
             body.addView(
                 TextView(this).apply {
                     text = sender
-                    textSize = 15f
+                    textSize = 19f
                     setTextColor(Color.parseColor("#111111"))
                     setTypeface(typeface, Typeface.BOLD)
                     setPadding(0, dp(12), 0, 0)
@@ -139,7 +139,7 @@ class ScamAlertActivity : Activity() {
             body.addView(
                 TextView(this).apply {
                     text = bodyText
-                    textSize = 15f
+                    textSize = 19f
                     setTextColor(Color.parseColor("#333333"))
                     setPadding(0, dp(4), 0, 0)
                 },
@@ -154,7 +154,7 @@ class ScamAlertActivity : Activity() {
             body.addView(
                 TextView(this).apply {
                     text = "Why flagged: $reason"
-                    textSize = 14f
+                    textSize = 17f
                     setTextColor(Color.parseColor("#555555"))
                     setPadding(0, dp(6), 0, 0)
                 },
@@ -188,11 +188,11 @@ class ScamAlertActivity : Activity() {
             Button(this).apply {
                 text = "Report as scam"
                 isAllCaps = false
-                textSize = 16f
+                textSize = 20f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(Color.WHITE)
-                minHeight = dp(64)
-                minimumHeight = dp(64)
+                minHeight = dp(68)
+                minimumHeight = dp(68)
                 background = GradientDrawable().apply {
                     cornerRadius = dp(16).toFloat()
                     setColor(Color.parseColor("#B00020"))
@@ -209,10 +209,10 @@ class ScamAlertActivity : Activity() {
             Button(this).apply {
                 text = "Dismiss"
                 isAllCaps = false
-                textSize = 15f
+                textSize = 18f
                 setTextColor(Color.parseColor("#333333"))
-                minHeight = dp(56)
-                minimumHeight = dp(56)
+                minHeight = dp(60)
+                minimumHeight = dp(60)
                 background = GradientDrawable().apply {
                     cornerRadius = dp(16).toFloat()
                     setColor(Color.TRANSPARENT)
@@ -248,7 +248,7 @@ class ScamAlertActivity : Activity() {
             View.MeasureSpec.makeMeasureSpec(bodyWidth, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
         )
-        val naturalCardHeight = body.measuredHeight + dp(24 + 20 + 64 + 10 + 56 + 16)
+        val naturalCardHeight = body.measuredHeight + dp(24 + 20 + 68 + 10 + 60 + 16)
         if (naturalCardHeight > maxCardHeight) {
             cardParams.height = maxCardHeight
             bodyScroll.layoutParams = LinearLayout.LayoutParams(

@@ -2,6 +2,7 @@ package com.scamwatch.negavsinparis
 
 import android.Manifest
 import android.app.ActivityManager
+import android.app.NotificationManager
 import android.app.role.RoleManager
 import android.content.ComponentName
 import android.content.Context
@@ -40,6 +41,13 @@ class MainActivity : FlutterActivity() {
     override fun onPause() {
         HighRiskCallOverlay.appInForeground = false
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        // The process can outlive the activity (background Flutter engine), so
+        // never leave the flag stuck true after the UI goes away.
+        HighRiskCallOverlay.appInForeground = false
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -119,6 +127,11 @@ class MainActivity : FlutterActivity() {
                         )
                         result.success(null)
                     }
+                    "hasFullScreenIntent" -> result.success(hasFullScreenIntent())
+                    "requestFullScreenIntent" -> {
+                        requestFullScreenIntent()
+                        result.success(null)
+                    }
                     "openNotificationAccessSettings" -> {
                         startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                         result.success(null)
@@ -165,7 +178,7 @@ class MainActivity : FlutterActivity() {
                             result.success(it)
                         }
                     "dismissScamAlert" -> {
-                        ScamOverlayController.hide()
+                        ScamAlertActivity.dismiss()
                         NotificationHelper.cancelScamAlert(this)
                         result.success(null)
                     }
@@ -250,6 +263,42 @@ class MainActivity : FlutterActivity() {
             )
         } catch (e: Exception) {
             startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        }
+    }
+
+    /**
+     * True when the app may launch full-screen intents. Since Android 14 the
+     * system only allows this for calling/alarm apps by default, so the
+     * full-screen fallback shown for locked-screen scam alerts silently
+     * degrades to a heads-up notification until the user grants it. Below
+     * Android 14 no such permission exists, so this returns true.
+     */
+    private fun hasFullScreenIntent(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
+        return try {
+            getSystemService(NotificationManager::class.java)?.canUseFullScreenIntent() == true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Sends the user to the system "Full screen notifications" screen for this
+     * app. There is no runtime-dialog path for this permission. No-op below
+     * Android 14 or when the permission is already held.
+     */
+    private fun requestFullScreenIntent() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        if (hasFullScreenIntent()) return
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                    Uri.parse("package:$packageName"),
+                )
+            )
+        } catch (e: Exception) {
+            Log.w("MainActivity", "full-screen intent settings unavailable", e)
         }
     }
 

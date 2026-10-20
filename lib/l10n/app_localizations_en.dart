@@ -582,6 +582,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permAlertsSub => 'Sends scam alerts';
 
   @override
+  String get permFullScreen => 'Full-screen alerts';
+
+  @override
+  String get permFullScreenSub => 'Wakes the screen when locked';
+
+  @override
   String get permBackground => 'Keep running';
 
   @override
@@ -930,6 +936,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingOverlayBody => 'Show a warning during a risky call.';
+
+  @override
+  String get onboardingFullScreenTitle => 'Full-screen alerts';
+
+  @override
+  String get onboardingFullScreenBody =>
+      'Wake the screen with the warning even when the phone is locked.';
 
   @override
   String get onboardingBackgroundTitle => 'Keep running';

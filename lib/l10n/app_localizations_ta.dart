@@ -600,6 +600,12 @@ class AppLocalizationsTa extends AppLocalizations {
   String get permAlertsSub => 'மோசடி எச்சரிக்கைகளை அனுப்புகிறது';
 
   @override
+  String get permFullScreen => 'Full-screen alerts';
+
+  @override
+  String get permFullScreenSub => 'Wakes the screen when locked';
+
+  @override
   String get permBackground => 'தொடர்ந்து இயங்கு';
 
   @override
@@ -953,6 +959,13 @@ class AppLocalizationsTa extends AppLocalizations {
 
   @override
   String get onboardingOverlayBody => 'ஆபத்தான அழைப்பில் எச்சரிக்கை காட்டும்.';
+
+  @override
+  String get onboardingFullScreenTitle => 'Full-screen alerts';
+
+  @override
+  String get onboardingFullScreenBody =>
+      'Wake the screen with the warning even when the phone is locked.';
 
   @override
   String get onboardingBackgroundTitle => 'தொடர்ந்து இயங்கட்டும்';

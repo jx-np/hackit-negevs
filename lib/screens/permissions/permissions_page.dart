@@ -22,6 +22,7 @@ class _PermissionsTabState extends State<PermissionsTab>
     with WidgetsBindingObserver {
   bool _notificationAccess = false;
   bool _overlayGranted = false;
+  bool _fullScreenGranted = false;
   bool _notificationPermission = true;
   bool _isCallScreening = false;
   bool _ignoreBattery = false;
@@ -61,6 +62,7 @@ class _PermissionsTabState extends State<PermissionsTab>
       Permission.phone.status,
       Permission.contacts.status,
       Permission.notification.status,
+      ScamShieldController.hasFullScreenIntent(),
     ]);
     if (!mounted) return;
     final access = results[0] as bool;
@@ -68,6 +70,7 @@ class _PermissionsTabState extends State<PermissionsTab>
     final alerts = results[2] as bool;
     final screening = results[3] as bool;
     final battery = results[4] as bool;
+    final fullScreen = results[8] as bool;
     final permissions = <Permission, PermissionStatus>{
       Permission.phone: results[5] as PermissionStatus,
       Permission.contacts: results[6] as PermissionStatus,
@@ -79,6 +82,7 @@ class _PermissionsTabState extends State<PermissionsTab>
       _notificationPermission = alerts;
       _isCallScreening = screening;
       _ignoreBattery = battery;
+      _fullScreenGranted = fullScreen;
       _permissions = permissions;
     });
   }
@@ -90,6 +94,11 @@ class _PermissionsTabState extends State<PermissionsTab>
 
   Future<void> _requestOverlay() async {
     await ScamShieldController.requestOverlayPermission();
+    await _refreshAll();
+  }
+
+  Future<void> _requestFullScreen() async {
+    await ScamShieldController.requestFullScreenIntent();
     await _refreshAll();
   }
 
@@ -230,6 +239,13 @@ class _PermissionsTabState extends State<PermissionsTab>
               l10n.permOverlaySub,
               _overlayGranted,
               _requestOverlay,
+            ),
+            Divider(height: tokens.space.lg),
+            _checkTile(
+              l10n.permFullScreen,
+              l10n.permFullScreenSub,
+              _fullScreenGranted,
+              _requestFullScreen,
             ),
             Divider(height: tokens.space.lg),
             _checkTile(

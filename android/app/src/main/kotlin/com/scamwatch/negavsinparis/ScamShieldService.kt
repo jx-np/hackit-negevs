@@ -4,27 +4,12 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.service.notification.NotificationListenerService
-import android.util.Log
-import android.graphics.Color
-import android.graphics.PixelFormat
-import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.PowerManager
-import android.provider.Settings
-import android.view.Gravity
-import android.view.View
-import android.view.WindowManager
-import android.widget.Button
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
@@ -49,6 +34,11 @@ class ScamShieldService : Service() {
         val existing = ScamShieldEngineHolder.engine
         if (existing != null) {
             engine = existing
+            // The engine survives a service restart, so the MethodChannel (and
+            // the handler bound to the destroyed service instance) is still
+            // alive. Re-bind it to this instance or showAlert() would keep
+            // talking to a dead service.
+            ScamShieldEngineHolder.nativeChannel?.let { registerNativeHandler(it) }
             ScamShieldEngineHolder.serviceRunning = true
             ScamShieldEngineHolder.control("start", null) {}
             return
@@ -64,32 +54,7 @@ class ScamShieldService : Service() {
             flutterEngine.dartExecutor.binaryMessenger,
             "scamshield/native",
         )
-        nativeChannel.setMethodCallHandler { call, result ->
-            when (call.method) {
-                "showAlert" -> {
-                    showAlert(call.arguments as? Map<*, *>)
-                    result.success(null)
-                }
-                "dismissAlert" -> {
-                    ScamOverlayController.hide()
-                    NotificationHelper.cancelScamAlert(this)
-                    result.success(null)
-                }
-                "updateStatus" -> {
-                    updateStatus(call.argument<String>("message").orEmpty())
-                    result.success(null)
-                }
-                "acquireWakeLock" -> {
-                    acquireWakeLock()
-                    result.success(null)
-                }
-                "releaseWakeLock" -> {
-                    releaseWakeLock()
-                    result.success(null)
-                }
-                else -> result.notImplemented()
-            }
-        }
+        registerNativeHandler(nativeChannel)
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -127,8 +92,37 @@ class ScamShieldService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
 
+    private fun registerNativeHandler(channel: MethodChannel) {
+        channel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "showAlert" -> {
+                    showAlert(call.arguments as? Map<*, *>)
+                    result.success(null)
+                }
+                "dismissAlert" -> {
+                    ScamAlertActivity.dismiss()
+                    NotificationHelper.cancelScamAlert(this)
+                    result.success(null)
+                }
+                "updateStatus" -> {
+                    updateStatus(call.argument<String>("message").orEmpty())
+                    result.success(null)
+                }
+                "acquireWakeLock" -> {
+                    acquireWakeLock()
+                    result.success(null)
+                }
+                "releaseWakeLock" -> {
+                    releaseWakeLock()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
     override fun onDestroy() {
-        ScamOverlayController.hide()
+        ScamAlertActivity.dismiss()
         NotificationRelay.attach(null)
         ScamShieldEngineHolder.serviceRunning = false
         // Keep the engine alive for reuse: destroying and recreating one that
@@ -207,44 +201,54 @@ class ScamShieldService : Service() {
 
     private fun showAlert(arguments: Map<*, *>?) {
         if (arguments == null) return
-        val appLabel = arguments["appLabel"] as? String ?: "Unknown app"
-        val headline = arguments["headline"] as? String ?: "Possible scam"
-        val message = arguments["message"] as? String ?: ""
-        val confidence = (arguments["confidence"] as? Number)?.toDouble() ?: 0.0
-        val sender = (arguments["sender"] as? String)?.takeIf { it.isNotBlank() } ?: appLabel
-        val notificationKey = arguments["notificationKey"] as? String
-        val reason = arguments["reason"] as? String ?: ""
-        // `text` is the notification text alone. Older callers only send
-        // `message` (sender + text), so fall back to it when `text` is absent.
-        val text = (arguments["text"] as? String)?.takeIf { it.isNotBlank() } ?: message
-        NotificationHelper.showScamAlert(
-            this,
-            sender,
-            headline,
-            message,
-            confidence,
-            appLabel,
-            notificationKey,
-            text,
-            reason,
-        )
-        if (!Settings.canDrawOverlays(this)) {
-            updateStatus("Overlay permission missing")
-            return
+        try {
+            val appLabel = arguments["appLabel"] as? String ?: "Unknown app"
+            val headline = arguments["headline"] as? String ?: "Possible scam"
+            val message = arguments["message"] as? String ?: ""
+            val confidence = (arguments["confidence"] as? Number)?.toDouble() ?: 0.0
+            val sender = (arguments["sender"] as? String)?.takeIf { it.isNotBlank() } ?: appLabel
+            val notificationKey = arguments["notificationKey"] as? String
+            val reason = arguments["reason"] as? String ?: ""
+            val escalated = arguments["escalated"] as? Boolean ?: false
+            // `text` is the notification text alone. Older callers only send
+            // `message` (sender + text), so fall back to it when `text` is absent.
+            val text = (arguments["text"] as? String)?.takeIf { it.isNotBlank() } ?: message
+
+            Log.i(TAG, "showAlert label=$headline confidence=$confidence key=$notificationKey")
+            NotificationHelper.showScamAlert(
+                this,
+                sender,
+                headline,
+                message,
+                confidence,
+                appLabel,
+                notificationKey,
+                text,
+                reason,
+                escalated,
+            )
+            // Full-screen native warning. It is an Activity (not an overlay
+            // window) so it is visible over the lock screen and over whatever
+            // app the user is currently in. The notification above is the
+            // fallback when background activity starts are restricted.
+            ScamAlertActivity.show(
+                context = this,
+                headline = headline,
+                sender = sender,
+                appLabel = appLabel,
+                bodyText = text,
+                message = message,
+                reason = reason,
+                confidence = confidence,
+                notificationKey = notificationKey,
+                escalated = escalated,
+            )
+        } catch (error: Exception) {
+            // Never let the alert break the method channel: a lost result
+            // would leave the Dart caller waiting forever and stall the
+            // evaluation queue.
+            Log.w(TAG, "showAlert failed", error)
         }
-        val overlayError = ScamOverlayController.show(
-            context = this,
-            appLabel = appLabel,
-            sender = sender,
-            notificationKey = notificationKey,
-            headline = headline,
-            message = message,
-            bodyText = text,
-            reason = reason,
-            confidence = confidence,
-            escalated = arguments["escalated"] as? Boolean ?: false,
-        )
-        if (overlayError != null) updateStatus(overlayError)
     }
 
     companion object {
@@ -265,218 +269,5 @@ class ScamShieldService : Service() {
                 Log.w(TAG, "could not start service", error)
             }
         }
-    }
-}
-
-object ScamOverlayController {
-    private var rootView: View? = null
-    private var windowManager: WindowManager? = null
-
-    fun show(
-        context: Context,
-        appLabel: String,
-        sender: String,
-        notificationKey: String?,
-        headline: String,
-        message: String,
-        bodyText: String,
-        reason: String,
-        confidence: Double,
-        escalated: Boolean,
-    ): String? {
-        hide()
-        val manager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        windowManager = manager
-
-        val density = context.resources.displayMetrics.density
-        fun dp(value: Int) = (value * density).toInt()
-
-        val container = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(24), dp(24), dp(24))
-            gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#E6000000"))
-        }
-
-        val screenHeight = context.resources.displayMetrics.heightPixels
-        val maxBodyHeight = (screenHeight - dp(260))
-            .coerceAtMost((screenHeight * 0.7).toInt())
-            .coerceAtLeast(dp(96))
-
-        val card = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(24), dp(24), dp(24), dp(16))
-            background = GradientDrawable().apply {
-                cornerRadius = dp(20).toFloat()
-                setColor(Color.WHITE)
-            }
-        }
-
-        // Title: the detected UI label (e.g. "Asks for a payment").
-        card.addView(TextView(context).apply {
-            text = "⚠ $headline"
-            textSize = 22f
-            setTextColor(Color.parseColor("#B00020"))
-            setTypeface(typeface, Typeface.BOLD)
-        })
-
-        card.addView(TextView(context).apply {
-            text = "$appLabel  ·  ${(confidence * 100).toInt()}% confidence" +
-                if (escalated) "  ·  checked online" else ""
-            textSize = 13f
-            setTextColor(Color.parseColor("#666666"))
-            setPadding(0, dp(4), 0, 0)
-        })
-
-        val scrollBody = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        // Body: the notification itself — sender, then its text, then the
-        // model's reason directly beneath as one section.
-        if (sender.isNotEmpty()) {
-            scrollBody.addView(TextView(context).apply {
-                text = sender
-                textSize = 15f
-                setTextColor(Color.parseColor("#111111"))
-                setTypeface(typeface, Typeface.BOLD)
-                setPadding(0, dp(12), 0, 0)
-            })
-        }
-
-        if (bodyText.isNotEmpty()) {
-            scrollBody.addView(TextView(context).apply {
-                text = bodyText
-                textSize = 15f
-                setTextColor(Color.parseColor("#333333"))
-                setPadding(0, dp(4), 0, 0)
-            })
-        }
-
-        if (reason.isNotEmpty()) {
-            scrollBody.addView(TextView(context).apply {
-                text = "Why flagged: $reason"
-                textSize = 14f
-                setTextColor(Color.parseColor("#555555"))
-                setPadding(0, dp(6), 0, 0)
-            })
-        }
-
-        card.addView(
-            MaxHeightScrollView(context, maxBodyHeight).apply {
-                addView(
-                    scrollBody,
-                    FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.WRAP_CONTENT,
-                    ),
-                )
-            },
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-
-        card.addView(Button(context).apply {
-            text = "Report as scam"
-            setOnClickListener {
-                hide()
-                val intent = Intent(context, MainActivity::class.java).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    // The post title is the model's reason; the sender already
-                    // sits on the first line of the body. Fall back to the
-                    // detected label when the model gave no reason.
-                    putExtra(
-                        NotificationHelper.EXTRA_REPORT_SUBJECT,
-                        reason.ifBlank { headline },
-                    )
-                    // Body order: notification title + notification text
-                    // (`message` is already both), then the scam label as tag.
-                    putExtra(NotificationHelper.EXTRA_REPORT_CONTENT, buildString {
-                        append(message)
-                        if (headline.isNotEmpty()) {
-                            append('\n')
-                            append(headline)
-                        }
-                    })
-                    putExtra(NotificationHelper.EXTRA_REPORT_SOURCE, "notification")
-                    putExtra(NotificationHelper.EXTRA_REPORT_APP, appLabel)
-                    if (!notificationKey.isNullOrEmpty()) {
-                        putExtra(NotificationHelper.EXTRA_REPORT_KEY, notificationKey)
-                    }
-                }
-                context.startActivity(intent)
-            }
-        }, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { topMargin = dp(16) })
-
-        card.addView(Button(context).apply {
-            text = "Dismiss"
-            setOnClickListener { hide() }
-        }, LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-        ).apply { topMargin = dp(8) })
-
-        container.addView(
-            card,
-            LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                leftMargin = dp(16)
-                rightMargin = dp(16)
-            },
-        )
-
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            @Suppress("DEPRECATION")
-            WindowManager.LayoutParams.TYPE_PHONE
-        }
-
-        val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.MATCH_PARENT,
-            WindowManager.LayoutParams.MATCH_PARENT,
-            type,
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-            PixelFormat.TRANSLUCENT,
-        ).apply {
-            gravity = Gravity.CENTER
-        }
-
-        try {
-            manager.addView(container, params)
-            rootView = container
-        } catch (error: Exception) {
-            rootView = null
-            Log.w("ScamShieldService", "overlay failed", error)
-            return "Overlay failed: ${error.message}"
-        }
-        return null
-    }
-
-    fun hide() {
-        val view = rootView ?: return
-        try {
-            windowManager?.removeView(view)
-        } catch (_: Exception) {
-        }
-        rootView = null
-    }
-}
-
-private class MaxHeightScrollView(
-    context: Context,
-    private val maxHeightPx: Int,
-) : ScrollView(context) {
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val capped = MeasureSpec.makeMeasureSpec(maxHeightPx, MeasureSpec.AT_MOST)
-        super.onMeasure(widthMeasureSpec, capped)
     }
 }

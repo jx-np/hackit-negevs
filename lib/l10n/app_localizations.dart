@@ -1152,6 +1152,18 @@ abstract class AppLocalizations {
   /// **'Sends scam alerts'**
   String get permAlertsSub;
 
+  /// No description provided for @permFullScreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full-screen alerts'**
+  String get permFullScreen;
+
+  /// No description provided for @permFullScreenSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Wakes the screen when locked'**
+  String get permFullScreenSub;
+
   /// No description provided for @permBackground.
   ///
   /// In en, this message translates to:
@@ -1817,6 +1829,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show a warning during a risky call.'**
   String get onboardingOverlayBody;
+
+  /// No description provided for @onboardingFullScreenTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Full-screen alerts'**
+  String get onboardingFullScreenTitle;
+
+  /// No description provided for @onboardingFullScreenBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake the screen with the warning even when the phone is locked.'**
+  String get onboardingFullScreenBody;
 
   /// No description provided for @onboardingBackgroundTitle.
   ///

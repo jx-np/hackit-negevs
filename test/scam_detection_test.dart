@@ -285,6 +285,28 @@ void main() {
     expect(verdict.confidence, 0.95);
   });
 
+  test('scam synonyms and casing still alert', () {
+    for (final label in ['scam', 'likely_scam', 'PHISHING', 'Fraud']) {
+      final verdict = parseScamVerdict(
+        '{"label":"$label","confidence":0.98,"reason":"asks for a transfer"}',
+        source: EvaluationSource.local,
+      );
+      expect(verdict.label, ScamLabel.otherScam, reason: label);
+      expect(verdict.shouldAlert, isTrue, reason: label);
+    }
+  });
+
+  test('safe synonyms and spaced labels resolve without alerting', () {
+    for (final label in ['safe', 'Legit', 'Not Scam', 'not-a-scam']) {
+      final verdict = parseScamVerdict(
+        '{"label":"$label","confidence":0.95,"reason":"no ask"}',
+        source: EvaluationSource.local,
+      );
+      expect(verdict.label, ScamLabel.notScam, reason: label);
+      expect(verdict.shouldAlert, isFalse, reason: label);
+    }
+  });
+
   test('router keeps the local verdict when the cloud is unavailable', () async {
     final router = EvaluationRouter(
       local: _FakeEvaluator(

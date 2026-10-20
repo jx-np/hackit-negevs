@@ -52,6 +52,40 @@ object NotificationHelper {
     }
 
     fun showIncomingCall(context: Context, number: String?, name: String?) {
+        postIncomingCall(context, number, name, fullScreen = false, score = null, reportCount = 0)
+    }
+
+    /**
+     * Re-posts the incoming-call notification with a full-screen intent once
+     * the number is confirmed high risk. This is the system-mediated fallback
+     * for devices/ROMs that block a direct background activity start; the
+     * notification itself stays the same.
+     */
+    fun escalateIncomingCall(
+        context: Context,
+        number: String?,
+        name: String?,
+        score: Int? = null,
+        reportCount: Int = 0,
+    ) {
+        postIncomingCall(
+            context,
+            number,
+            name,
+            fullScreen = true,
+            score = score,
+            reportCount = reportCount,
+        )
+    }
+
+    private fun postIncomingCall(
+        context: Context,
+        number: String?,
+        name: String?,
+        fullScreen: Boolean,
+        score: Int?,
+        reportCount: Int,
+    ) {
         ensureChannels(context)
 
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -84,6 +118,14 @@ object NotificationHelper {
             .setAutoCancel(false)
             .setContentIntent(contentIntent)
 
+        if (fullScreen) {
+            val fullScreenIntent = HighRiskCallActivity.buildIntent(context, number, score, reportCount)
+            val fullScreenPending =
+                PendingIntent.getActivity(context, 1001, fullScreenIntent, piFlags)
+            builder.setFullScreenIntent(fullScreenPending, true)
+            logFullScreenAvailability(context, "incoming call")
+        }
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             @Suppress("DEPRECATION")
             builder.setPriority(Notification.PRIORITY_HIGH)
@@ -114,6 +156,7 @@ object NotificationHelper {
         notificationKey: String?,
         text: String = message,
         reason: String = "",
+        escalated: Boolean = false,
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val mgr = notificationManager(context) ?: return
@@ -155,6 +198,25 @@ object NotificationHelper {
         }
         val reportPending = PendingIntent.getActivity(context, 1003, reportIntent, piFlags)
 
+        // System-mediated fallback: lets the system launch the warning over the
+        // lock screen / current app even when a direct background activity
+        // start is blocked. Android 14+ may withhold this permission; the
+        // notification is still posted either way.
+        val fullScreenIntent = ScamAlertActivity.buildIntent(
+            context = context,
+            headline = headline,
+            sender = sender,
+            appLabel = appLabel,
+            bodyText = text,
+            message = message,
+            reason = reason,
+            confidence = confidence,
+            notificationKey = notificationKey,
+            escalated = escalated,
+        )
+        val fullScreenPending =
+            PendingIntent.getActivity(context, 1004, fullScreenIntent, piFlags)
+
         // Title is the detected UI label; the body carries the notification
         // itself (sender, then its text) plus the model's reason.
         val body = buildString {
@@ -192,12 +254,28 @@ object NotificationHelper {
             )
             .setAutoCancel(true)
             .setContentIntent(reportPending)
+            .setFullScreenIntent(fullScreenPending, true)
             .addAction(0, "Report as scam", reportPending)
+
+        logFullScreenAvailability(context, "scam alert")
 
         try {
             notificationManager(context)?.notify(NOTIFICATION_ID_SCAM_ALERT, builder.build())
         } catch (e: SecurityException) {
             Log.w(TAG, "Missing POST_NOTIFICATIONS permission", e)
+        }
+    }
+
+    /**
+     * Full-screen intents are silently ignored when Android 14+ withholds the
+     * permission, so record whether the fallback can actually be used. The
+     * notification itself is posted regardless.
+     */
+    private fun logFullScreenAvailability(context: Context, what: String) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        val allowed = notificationManager(context)?.canUseFullScreenIntent() ?: false
+        if (!allowed) {
+            Log.w(TAG, "full-screen intent not permitted; $what falls back to a heads-up notification")
         }
     }
 

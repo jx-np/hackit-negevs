@@ -115,11 +115,6 @@ class BackgroundRunner {
   static const int _maxCatchUp = 12;
   static const Duration _catchUpWindow = Duration(hours: 24);
 
-  /// Minimum model confidence for raising the scam alert overlay. The label
-  /// must also be a scam; `not_scam` and `unsure` never alert. The model emits
-  /// 0.95 / 0.8 / 0.6 in practice, so this excludes only its weakest guesses.
-  static const double _alertMinConfidence = 0.7;
-
   /// Multi-turn context window: earlier messages from the same conversation
   /// within this span are fed into the prompt so a slow-burn scam spread across
   /// several messages is judged together. Older messages are ignored — a scam's
@@ -451,13 +446,14 @@ class BackgroundRunner {
       );
       await _log.attachVerdict(id, record, verdict);
 
-      // Alert on every scam verdict the model is reasonably sure about. The
-      // local hints are still computed for the prompt, but they are not an
-      // alert gate: a real scam can carry a single code-detected signal (for
-      // example an unsolicited "call this number" notice), and suppressing
-      // those made the overlay disappear for cases the model correctly flags.
-      // Only `not_scam`, `unsure`, and low-confidence guesses stay quiet.
-      if (verdict.isScam && verdict.confidence > _alertMinConfidence) {
+      // Alert on every scam verdict the model is reasonably sure about. Use
+      // the same `shouldAlert` rule as the activity list so the overlay can
+      // never disagree with what the UI reports as a detected scam. The local
+      // hints are still computed for the prompt, but they are not an alert
+      // gate: a real scam can carry a single code-detected signal (for example
+      // an unsolicited "call this number" notice), and suppressing those made
+      // the overlay disappear for cases the model correctly flags.
+      if (verdict.shouldAlert) {
         await _raiseAlert(record, verdict);
       }
     } finally {
@@ -563,7 +559,12 @@ class BackgroundRunner {
         'source': verdict.source.wire,
         'escalated': verdict.escalated,
       });
+      _trace(
+        'alert shown: ${verdict.label.wire} '
+        '${verdict.confidence.toStringAsFixed(2)} | ${record.appLabel}',
+      );
     } catch (error) {
+      _trace('alert failed: $error');
       _setStatus('Could not show alert: $error');
     }
   }

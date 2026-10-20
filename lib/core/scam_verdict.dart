@@ -14,22 +14,55 @@ enum ScamLabel {
   final String wire;
 
   static ScamLabel fromWire(String? value) {
-    final normalized = value?.trim().toLowerCase();
+    final normalized = _normalize(value);
+    if (normalized.isEmpty) return ScamLabel.unsure;
     for (final label in ScamLabel.values) {
       if (label.wire == normalized) return label;
-      if (label.name.toLowerCase() == normalized) return label;
+      if (_normalize(label.name) == normalized) return label;
     }
-    // Aliases for out-of-vocabulary labels the model emits by copying a hint
-    // name instead of a verdict label. `callback_request` is a hint, and some
-    // models echo it as a label; the observed cases all describe a benign
-    // "call me back" message, so it resolves to not_scam rather than unsure.
+    // Aliases for out-of-vocabulary labels the model invents when it ignores
+    // the label list: synonyms ("scam", "fraud", "safe") and hint names it
+    // echoes back as a verdict (see `callback_request` below). Resolving them
+    // keeps a high-confidence verdict alerting instead of decaying to
+    // `unsure`, which suppresses the alert entirely.
     final alias = _aliases[normalized];
     if (alias != null) return alias;
     return ScamLabel.unsure;
   }
 
+  /// Lowercases and collapses anything that is not a letter or digit into a
+  /// single underscore, so `"Not Scam"`, `"not-scam"` and `"NOT_SCAM"` all
+  /// normalize to the same key.
+  static String _normalize(String? value) => (value ?? '')
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp('[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+
   static const Map<String, ScamLabel> _aliases = {
+    // Hint name some models echo back as a label; the observed cases all
+    // describe a benign "call me back" message, so it is not a scam.
     'callback_request': ScamLabel.notScam,
+    // Scam synonyms.
+    'scam': ScamLabel.otherScam,
+    'likely_scam': ScamLabel.otherScam,
+    'scam_likely': ScamLabel.otherScam,
+    'confirmed_scam': ScamLabel.otherScam,
+    'definite_scam': ScamLabel.otherScam,
+    'fraud': ScamLabel.otherScam,
+    'fraudulent': ScamLabel.otherScam,
+    'phishing': ScamLabel.otherScam,
+    'phishing_scam': ScamLabel.otherScam,
+    'spam': ScamLabel.otherScam,
+    'suspicious': ScamLabel.otherScam,
+    // Safe synonyms.
+    'safe': ScamLabel.notScam,
+    'legit': ScamLabel.notScam,
+    'legitimate': ScamLabel.notScam,
+    'benign': ScamLabel.notScam,
+    'no_scam': ScamLabel.notScam,
+    'not_a_scam': ScamLabel.notScam,
+    'not_scam_message': ScamLabel.notScam,
   };
 
   bool get isScam =>

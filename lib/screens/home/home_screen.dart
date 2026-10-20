@@ -448,6 +448,15 @@ class _ProtectionStatusCardState extends State<_ProtectionStatusCard> {
                 ),
               ],
             ),
+            if (_status.lastMessage.isNotEmpty) ...[
+              SizedBox(height: tokens.space.md),
+              Text(
+                _status.lastMessage,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: foreground.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
           ],
           SizedBox(height: tokens.space.xl),
           _StatusButton(

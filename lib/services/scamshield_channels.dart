@@ -101,6 +101,18 @@ class ScamShieldController {
   static Future<void> requestOverlayPermission() =>
       ScamShieldChannels.ui.invokeMethod<void>('requestOverlayPermission');
 
+  /// True when the app may launch full-screen intents, which is how scam and
+  /// high-risk-call alerts wake the screen over the lock screen. Android 14+
+  /// withholds this by default; below Android 14 it is always true.
+  static Future<bool> hasFullScreenIntent() async =>
+      await ScamShieldChannels.ui.invokeMethod<bool>('hasFullScreenIntent') ??
+      false;
+
+  /// Opens the system "Full screen notifications" settings screen for this app
+  /// so the user can grant [hasFullScreenIntent]. No-op on Android < 14.
+  static Future<void> requestFullScreenIntent() =>
+      ScamShieldChannels.ui.invokeMethod<void>('requestFullScreenIntent');
+
   /// True when the app holds "All files access" (`MANAGE_EXTERNAL_STORAGE`),
   /// which lets the dev menu scan shared storage (Download, Documents, the
   /// external-storage root) for model files. On Android < R this is always

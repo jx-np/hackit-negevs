@@ -1,5 +1,9 @@
 {
   "ms": [
+    "permFullScreen",
+    "permFullScreenSub",
+    "onboardingFullScreenTitle",
+    "onboardingFullScreenBody",
     "postDetailMentionHelpHint",
     "postDetailBotThinking",
     "tourReviewTitle",
@@ -12,6 +16,10 @@
   ],
 
   "ta": [
+    "permFullScreen",
+    "permFullScreenSub",
+    "onboardingFullScreenTitle",
+    "onboardingFullScreenBody",
     "postDetailMentionHelpHint",
     "postDetailBotThinking",
     "tourReviewTitle",
@@ -24,6 +32,10 @@
   ],
 
   "zh": [
+    "permFullScreen",
+    "permFullScreenSub",
+    "onboardingFullScreenTitle",
+    "onboardingFullScreenBody",
     "postDetailMentionHelpHint",
     "postDetailBotThinking",
     "tourReviewTitle",

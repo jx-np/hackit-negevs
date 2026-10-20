@@ -574,6 +574,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get permAlertsSub => '发送诈骗提醒';
 
   @override
+  String get permFullScreen => 'Full-screen alerts';
+
+  @override
+  String get permFullScreenSub => 'Wakes the screen when locked';
+
+  @override
   String get permBackground => '保持运行';
 
   @override
@@ -917,6 +923,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingOverlayBody => '通话有风险时显示提醒。';
+
+  @override
+  String get onboardingFullScreenTitle => 'Full-screen alerts';
+
+  @override
+  String get onboardingFullScreenBody =>
+      'Wake the screen with the warning even when the phone is locked.';
 
   @override
   String get onboardingBackgroundTitle => '保持运行';

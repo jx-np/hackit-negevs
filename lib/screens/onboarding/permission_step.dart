@@ -26,6 +26,7 @@ enum PermissionStepKind {
   notifications,
   messageAccess,
   overlay,
+  fullScreen,
   backgroundRun,
   batteryOptimizationSettings,
 }
@@ -78,6 +79,7 @@ class PermissionStep {
     PermissionStepKind.notifications => l10n.onboardingNotificationsTitle,
     PermissionStepKind.messageAccess => l10n.onboardingMessagesTitle,
     PermissionStepKind.overlay => l10n.onboardingOverlayTitle,
+    PermissionStepKind.fullScreen => l10n.onboardingFullScreenTitle,
     PermissionStepKind.backgroundRun => l10n.onboardingBackgroundTitle,
     PermissionStepKind.batteryOptimizationSettings =>
       l10n.onboardingBatterySettingsTitle,
@@ -90,6 +92,7 @@ class PermissionStep {
     PermissionStepKind.notifications => l10n.onboardingNotificationsBody,
     PermissionStepKind.messageAccess => l10n.onboardingMessagesBody,
     PermissionStepKind.overlay => l10n.onboardingOverlayBody,
+    PermissionStepKind.fullScreen => l10n.onboardingFullScreenBody,
     PermissionStepKind.backgroundRun => l10n.onboardingBackgroundBody,
     PermissionStepKind.batteryOptimizationSettings =>
       l10n.onboardingBatterySettingsBody,
@@ -169,6 +172,16 @@ class OnboardingPermissions {
       check: () async =>
           _fromBool(await ScamShieldController.hasOverlayPermission()),
       request: ScamShieldController.requestOverlayPermission,
+    ),
+    PermissionStep._(
+      kind: PermissionStepKind.fullScreen,
+      icon: LucideIcons.maximize,
+      // Android 14+ only; below that the check always reports granted, so the
+      // step flashes past on older devices.
+      opensSettings: true,
+      check: () async =>
+          _fromBool(await ScamShieldController.hasFullScreenIntent()),
+      request: ScamShieldController.requestFullScreenIntent,
     ),
     PermissionStep._(
       kind: PermissionStepKind.backgroundRun,

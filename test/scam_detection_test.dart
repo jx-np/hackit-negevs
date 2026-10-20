@@ -635,7 +635,7 @@ void main() {
           );
 
       expect(
-        (await hintsForTitle('Adli', 'com.whatsapp')).render(),
+        (await hintsForTitle('Alex', 'com.whatsapp')).render(),
         'sender=saved_contact, signals=0',
       );
       expect(
@@ -871,19 +871,61 @@ void main() {
       expect(hints.priorSignals, 0);
     });
 
-    const workshop = 'Hey Makers! 👋🏻✨\n\n'
-        'We’ve got an upcoming *Be an Entrepreneurship Workshop* to help you '
+    test('a group chat gets no sender hint and no prior signals', () async {
+      final hints = await ScamHintBuilder.fromRecord(
+        NotificationRecord(
+          packageName: 'com.whatsapp',
+          appLabel: 'WhatsApp',
+          title: 'Class of 2026',
+          content: 'bit.ly/abc',
+          postedAt: DateTime(2026, 1, 1),
+          isGroup: true,
+        ),
+        priorMessages: ['click here now'],
+      );
+      final rendered = hints.render();
+      expect(rendered, isNot(contains('sender=')));
+      expect(rendered, contains('group_chat=yes'));
+      expect(hints.priorSignals, 0);
+      expect(hints.promptSender('Class of 2026'), 'chat user');
+    });
+
+    test('prompt sender hides chat usernames but keeps phone numbers', () {
+      final chat = ScamHintBuilder.build(
+        sender: 'user123:club',
+        message: 'hi',
+        isSavedContact: false,
+        isSmsSender: false,
+      );
+      expect(chat.promptSender('user123:club'), 'chat user');
+      expect(chat.promptSender('+65 9123 4567'), '+65 9123 4567');
+      expect(hintsFor('DBS', 'hi').promptSender('DBS'), 'DBS');
+    });
+
+    test('no scam evidence only when nothing at all fired', () {
+      expect(
+        hintsFor('Alex', 'can you re-add my email to the Canva team?')
+            .noScamEvidence,
+        isTrue,
+      );
+      expect(hintsFor('Alex', 'see https://example.com').noScamEvidence,
+          isFalse);
+      expect(hintsFor('Alex', 'call me at 91234567').noScamEvidence, isFalse);
+    });
+
+    const workshop = 'Hey everyone! 👋🏻✨\n\n'
+        'We’ve got an upcoming *Startup Workshop* to help you '
         'level up your ideas and creations 💡🔥\n\n'
         '📅 *Workshop Details:*\n'
         '🗓️ Date: _28 Oct 2026 (Wed)_\n'
         '⏰ Time: _2.30pm – 4pm_\n'
-        '📍Location: Bounce (Blk 25 #01-01, near FoodClub)\n'
+        '📍Location: Hall A (Blk 1 #01-01, near the canteen)\n'
         '👥 Slots: No limit!\n\n'
-        '*Sign up:* https://forms.gle/VG1Wr8TAMim2augZ9\n'
+        '*Sign up:* https://forms.gle/example123\n'
         '*Deadline:* _23 Oct 2026, 11.59pm_';
 
     test('a free workshop notice with a sign-up link is an announcement', () {
-      final hints = hintsFor('Makers', workshop);
+      final hints = hintsFor('Art Club', workshop);
       expect(hints.messageSignalCount, 0);
       expect(hints.announcement, isTrue);
       expect(hints.render(), contains('announcement=yes'));
@@ -895,7 +937,7 @@ void main() {
     });
 
     test('an event notice that asks for payment is not an announcement', () {
-      final hints = hintsFor('Makers', '$workshop\nPay the 20 fee to confirm.');
+      final hints = hintsFor('Art Club', '$workshop\nPay the 20 fee to confirm.');
       expect(hints.announcement, isFalse);
     });
 

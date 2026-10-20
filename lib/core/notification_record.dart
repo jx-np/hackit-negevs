@@ -10,6 +10,7 @@ class NotificationRecord {
     required this.postedAt,
     this.id = 0,
     this.key = '',
+    this.isGroup = false,
   });
 
   factory NotificationRecord.fromIncoming(
@@ -30,6 +31,7 @@ class NotificationRecord {
               ? event.subText!.trim()
               : title,
       postedAt: event.postedAt,
+      isGroup: event.isGroup,
     );
   }
 
@@ -44,6 +46,7 @@ class NotificationRecord {
       postedAt: DateTime.fromMillisecondsSinceEpoch(
         json['postedAt'] as int? ?? DateTime.now().millisecondsSinceEpoch,
       ),
+      isGroup: json['isGroup'] as bool? ?? false,
     );
   }
 
@@ -54,6 +57,10 @@ class NotificationRecord {
   final String title;
   final String content;
   final DateTime postedAt;
+
+  /// Android flagged the notification as a group conversation (API 28+;
+  /// always false on older devices or apps that do not set it).
+  final bool isGroup;
 
   String get body {
     final parts = <String>[];
@@ -80,6 +87,7 @@ class NotificationRecord {
         'title': title,
         'content': content,
         'postedAt': postedAt.millisecondsSinceEpoch,
+        if (isGroup) 'isGroup': true,
       };
 }
 

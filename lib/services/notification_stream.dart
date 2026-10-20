@@ -13,6 +13,7 @@ class IncomingNotification {
     this.key = '',
     this.conversationTitle,
     this.subText,
+    this.isGroup = false,
   });
 
   factory IncomingNotification.fromMap(Map<dynamic, dynamic> map) {
@@ -30,6 +31,7 @@ class IncomingNotification {
       ),
       conversationTitle: conversationTitle,
       subText: (map['subText'] as String?)?.trim(),
+      isGroup: map['isGroup'] as bool? ?? false,
       postedAt: postTime > 0
           ? DateTime.fromMillisecondsSinceEpoch(postTime)
           : DateTime.now(),
@@ -73,6 +75,10 @@ class IncomingNotification {
   final String content;
   final String? conversationTitle;
   final String? subText;
+
+  /// Android marks the notification as a group conversation (API 28+, only
+  /// for apps that use MessagingStyle). False when unknown.
+  final bool isGroup;
   final DateTime postedAt;
 
   /// The chat/sender name plus the extracted message content. Falls back to

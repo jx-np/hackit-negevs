@@ -241,8 +241,9 @@ class LocalLlmEvaluator implements ScamEvaluator {
     final message = _truncate(record.content, _inputCharCap);
     // Reuse hints computed by the caller when available; recomputing here would
     // hit the device contacts DB a second time (see ScamHintBuilder.fromRecord).
-    final hints =
-        (precomputedHints ?? await ScamHintBuilder.fromRecord(record)).render();
+    final scamHints =
+        precomputedHints ?? await ScamHintBuilder.fromRecord(record);
+    final hints = scamHints.render();
     // Earlier turns only carry context, so each is clipped hard to keep the
     // added prefill small. Blank turns are dropped so a rolled-up or empty
     // prior ("3 new messages") does not waste a line.
@@ -255,7 +256,7 @@ class LocalLlmEvaluator implements ScamEvaluator {
           replyLanguage: language,
           compact: true,
           appLabel: record.appLabel,
-          sender: record.title,
+          sender: scamHints.promptSender(record.title),
           message: text,
           hints: hints,
           priorMessages: prior,

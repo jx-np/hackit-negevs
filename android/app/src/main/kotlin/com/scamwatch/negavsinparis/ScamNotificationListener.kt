@@ -74,6 +74,8 @@ class ScamNotificationListener : NotificationListenerService() {
         } else {
             null
         }
+        val isGroup = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+            extras.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false)
         val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim()
         val content = extractContent(extras)
         if (title.isEmpty() && content.isEmpty()) return
@@ -86,6 +88,7 @@ class ScamNotificationListener : NotificationListenerService() {
                 "packageName" to sbn.packageName,
                 "title" to title,
                 "conversationTitle" to conversation,
+                "isGroup" to isGroup,
                 "subText" to subText,
                 "content" to content,
                 "postTime" to sbn.postTime,

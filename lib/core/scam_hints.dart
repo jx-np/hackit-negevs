@@ -111,6 +111,7 @@ class ScamHints {
     this.priorSignals = 0,
     this.eventCues = 0,
     this.includeSender = true,
+    this.isGroup = false,
   });
 
   /// Every link counts this many signals. Links are the payload of nearly every
@@ -126,6 +127,11 @@ class ScamHints {
   /// In that case no `sender=` token is rendered and the sender type never
   /// counts as a corroborating signal.
   final bool includeSender;
+
+  /// The message came from a group chat. Rendered as `group_chat=yes` so the
+  /// model reads a favour or bill split among several people as ordinary chat.
+  /// It never counts as a signal.
+  final bool isGroup;
 
   /// "send me the OTP" — an ask for a secret code.
   final bool asksForCode;
@@ -187,6 +193,22 @@ class ScamHints {
       !deliversCode &&
       (linkType == LinkType.none || linkType == LinkType.normal);
 
+  /// Code found nothing a scam could use: no tell, link, lure or phone number
+  /// in this message or its thread. A scam label from the model on such a
+  /// message is treated as a misread of ordinary chat and downgraded.
+  bool get noScamEvidence =>
+      strongSignalCount == 0 && lure == LureType.none && !phoneInBody;
+
+  /// The sender line for the prompt. A chat app's notification title is a
+  /// username or "account:name" header, not a sender identity, and the model
+  /// read it as impersonation. The app label already names the app, so chat
+  /// apps get a neutral placeholder instead. A phone-number title is kept,
+  /// since an unknown number is real sender evidence.
+  String promptSender(String title) =>
+      includeSender || ContactDirectory.looksLikePhone(title.trim())
+          ? title
+          : 'chat user';
+
   /// Compact string that goes into the prompt as `$hints`. Only true signals
   /// are listed, so an ordinary message renders just its sender type. Chat
   /// apps render no sender token at all, leaving `signals=0` for an ordinary
@@ -194,6 +216,7 @@ class ScamHints {
   String render() {
     final parts = <String>[];
     if (includeSender) parts.add('sender=${senderType.wire}');
+    if (isGroup) parts.add('group_chat=yes');
     if (linkType != LinkType.none) parts.add('link=${linkType.wire}');
     if (asksForCode) parts.add('asks_for_code=yes');
     if (deliversCode) parts.add('delivers_code=yes');
@@ -201,7 +224,9 @@ class ScamHints {
     if (urgency) parts.add('urgency=yes');
     if (moneyAsk) parts.add('money_ask=yes');
     if (movesOffPlatform) parts.add('moves_off_platform=yes');
-    if (brandMentioned) parts.add('brand_mentioned=yes');
+    if (brandMentioned && strongSignalCount > 0) {
+      parts.add('brand_mentioned=yes');
+    }
     if (callbackRequest) parts.add('callback_request=yes');
     if (legalThreat) parts.add('legal_threat=yes');
     if (phoneInBody) parts.add('phone_in_body=yes');
@@ -264,6 +289,7 @@ class ScamHints {
         priorSignals: count,
         eventCues: eventCues,
         includeSender: includeSender,
+        isGroup: isGroup,
       );
 
   /// True when there is nothing suspicious at all, so the caller may skip the
@@ -436,7 +462,7 @@ class ScamHintBuilder {
     caseSensitive: false,
   );
   static final RegExp _venue = RegExp(
-    r'\b(location|venue|room|hall|blk|block|studio|library|auditorium|campus)\b|#\d{1,3}-\d{1,3}|📍',
+    r'\b(location|venue|room|hall|blk|block|studio|library|auditorium|campus)\b|#\d{1,3}-\d{1,3}',
     caseSensitive: false,
   );
 
@@ -501,6 +527,7 @@ class ScamHintBuilder {
     String homeCountryCode = '+65',
     bool isSmsSender = true,
     List<String> priorMessages = const [],
+    bool isGroup = false,
   }) {
     final hints = _buildSingle(
       sender: sender,
@@ -508,8 +535,11 @@ class ScamHintBuilder {
       isSavedContact: isSavedContact,
       homeCountryCode: homeCountryCode,
       isSmsSender: isSmsSender,
+      isGroup: isGroup,
     );
-    if (priorMessages.isEmpty) return hints;
+    // Earlier group messages come from other speakers, so pooling their tells
+    // would pin one person's link on another's harmless reply.
+    if (priorMessages.isEmpty || isGroup) return hints;
     final prior = _priorSignalCount(
       hints,
       priorMessages,
@@ -527,6 +557,7 @@ class ScamHintBuilder {
     required bool isSavedContact,
     required String homeCountryCode,
     required bool isSmsSender,
+    bool isGroup = false,
   }) {
     final senderType = _senderType(
       sender: sender,
@@ -576,6 +607,7 @@ class ScamHintBuilder {
       lure: _lure(message),
       eventCues: _eventCues(message),
       includeSender: isSmsSender,
+      isGroup: isGroup,
     );
   }
 
@@ -675,8 +707,11 @@ class ScamHintBuilder {
     String homeCountryCode = '+65',
     List<String> priorMessages = const [],
   }) async {
-    final isSms = isSmsApp(record.packageName);
-    final byPhone = identifiesByPhone(record.packageName);
+    final group = record.isGroup;
+    // A group title names the group, not the speaker, so it says nothing about
+    // whether the sender is saved: groups get no sender hint at all.
+    final isSms = !group && isSmsApp(record.packageName);
+    final byPhone = !group && identifiesByPhone(record.packageName);
     final sender = record.title.trim();
     // WhatsApp shows the saved contact name, or the bare number when the
     // sender is not in the contacts, so the title alone tells which it is.
@@ -692,6 +727,7 @@ class ScamHintBuilder {
       homeCountryCode: homeCountryCode,
       isSmsSender: isSms || byPhone,
       priorMessages: priorMessages,
+      isGroup: group,
     );
   }
 

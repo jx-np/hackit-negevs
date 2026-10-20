@@ -395,6 +395,18 @@ class BackgroundRunner {
         // it as an inconclusive verdict instead.
         verdict = ScamVerdict.unsure(reason: 'On-device check failed: $error');
       }
+      // A scam label on a message where code found no tell, link, lure or
+      // phone number is a misread of ordinary chat (a friend asking a favour,
+      // a username header read as impersonation). Downgrade it before it is
+      // logged so the overlay and the activity list agree. This trades recall
+      // on scams phrased entirely outside the hint patterns.
+      if (verdict.isScam && hints.noScamEvidence) {
+        verdict = verdict.copyWith(
+          label: ScamLabel.unsure,
+          reason: 'No scam signals found (model said ${verdict.label.wire}: '
+              '${verdict.reason})',
+        );
+      }
       _evaluated++;
       _trace(
         'verdict ${verdict.label.name} '
@@ -405,8 +417,8 @@ class BackgroundRunner {
 
       // Alert on every scam verdict the model is reasonably sure about. Use
       // the same `shouldAlert` rule as the activity list so the overlay can
-      // never disagree with what the UI reports as a detected scam. The local
-      // hints are still computed for the prompt, but they are not an alert
+      // never disagree with what the UI reports as a detected scam. Beyond the
+      // zero-evidence downgrade above, the local hints are not an alert
       // gate: a real scam can carry a single code-detected signal (for example
       // an unsolicited "call this number" notice), and suppressing those made
       // the overlay disappear for cases the model correctly flags.

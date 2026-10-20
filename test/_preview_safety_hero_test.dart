@@ -12,7 +12,7 @@ import 'package:scamwatch_mobile_app/screens/safety/widgets/safety_hero.dart';
 import 'package:scamwatch_mobile_app/theme/theme.dart';
 import 'package:scamwatch_mobile_app/theme/material_theme.dart';
 
-const _out = r'C:\Users\Qwerty\AppData\Local\Temp\opencode\hero_preview';
+final _out = '${Directory.systemTemp.path}\\hero_preview';
 const _fonts = r'D:\flutter\bin\cache\artifacts\material_fonts';
 
 Future<void> _loadFonts() async {

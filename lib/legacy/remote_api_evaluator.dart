@@ -75,12 +75,12 @@ class RemoteApiEvaluator implements ScamEvaluator {
       );
     }
     try {
-      final hintsLine =
-          (hints ?? await ScamHintBuilder.fromRecord(record)).render();
+      final scamHints = hints ?? await ScamHintBuilder.fromRecord(record);
+      final hintsLine = scamHints.render();
       final prompt = buildScamPrompt(
         replyLanguage: await ProtectionSettings().replyLanguage(),
         appLabel: record.appLabel,
-        sender: record.title,
+        sender: scamHints.promptSender(record.title),
         message: record.content,
         hints: hintsLine,
         priorMessages: priorMessages ?? const [],

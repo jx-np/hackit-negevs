@@ -15,6 +15,7 @@ import (
 	"scamshield/internal/checks"
 	"scamshield/internal/classifier"
 	"scamshield/internal/config"
+	"scamshield/internal/grok"
 	"scamshield/internal/httpx"
 	"scamshield/internal/logging"
 	"scamshield/internal/moderation"
@@ -23,6 +24,7 @@ import (
 	"scamshield/internal/platform/db"
 	"scamshield/internal/reports"
 	"scamshield/internal/resources"
+	"scamshield/internal/sse"
 	"scamshield/internal/storage"
 	"scamshield/migrations"
 
@@ -152,9 +154,44 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		)
 	}
 	reportsHandler := reports.NewHandler(reports.NewService(reports.NewPostgresRepository(pool), postClassifier, store))
-	moderationHandler := moderation.NewHandler(moderation.NewService(moderation.NewPostgresRepository(pool)))
+	moderationSvc := moderation.NewService(moderation.NewPostgresRepository(pool))
+	moderationHandler := moderation.NewHandler(moderationSvc)
 	resourcesHandler := resources.NewHandler(resources.NewService(resources.NewPostgresRepository(pool)))
 	newsHandler := news.NewHandler(news.NewService(news.NewPostgresRepository(pool)))
+
+	// In-memory SSE hub for per-post discussion and @help progress events. It
+	// is single-process; a multi-instance deployment would put Redis pub/sub or
+	// Postgres LISTEN/NOTIFY in front of it. BaseContext is the signal context
+	// so every stream returns on shutdown instead of holding Shutdown open.
+	streamHub := sse.NewHub()
+	sseHandler := sse.NewHandler(
+		sse.NewService(sse.NewPostgresRepository(pool)),
+		streamHub,
+		sse.HandlerOptions{Logger: logger, BaseContext: ctx},
+	)
+
+	// Comment observers are fanned out through a composite: the SSE hub is
+	// always registered, and the @help bot is added when an LLM key is
+	// configured. Observers must not block.
+	observers := []moderation.CommentObserver{sse.NewCommentObserver(streamHub)}
+	if cfg.GrokEnabled() {
+		observers = append(observers, grok.New(ctx, pool, store, grok.Config{
+			BaseURL:       cfg.LLMBaseURL,
+			APIKey:        cfg.LLMAPIKey,
+			Model:         cfg.LLMModel,
+			Timeout:       cfg.LLMTimeout,
+			MaxConcurrent: cfg.GrokMaxConcurrent,
+		}, logger, sse.NewGrokPublisher(streamHub)))
+		logger.Info("@help comment bot enabled",
+			"base_url", cfg.LLMBaseURL,
+			"model", cfg.LLMModel,
+			"timeout", cfg.LLMTimeout,
+			"max_concurrent", cfg.GrokMaxConcurrent,
+		)
+	} else {
+		logger.Warn("@help comment bot disabled; set LLM_API_KEY to enable @help replies")
+	}
+	moderationSvc.SetCommentObserver(moderation.NewCommentObserverGroup(observers...))
 
 	rateLimiter := httpx.NewRateLimiter(20, 40, nil)
 	defer rateLimiter.Close()
@@ -179,6 +216,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	moderationHandler.RegisterRoutes(mux, requireAuth, optionalAuth, requireModerator, globalMW)
 	resourcesHandler.RegisterRoutes(mux, optionalAuth, requireAdmin, globalMW)
 	newsHandler.RegisterRoutes(mux, optionalAuth, globalMW)
+	sseHandler.RegisterRoutes(mux, optionalAuth, globalMW)
 	registerHealthRoutes(mux, globalMW, pool)
 
 	// Background retention reaper: enforces the private_uploads (24h) and
@@ -221,6 +259,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	// Close open SSE streams first: http.Server.Shutdown waits for active
+	// handlers, and a long-lived stream would otherwise hold it open until the
+	// deadline. The handler base context is also already cancelled here.
+	streamHub.Close()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return err
 	}

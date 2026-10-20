@@ -78,6 +78,21 @@ func (rec *statusRecorder) Write(b []byte) (int, error) {
 	return rec.ResponseWriter.Write(b)
 }
 
+// Flush forwards to the underlying writer so streaming handlers keep working
+// through the logging wrapper. The status recorder never buffers the body.
+func (rec *statusRecorder) Flush() {
+	if f, ok := rec.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// Unwrap exposes the underlying response writer to http.ResponseController
+// (Flush, SetWriteDeadline, ...) and to callers using errors.As/type
+// assertions that understand the Unwrap convention.
+func (rec *statusRecorder) Unwrap() http.ResponseWriter {
+	return rec.ResponseWriter
+}
+
 // Logging emits a structured log line per request. It never logs request or
 // response bodies.
 func Logging(logger *slog.Logger) Middleware {

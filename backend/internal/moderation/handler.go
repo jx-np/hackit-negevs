@@ -70,19 +70,26 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux, requireAuth, optionalAuth, 
 
 // --- DTOs ---
 
-type commentDTO struct {
+// CommentDTO is the public JSON shape of a comment. It is exported so other
+// transports (for example the SSE hub) can emit exactly the same object without
+// duplicating the mapping.
+type CommentDTO struct {
 	CommentID   string `json:"comment_id"`
 	ParentID    string `json:"parent_id,omitempty"`
 	AuthorID    string `json:"author_id,omitempty"`
 	AuthorLabel string `json:"author_label"`
-	Body        string `json:"body"`
-	Status      string `json:"status"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	// IsBot marks a comment written by the service's AI account (the @help
+	// bot) so clients can show an "AI" badge. Always present; false for
+	// human authors.
+	IsBot     bool   `json:"is_bot"`
+	Body      string `json:"body"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 type commentsResponse struct {
-	Items      []commentDTO `json:"items"`
+	Items      []CommentDTO `json:"items"`
 	NextCursor string       `json:"next_cursor,omitempty"`
 }
 
@@ -157,9 +164,9 @@ func (h *Handler) listComments(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, r, err)
 		return
 	}
-	items := make([]commentDTO, 0, len(page.Items))
+	items := make([]CommentDTO, 0, len(page.Items))
 	for _, c := range page.Items {
-		items = append(items, toCommentDTO(c))
+		items = append(items, ToCommentDTO(c))
 	}
 	httpx.WriteJSON(w, http.StatusOK, commentsResponse{Items: items, NextCursor: page.NextCursor})
 }
@@ -200,7 +207,7 @@ func (h *Handler) createComment(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, r, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusCreated, toCommentDTO(c))
+	httpx.WriteJSON(w, http.StatusCreated, ToCommentDTO(c))
 }
 
 func (h *Handler) updateComment(w http.ResponseWriter, r *http.Request) {
@@ -225,7 +232,7 @@ func (h *Handler) updateComment(w http.ResponseWriter, r *http.Request) {
 		h.writeServiceError(w, r, err)
 		return
 	}
-	httpx.WriteJSON(w, http.StatusOK, toCommentDTO(c))
+	httpx.WriteJSON(w, http.StatusOK, ToCommentDTO(c))
 }
 
 func (h *Handler) deleteComment(w http.ResponseWriter, r *http.Request) {
@@ -383,10 +390,12 @@ func (h *Handler) reviewComment(w http.ResponseWriter, r *http.Request) {
 
 // --- mapping ---
 
-func toCommentDTO(c Comment) commentDTO {
-	dto := commentDTO{
+// ToCommentDTO maps a domain Comment to its public JSON shape.
+func ToCommentDTO(c Comment) CommentDTO {
+	dto := CommentDTO{
 		CommentID:   encodeID(c.ID),
 		AuthorLabel: c.AuthorLabel,
+		IsBot:       c.IsBot,
 		Body:        c.Body,
 		Status:      c.Status,
 		CreatedAt:   c.CreatedAt.UTC().Format(time.RFC3339),

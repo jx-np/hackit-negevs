@@ -13,6 +13,7 @@ package moderation
 
 import (
 	"errors"
+	"log/slog"
 	"strconv"
 	"time"
 )
@@ -113,10 +114,65 @@ type Comment struct {
 	AuthorUserID    *int64
 	ParentCommentID *int64
 	AuthorLabel     string
-	Body            string
-	Status          string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// IsBot reports whether the author is a service AI account (the @help
+	// comment bot). It is false for every human author.
+	IsBot     bool
+	Body      string
+	Status    string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// CommentObserver is notified whenever a comment is created.
+//
+// It is called synchronously from the request path, so implementations must
+// not block and must not do slow work inline: hand the work to a background
+// queue and return immediately (the @help bot does exactly that). The observer
+// is only notified for comments that were stored successfully; failed
+// validation or a failed insert never reaches it.
+type CommentObserver interface {
+	// CommentCreated is called once with the stored comment.
+	CommentCreated(c Comment)
+}
+
+// CommentObserverGroup fans a single comment-created notification out to every
+// registered observer. It lets independent features (the SSE hub, the @help
+// bot, ...) hook the same event without moderation knowing about either.
+//
+// Observers are still called inline; a panicking observer is recovered and
+// logged without a body so the remaining observers always run. Like any
+// observer, members must not block.
+type CommentObserverGroup []CommentObserver
+
+// NewCommentObserverGroup builds a single CommentObserver that fans out to the
+// supplied observers. Nil entries are ignored; when none remain it returns nil,
+// which SetCommentObserver accepts.
+func NewCommentObserverGroup(observers ...CommentObserver) CommentObserver {
+	var group CommentObserverGroup
+	for _, o := range observers {
+		if o != nil {
+			group = append(group, o)
+		}
+	}
+	if len(group) == 0 {
+		return nil
+	}
+	return group
+}
+
+// CommentCreated implements CommentObserver.
+func (g CommentObserverGroup) CommentCreated(c Comment) {
+	for _, o := range g {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// Never log the comment body: a panic value could carry it.
+					slog.Error("moderation: comment observer panicked")
+				}
+			}()
+			o.CommentCreated(c)
+		}()
+	}
 }
 
 // Flag is the internal representation of a content_flags row.

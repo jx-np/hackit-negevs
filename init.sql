@@ -9,10 +9,22 @@ CREATE TABLE users (
     role text NOT NULL DEFAULT 'resident'
         CHECK (role IN ('resident', 'helper', 'moderator', 'admin')),
     locale text NOT NULL DEFAULT 'en-SG',
+    -- Marks the service's AI accounts (the @help comment bot). A bot row has no
+    -- email and no password_credentials / auth_identities rows, so it can never
+    -- log in; the flag lets clients badge its comments as AI-authored.
+    is_bot boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     CHECK ((email IS NULL) = (email_normalized IS NULL))
 );
+
+-- The @help comment bot's account (display name NegevAI). Seeded here (and by
+-- migration 00016_grok_bot_user.sql) so a database provisioned from this file
+-- carries the same bot identity as one built from migrations. Idempotent: the
+-- row is only added when no bot user exists yet.
+INSERT INTO users (display_name, role, is_bot)
+SELECT 'NegevAI', 'resident', true
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE is_bot);
 
 CREATE TABLE password_credentials (
     user_id bigint PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

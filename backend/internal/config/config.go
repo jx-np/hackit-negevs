@@ -46,6 +46,23 @@ type Config struct {
 	// ReaperInterval is how often the retention reaper runs. Driven by
 	// REAPER_INTERVAL; defaults to one hour.
 	ReaperInterval time.Duration
+	// LLMBaseURL is the base URL of the OpenAI-compatible LLM gateway used by
+	// the @help comment bot. Driven by LLM_BASE_URL; defaults to
+	// https://litellm.chimmy.xyz/v1.
+	LLMBaseURL string
+	// LLMAPIKey is the API key for the LLM gateway. The @help bot is enabled
+	// only when this is set. Driven by LLM_API_KEY; defaults to empty.
+	LLMAPIKey string
+	// LLMModel is the model the @help bot asks for. Driven by LLM_MODEL;
+	// defaults to deepseek-v4.1-flash.
+	LLMModel string
+	// LLMTimeout is the timeout for a single LLM request. Driven by LLM_TIMEOUT;
+	// defaults to 5m (the model is a slow reasoning model).
+	LLMTimeout time.Duration
+	// GrokMaxConcurrent is the maximum number of @help LLM jobs running at the
+	// same time. Driven by GROK_MAX_CONCURRENT; defaults to 32. Values below 1
+	// are rejected.
+	GrokMaxConcurrent int
 }
 
 // IsDevelopment reports whether the service is running in the development
@@ -53,6 +70,21 @@ type Config struct {
 func (c Config) IsDevelopment() bool {
 	return c.Environment == "development"
 }
+
+// GrokEnabled reports whether the @help comment bot is enabled. It requires an
+// API key for the LLM gateway; without one the bot is not wired up and an
+// "@help" mention is just ordinary comment text.
+func (c Config) GrokEnabled() bool {
+	return strings.TrimSpace(c.LLMAPIKey) != ""
+}
+
+// Defaults for the LLM gateway used by the @help comment bot.
+const (
+	defaultLLMBaseURL        = "https://litellm.chimmy.xyz/v1"
+	defaultLLMModel          = "deepseek-v4.1-flash"
+	defaultLLMTimeout        = 5 * time.Minute
+	defaultGrokMaxConcurrent = 32
+)
 
 // Load reads configuration from the environment, applying defaults, and
 // validates it. It first attempts to load a .env file from the working
@@ -101,6 +133,23 @@ func Load() (Config, error) {
 	}
 	cfg.BcryptCost = bcryptCost
 
+	// LLM gateway settings for the @help comment bot.
+	cfg.LLMBaseURL = getEnv("LLM_BASE_URL", defaultLLMBaseURL)
+	cfg.LLMAPIKey = getEnv("LLM_API_KEY", "")
+	cfg.LLMModel = getEnv("LLM_MODEL", defaultLLMModel)
+
+	llmTimeout, err := getEnvDuration("LLM_TIMEOUT", defaultLLMTimeout)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.LLMTimeout = llmTimeout
+
+	grokMaxConcurrent, err := getEnvInt("GROK_MAX_CONCURRENT", defaultGrokMaxConcurrent)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.GrokMaxConcurrent = grokMaxConcurrent
+
 	if err := cfg.validate(); err != nil {
 		return Config{}, err
 	}
@@ -111,6 +160,9 @@ func Load() (Config, error) {
 func (c Config) validate() error {
 	if !c.IsDevelopment() && c.JWTSecret == "" {
 		return fmt.Errorf("config: JWT_SECRET must be set in non-development environments")
+	}
+	if c.GrokMaxConcurrent < 1 {
+		return fmt.Errorf("config: GROK_MAX_CONCURRENT must be at least 1, got %d", c.GrokMaxConcurrent)
 	}
 	return nil
 }

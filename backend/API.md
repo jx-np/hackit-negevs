@@ -611,6 +611,7 @@ Response `200`:
       "parent_id": "80",
       "author_id": "3",
       "author_label": "Alex",
+      "is_bot": false,
       "body": "I got this from a fake DHL number too.",
       "status": "visible",
       "created_at": "2026-09-29T09:10:00Z",
@@ -621,7 +622,9 @@ Response `200`:
 }
 ```
 `parent_id` is present only for replies. `author_label` is a display name (or
-`"removed user"`); email is never exposed.
+`"removed user"`); email is never exposed. `is_bot` is `true` for comments written by
+the service's AI helper (the `@help` bot) and `false` for human authors — clients can
+show an "AI" badge for it.
 
 ### POST /community/discussion/posts/{id}/comments
 Authenticated. Add a comment (body is server-scrubbed).
@@ -641,6 +644,116 @@ Response `200`: updated comment. Errors: `403` not author, `404` missing.
 ### DELETE /community/discussion/comments/{id}
 Authenticated; author or moderator/admin. Soft-removes the comment (`status: removed`).
 Response `204`.
+
+### @help mentions
+Mentioning `@help` in a comment (e.g. `@help is this a phishing message?`) asks the
+community AI helper to answer. The mention is handled asynchronously:
+
+- `POST /community/discussion/posts/{id}/comments` still returns `201` immediately with
+  your comment; the answer is **not** part of that response.
+- The bot's answer arrives later as a **separate comment** on the same post, authored by
+  the bot (`author_label: "NegevAI"`, `is_bot: true`). It is threaded as a reply to your
+  comment — or, when your comment was itself a reply, to your comment's parent, so
+  replies stay one level deep. Poll or refresh the comments list to pick it up, or
+  subscribe to the post's SSE stream (`GET /community/posts/{id}/sse`, below) for
+  live arrival.
+- If the AI cannot answer, the bot posts a short apology reply instead.
+- The bot sees the post's title, its redacted text, and its already-published
+  PII-redacted images (never the raw uploads), plus the public comments above your
+  mention. Images larger than 768 px on their longest side are downscaled and
+  re-encoded as JPEG before being sent (smaller images are sent unchanged), which
+  keeps image tokens down. It describes what it can read from an image and says
+  when an image is unclear.
+- Bot replies are scrubbed like every other comment, and can be flagged and removed
+  like every other comment.
+- Only mentions made **when the comment is created** trigger the bot; editing a comment
+  to add `@help` does not.
+- The feature is disabled when the server has no LLM key configured — `@help` is then
+  just ordinary comment text and no reply is posted.
+- The feed's `top_comments` preview (§6) is unchanged and carries no `is_bot` flag; use
+  the comments endpoint above to badge the bot's replies.
+
+> Bot answers are AI-generated and may be wrong. A moderator decision is what makes a
+> post "reviewed"; an AI reply never does.
+
+### GET /community/posts/{id}/sse
+Optional auth (always safe to call anonymously). A [Server-Sent Events](https://html.spec.whatwg.org/multipage/server-sent-events.html)
+stream of live discussion activity for one publicly visible post: new comments and
+the `@help` bot's progress. It replaces polling the comments endpoint while a post is
+open.
+
+`EventSource` cannot set an `Authorization` header, which is why this endpoint only
+ever streams **already-public, server-scrubbed** data and never requires a token. A
+token, if present, is ignored.
+
+The post is validated **before** the stream starts. An invalid `{id}`, or a post that
+is deleted, `hidden`/`removed`, or unclassified (`category_id IS NULL`), gets the
+normal JSON `404` error envelope (§3) — not an event stream.
+
+Response headers: `Content-Type: text/event-stream`, `Cache-Control: no-cache,
+no-transform`, `Connection: keep-alive`, `X-Accel-Buffering: no`. The stream starts
+with a reconnect hint and a `ready` event:
+
+```
+retry: 3000
+
+event: ready
+data: {"post_id":"12"}
+
+```
+
+Events (`snake_case`, ids are opaque strings, timestamps UTC RFC3339):
+
+| Event | When | `data` |
+|---|---|---|
+| `ready` | Once, immediately after connecting | `{ "post_id" }` |
+| `comment_created` | A visible comment was stored (human **or** bot) | the comment object from §8 (`comment_id`, optional `parent_id`/`author_id`, `author_label`, `is_bot`, `body`, `status`, `created_at`, `updated_at`) |
+| `grok_thinking` | A comment mentioning `@help` was accepted for an answer | `{ "post_id", "trigger_comment_id" }` |
+| `grok_replied` | The bot's reply comment was stored | `{ "post_id", "trigger_comment_id", "reply_comment_id", "fallback", "comment" }` |
+| `grok_failed` | The job ended without a reply | `{ "post_id", "trigger_comment_id", "reason" }` |
+
+`fallback` is `true` when the model failed and the bot posted its short apology
+reply instead. `comment` in `grok_replied` is the full stored bot comment (same shape
+as `comment_created`); it is omitted only in the rare case where re-loading the
+stored row failed, in which case refetch the thread. `reason` is `"skipped"` when
+there was nothing to answer (post/trigger no longer visible, bot user missing,
+shutdown) or `"error"` for an unexpected failure (database error, insert failure,
+panic).
+
+Every `grok_thinking` is followed by **exactly one** of `grok_replied` or
+`grok_failed`, so a "NegevAI is thinking…" indicator always terminates. Because bot
+replies are inserted outside the normal comment path, a bot reply is announced as
+`comment_created` immediately followed by `grok_replied`; clients that render both
+should de-duplicate by `comment_id`.
+
+Example (browser):
+
+```js
+const es = new EventSource('/api/v1/community/posts/12/sse');
+es.addEventListener('ready', (e) => console.log('listening', JSON.parse(e.data)));
+es.addEventListener('comment_created', (e) => appendComment(JSON.parse(e.data)));
+es.addEventListener('grok_thinking', (e) => showThinking(JSON.parse(e.data).trigger_comment_id));
+es.addEventListener('grok_replied', (e) => {
+  const ev = JSON.parse(e.data);
+  showThinking(null);
+  if (ev.comment) appendComment(ev.comment); // de-dupe by comment_id
+});
+es.addEventListener('grok_failed', (e) => { showThinking(null); });
+```
+
+**Keepalive & reconnect:** a `: keepalive` comment line is written every ~15s so
+proxies and mobile radios keep the connection. `retry: 3000` asks `EventSource` to
+reconnect after ~3s. There is no event replay / `Last-Event-ID` support: on reconnect,
+refetch `GET /community/discussion/posts/{id}/comments` to fill any gap, then continue
+with live events. A reconnect simply receives a fresh `ready`.
+
+**Limits:** at most **1000** concurrent SSE connections process-wide and **200** per
+post; past either cap the endpoint answers `503` with code `stream_unavailable`
+(retry shortly). The global rate limiter counts the connection once (a stream is a
+single request), so long-lived streams are not throttled; reconnects are bounded by
+the connection caps. The single-process hub is appropriate for the pilot; a
+multi-instance deployment would need Redis pub/sub or Postgres `LISTEN/NOTIFY` so an
+event reaches clients connected to any instance.
 
 ---
 
@@ -888,6 +1001,7 @@ Public. Readiness (pings the database). `200 { "status": "ready" }` or `503`.
 | PATCH | `/community/discussion/comments/{id}` | Authenticated (author) |
 | DELETE | `/community/discussion/comments/{id}` | Authenticated (author/mod) |
 | POST | `/community/discussion/comments/{id}/flag` | Authenticated |
+| GET | `/community/posts/{id}/sse` | Optional auth (public data) |
 | GET | `/guidance` | Optional auth |
 | GET | `/guidance/resources` | Optional auth |
 | GET | `/news` | Optional auth |

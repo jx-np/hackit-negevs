@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"scamshield/internal/auth"
@@ -24,11 +25,34 @@ const (
 // Service holds moderation/discussion business logic. It is transport-agnostic.
 type Service struct {
 	repo Repository
+
+	// mu guards observer, which is normally set once at startup.
+	mu       sync.RWMutex
+	observer CommentObserver
 }
 
 // NewService constructs a moderation Service.
 func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
+}
+
+// SetCommentObserver registers an observer that is notified after every
+// comment is created (the @help bot uses this to answer @help mentions).
+//
+// It is normally called once, during startup. Passing nil removes the
+// observer, which is always safe. Observers must not block: they are called
+// from the request path.
+func (s *Service) SetCommentObserver(o CommentObserver) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.observer = o
+}
+
+// commentObserver returns the registered observer, or nil when none is set.
+func (s *Service) commentObserver() CommentObserver {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.observer
 }
 
 // CommentPage is a page of comments with an opaque next cursor.
@@ -83,6 +107,10 @@ type CreateCommentInput struct {
 
 // CreateComment posts a comment on a visible report. The body is re-scrubbed
 // server-side. A parent, when supplied, must belong to the same report.
+//
+// After the comment is stored, the registered observer (if any) is notified so
+// that features like the @help bot can react to it. The observer is only
+// called for a stored comment, and it must not block.
 func (s *Service) CreateComment(ctx context.Context, in CreateCommentInput) (Comment, error) {
 	visible, err := s.repo.ReportVisible(ctx, in.ReportID)
 	if err != nil {
@@ -107,12 +135,20 @@ func (s *Service) CreateComment(ctx context.Context, in CreateCommentInput) (Com
 		}
 	}
 
-	return s.repo.CreateComment(ctx, CreateCommentParams{
+	c, err := s.repo.CreateComment(ctx, CreateCommentParams{
 		ReportID:        in.ReportID,
 		AuthorUserID:    in.AuthorUserID,
 		ParentCommentID: in.ParentID,
 		Body:            body,
 	})
+	if err != nil {
+		return Comment{}, err
+	}
+
+	if o := s.commentObserver(); o != nil {
+		o.CommentCreated(c)
+	}
+	return c, nil
 }
 
 // UpdateComment edits a comment's body. Only the author may edit; the body is

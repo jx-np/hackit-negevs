@@ -103,6 +103,7 @@ const commentSelectSQL = `
 	SELECT
 		cm.id, cm.report_id, cm.author_user_id, cm.parent_comment_id,
 		COALESCE(u.display_name, $2) AS author_label,
+		COALESCE(u.is_bot, false) AS is_bot,
 		cm.body, cm.status, cm.created_at, cm.updated_at
 	FROM comments cm
 	LEFT JOIN users u ON u.id = cm.author_user_id`
@@ -112,7 +113,7 @@ func scanComment(row pgx.Row) (Comment, error) {
 	var c Comment
 	err := row.Scan(
 		&c.ID, &c.ReportID, &c.AuthorUserID, &c.ParentCommentID,
-		&c.AuthorLabel, &c.Body, &c.Status, &c.CreatedAt, &c.UpdatedAt,
+		&c.AuthorLabel, &c.IsBot, &c.Body, &c.Status, &c.CreatedAt, &c.UpdatedAt,
 	)
 	return c, err
 }

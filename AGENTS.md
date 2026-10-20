@@ -42,12 +42,14 @@ This is the single most important constraint in the codebase. Treat it as non-ne
     │   ├── checks/     # private detection (detection = "checks" internally)
     │   ├── classifier/ # post scam-category + tag classifier (HTTP client to AI service, stub fallback)
     │   ├── config/     # env-var config loading with dev defaults
+    │   ├── grok/       # @help AI reply bot for community comments (async LLM calls via an OpenAI-compatible gateway; package name kept for historical reasons)
     │   ├── httpx/      # middleware (request ID, logging, recover, rate limit), JSON/error helpers
     │   ├── moderation/ # flag queue + moderator decisions
     │   ├── news/       # public home-screen scam-awareness articles
     │   ├── platform/db/# pgx pool connect/ping
     │   ├── reports/    # community posts/feed/comments/reactions ("posts" = "reports" internally)
-    │   └── resources/  # guidance + resource catalog + admin
+    │   ├── resources/  # guidance + resource catalog + admin
+    │   └── sse/        # Server-Sent Events hub + per-post stream endpoint
     ├── .env.example
     ├── go.mod / go.sum
     ├── seed.sql / seed_demo.ps1 / promote_mod.sql
@@ -74,6 +76,11 @@ This is the single most important constraint in the codebase. Treat it as non-ne
 
 ### Current detection classifier
 Text detection is classified by the Python AI service's decision model. `internal/checks/classifier.go` defines the `Classifier` port, an `HTTPClassifier` that POSTs to the AI service's `/v1/classify` (the same base URL as redaction, `PII_SERVICE_URL`), and a bounded `ClassifierPool` that fronts it: at most `DefaultClassifierWorkers` (= 2) classifications run at once, and a failed call is retried up to `DefaultClassifierRetries` (= 2) times. There is **no local rules analyzer** any more. A classifier outage fails the check — HTTP `503` (`classification_unavailable`) for text checks, `status: "failed"` for screenshot checks — rather than synthesizing a verdict. Only scrubbed/redacted text is ever sent to the service, and it is never logged. The `checks.Assessment` response contract is stable — coordinate before changing it.
+
+### @help comment bot
+`internal/grok` (name kept for historical reasons; the public trigger is `@help`) answers `@help <question>` mentions in community comments. It hooks into `moderation.Service.CreateComment` through the `CommentObserver` interface (so `moderation` never imports `grok`), and the observer is called synchronously after a comment is stored — it must not block. `moderation.NewCommentObserverGroup` fans one comment out to every registered observer (SSE hub, bot) and recovers a panicking observer. The work itself runs asynchronously with bounded concurrency (`GROK_MAX_CONCURRENT`). The LLM gateway is configured with `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` and `LLM_TIMEOUT`; the bot is disabled when `LLM_API_KEY` is empty. Only already-public, server-scrubbed post title and text, the post's already-published PII-redacted images from `report_images` (never the raw uploads they were derived from; at most 4, downscaled so the longest side is at most 768 px — larger images are re-encoded as JPEG — with per-image and total size caps applied to the downscaled bytes), and public comment text are sent to the model, and the model's output is re-scrubbed before it is stored. A 4xx that rejects the image payload is retried once text-only. Never log comment, prompt, response or image bytes. The bot's replies are authored by the `is_bot` user seeded by migration `00016_grok_bot_user.sql` (display name `NegevAI`; renamed from `Grok` by `00017_rename_bot_display_name.sql` and then `00018_bot_display_name_negevai.sql`); the bot has no credentials, so it can never log in.
+
+Progress is also streamed live over SSE (`internal/sse`, `GET /api/v1/community/posts/{id}/sse`): a process-local, concurrency-safe hub keyed by post id fans out `ready`, `comment_created`, `grok_thinking`, `grok_replied` and `grok_failed`. The bot publishes through a small nil-safe `grok.EventPublisher` interface it owns (so `grok` never imports `sse`); `sse.GrokPublisher` satisfies it structurally, and `sse` does not import `grok` either. Every `grok_thinking` must be paired with exactly one terminal event, including on panic recovery and shutdown. `Hub.Publish` **must never block** (it runs on the comment-request path): a subscriber whose buffer is full is dropped and its channel closed, and connection caps (1000 total / 200 per post) answer 503. The handler clears the server write deadline per request, and main closes the hub before `srv.Shutdown` so open streams cannot hold shutdown open. Events carry only already-public, scrubbed data and are never logged. The hub is single-instance; a multi-instance deployment would need Redis pub/sub or Postgres `LISTEN/NOTIFY`.
 
 ## Running the backend locally
 

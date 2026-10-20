@@ -11,7 +11,6 @@ import '../core/model_catalog.dart';
 import '../core/notification_record.dart';
 import '../core/scam_hints.dart';
 import '../core/scam_verdict.dart';
-import '../services/gguf_llm_evaluator.dart';
 import '../services/local_llm_evaluator.dart';
 import '../services/model_manager.dart';
 import '../services/model_store.dart';
@@ -31,41 +30,14 @@ class BackgroundRunner {
   final GemmaModelManager _models;
   final NotificationLog _log;
 
-  /// The Gemma / LiteRT-LM evaluator. Always constructed (it owns the
-  /// flutter_edge_ai engine registration) but only used when the selected spec
-  /// is not a `.gguf` file.
+  /// The Gemma / LiteRT-LM evaluator.
   late final LocalLlmEvaluator _edge =
       LocalLlmEvaluator(_models, settings: _settings);
 
-  /// The GGUF evaluator, built on first use from the currently selected spec
-  /// and dropped again whenever the evaluators are disposed. Kept alongside
-  /// [_edge] rather than replacing it so switching back to a Gemma model does
-  /// not lose the registered flutter_edge_ai engine.
-  GgufLlmEvaluator? _gguf;
+  ScamEvaluator get _local => _edge;
 
-  /// The evaluator matching the loaded spec's file type, so the debug batch,
-  /// live notifications and the settings test path all agree on the runtime.
-  ScamEvaluator get _local {
-    final spec = _models.spec;
-    final path = spec.filePath;
-    if (spec.isGguf && path != null && path.isNotEmpty) {
-      return _gguf ??= GgufLlmEvaluator(
-        modelPath: path,
-        contextTokens: spec.contextTokens,
-        thinking: spec.thinking,
-      );
-    }
-    return _edge;
-  }
-
-  /// Releases both runtimes. The GGUF engine holds ~3 GB of native weights, so
-  /// it must be dropped on model switch and on idle unload too, not only at
-  /// shutdown.
   Future<void> _disposeEvaluators() async {
     await _edge.dispose();
-    final gguf = _gguf;
-    _gguf = null;
-    await gguf?.dispose();
   }
 
   StreamSubscription<IncomingNotification>? _subscription;
@@ -182,15 +154,7 @@ class BackgroundRunner {
       _modelReady = false;
     }
     _models.spec = spec;
-    if (spec.isGguf) {
-      // GGUF files are read in place by llamadart, so the flutter_edge_ai
-      // bookkeeping (ModelStore, registerFromFile, bundled install) does not
-      // apply — and running it would report the file as uninstalled.
-      _modelInstalled = await _installedFor(spec);
-      _modelReady = false;
-      return;
-    }
-    _modelInstalled = await _installedFor(spec);
+    _modelInstalled = await _models.isInstalled();
     _modelReady = false;
     try {
       if (_models.isBundled) {
@@ -209,17 +173,6 @@ class BackgroundRunner {
     } catch (error) {
       _setStatus('Model setup failed: $error');
     }
-  }
-
-  /// Whether the selected model's weights are actually available. A GGUF is
-  /// just a file at the picked path; everything else goes through the
-  /// flutter_edge_ai model store.
-  Future<bool> _installedFor(ScamModelSpec spec) async {
-    if (spec.isGguf) {
-      final path = spec.filePath;
-      return path != null && path.isNotEmpty && await File(path).exists();
-    }
-    return _models.isInstalled();
   }
 
   Future<void> _warmUp() async {
@@ -587,10 +540,10 @@ class BackgroundRunner {
         await stop();
         return _statusMap();
       case 'status':
-        _modelInstalled = await _installedFor(_models.spec);
+        _modelInstalled = await _models.isInstalled();
         return _statusMap();
       case 'warmUp':
-        _modelInstalled = await _installedFor(_models.spec);
+        _modelInstalled = await _models.isInstalled();
         await _warmUp();
         return _statusMap();
       case 'syncSettings':
@@ -786,25 +739,14 @@ class BackgroundRunner {
   /// the batch harness's prompt-sizing knob.
   ///
   /// [ScamEvaluator] only carries the multi-turn argument; `exampleCount` (how
-  /// many worked examples the prompt carries) is exposed by the two on-device
-  /// evaluators alone, so it is dispatched on the concrete type here. Both
-  /// branches build the same prompt shape, which is what makes a GGUF run
-  /// comparable with the Gemma baseline.
+  /// many worked examples the prompt carries) is exposed by the on-device
+  /// evaluator alone.
   Future<ScamVerdict> _evaluateForBatch(
     NotificationRecord record, {
     List<String>? priorMessages,
     ScamHints? hints,
     int? exampleCount,
   }) {
-    final evaluator = _local;
-    if (evaluator is GgufLlmEvaluator) {
-      return evaluator.evaluate(
-        record,
-        priorMessages: priorMessages,
-        hints: hints,
-        exampleCount: exampleCount,
-      );
-    }
     return _edge.evaluate(
       record,
       priorMessages: priorMessages,

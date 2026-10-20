@@ -47,11 +47,6 @@ class ScamModelSpec {
   final String? filePath;
 
   bool get isBuiltIn => fileType == ModelFileType.builtIn;
-
-  /// True for `.gguf` files. They are loaded by llamadart straight from the
-  /// picked path (see `lib/services/gguf_llm_evaluator.dart`), so they are
-  /// never registered with flutter_edge_ai or copied into the model store.
-  bool get isGguf => fileType == ModelFileType.gguf;
 }
 
 /// The id of the built-in Android system model (Gemini Nano via AICore).
@@ -135,8 +130,7 @@ ScamModelSpec modelById(String id) => allModels.firstWhere(
 
 /// Builds the catalog entry for a model file sitting at [path]. The file type
 /// comes from the extension: `.litertlm` must be declared explicitly because
-/// `installModel` otherwise assumes `.task` and routes the file to MediaPipe,
-/// and `.gguf` must be declared so the file is routed to llamadart instead.
+/// `installModel` otherwise assumes `.task` and routes the file to MediaPipe.
 ///
 /// The model type has to come from the file name as well — MediaPipe derives
 /// the chat template from it for `.task` files, and MiniCPM/LLaMA-style models
@@ -151,17 +145,13 @@ ScamModelSpec buildCustomModelSpec({
   final fileName = path.split(RegExp(r'[\\/]')).last;
   final lower = fileName.toLowerCase();
   final litertlm = lower.endsWith('.litertlm');
-  // Anything else would be handed to MediaPipe, which cannot load a GGUF.
-  final gguf = lower.endsWith('.gguf');
   return ScamModelSpec(
     id: kCustomModelId,
     displayName: name,
     url: '',
     fileName: fileName,
     modelType: _modelTypeFor(lower),
-    fileType: gguf
-        ? ModelFileType.gguf
-        : (litertlm ? ModelFileType.litertlm : ModelFileType.task),
+    fileType: litertlm ? ModelFileType.litertlm : ModelFileType.task,
     approxSizeMb: sizeMb,
     contextTokens: contextTokens,
     thinking: thinking,
@@ -173,8 +163,6 @@ ScamModelSpec buildCustomModelSpec({
 ModelType _modelTypeFor(String fileName) {
   if (fileName.contains('deepseek')) return ModelType.deepSeek;
   // Must be checked before the `qwen3` branch: "qwen3.5" also contains "qwen3".
-  // Cosmetic for the llama.cpp path (it reads the template from the GGUF), but
-  // it keeps the settings UI honest about what the file is.
   if (fileName.contains('qwen3.5') || fileName.contains('qwen-3.5')) {
     return ModelType.qwen35;
   }

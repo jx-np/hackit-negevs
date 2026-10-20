@@ -123,7 +123,7 @@ export function ForumSidebar({
 
   return (
     <aside
-      className="w-full lg:sticky lg:top-[6.5rem] lg:w-60 lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
+      className="forum-sidebar-scroll w-full lg:sticky lg:top-[6.5rem] lg:w-60 lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
       aria-label="Forum navigation"
     >
       {/* Primary nav */}

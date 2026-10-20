@@ -1,11 +1,19 @@
-import { screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearTokens } from '../../api/tokenStore';
 import { renderWithProviders } from '../../test/utils';
 import { mockFetch } from '../../test/mockFetch';
 import { CommentList } from './CommentList';
 import type { Comment } from '../../types';
 
-afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => {
+  localStorage.clear();
+  clearTokens();
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 function liveComment(overrides: Partial<Comment> = {}): Comment {
   return {
@@ -206,5 +214,49 @@ describe('CommentList', () => {
     await waitFor(() =>
       expect(screen.getByText(/live updates on/i)).toBeInTheDocument(),
     );
+  });
+
+  it('lets a moderator delete another author\u2019s comment', async () => {
+    localStorage.setItem(
+      'scamreg-user',
+      JSON.stringify({
+        id: 'mod-1',
+        email: 'mod@scamwatch.app',
+        name: 'Moderator',
+        role: 'moderator',
+      }),
+    );
+    mockFetch([
+      {
+        match: '/community/discussion/posts/post-7/comments',
+        json: {
+          items: [
+            {
+              comment_id: '7',
+              author_id: 'u1',
+              author_label: 'Alex',
+              is_bot: false,
+              body: 'A comment from another member.',
+              status: 'visible',
+              created_at: '2026-09-29T09:10:00Z',
+              updated_at: '2026-09-29T09:10:00Z',
+            },
+          ],
+          next_cursor: null,
+        },
+      },
+    ]);
+
+    renderWithProviders(<CommentList postId="post-7" />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('A comment from another member.'),
+      ).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Comment options' }));
+    expect(
+      screen.getByRole('menuitem', { name: /delete/i }),
+    ).toBeInTheDocument();
   });
 });

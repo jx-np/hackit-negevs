@@ -59,6 +59,41 @@ describe('Navbar', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('shows the admin dashboard link for staff roles', () => {
+    localStorage.setItem(
+      'scamreg-user',
+      JSON.stringify({
+        id: 'staff-1',
+        email: 'mod@scamwatch.app',
+        name: 'Moderator',
+        role: 'moderator',
+      }),
+    );
+    mockFetch([]);
+    renderWithProviders(<Navbar />, { route: '/' });
+    const adminLink = screen
+      .getAllByRole('link', { name: /admin dashboard/i })
+      .find((el) => el.getAttribute('href') === '/admin');
+    expect(adminLink).toBeTruthy();
+  });
+
+  it('does not show the admin dashboard link to residents', () => {
+    localStorage.setItem(
+      'scamreg-user',
+      JSON.stringify({
+        id: 'resident-1',
+        email: 'resident@scamwatch.app',
+        name: 'Resident',
+        role: 'resident',
+      }),
+    );
+    mockFetch([]);
+    renderWithProviders(<Navbar />, { route: '/' });
+    expect(
+      screen.queryByRole('link', { name: /admin dashboard/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('toggles the mobile menu via the aria-expanded control', async () => {
     const user = userEvent.setup();
     mockFetch([]);

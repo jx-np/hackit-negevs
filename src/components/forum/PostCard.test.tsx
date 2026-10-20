@@ -1,8 +1,19 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearTokens } from '../../api/tokenStore';
+import { mockFetch } from '../../test/mockFetch';
 import { renderWithProviders } from '../../test/utils';
 import type { Post } from '../../types';
 import { PostCard } from './PostCard';
+
+beforeEach(() => {
+  localStorage.clear();
+  clearTokens();
+});
+afterEach(() => {
+  vi.unstubAllGlobals();
+  localStorage.clear();
+});
 
 const post: Post = {
   id: 'post-1',
@@ -40,7 +51,7 @@ describe('PostCard', () => {
   it('renders reply and like counts', () => {
     renderWithProviders(<PostCard post={post} />);
     expect(screen.getByText('12')).toBeInTheDocument();
-    expect(screen.getByText('88')).toBeInTheDocument();
+    expect(screen.getAllByText('88').length).toBeGreaterThan(0);
   });
 
   it('renders redacted screenshots with a click-to-reveal blur', () => {
@@ -105,5 +116,25 @@ describe('PostCard', () => {
       screen.getByRole('button', { name: 'Zoom Preview for A test post title' }),
     );
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('offers delete to staff on posts they do not own', () => {
+    localStorage.setItem(
+      'scamreg-user',
+      JSON.stringify({
+        id: 'mod-1',
+        email: 'mod@scamwatch.app',
+        name: 'Moderator',
+        role: 'moderator',
+      }),
+    );
+    mockFetch([
+      { match: '/me/posts', json: { items: [], next_cursor: null } },
+    ]);
+    renderWithProviders(<PostCard post={post} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Post options' }));
+    expect(
+      screen.getByRole('menuitem', { name: /delete post/i }),
+    ).toBeInTheDocument();
   });
 });

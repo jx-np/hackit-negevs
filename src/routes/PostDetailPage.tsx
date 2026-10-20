@@ -87,7 +87,7 @@ export function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: post, isLoading, isError, error } = usePost(id);
   const reaction = useReaction(post);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isModerator } = useAuth();
   // The detail endpoint omits `is_mine`; resolve ownership from the user's own
   // posts so the owner-only menu actions match the feed card.
   const isMine = useIsMyPost(id);
@@ -197,7 +197,11 @@ export function PostDetailPage() {
                   <PostMenu
                     onReport={() => setReportOpen(true)}
                     onEdit={isLoggedIn && isMine ? () => setEditOpen(true) : undefined}
-                    onDelete={isLoggedIn && isMine ? handleDelete : undefined}
+                    onDelete={
+                      isLoggedIn && (isMine || isModerator)
+                        ? handleDelete
+                        : undefined
+                    }
                   />
                 </div>
 

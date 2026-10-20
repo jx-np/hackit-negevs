@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ArrowBigUp, Bot, Check, CircleMinus, CirclePlus, CornerDownRight, Flag, Loader2, MessageCircle, MoreVertical, Pencil, Radio, Reply, Send, Trash2, X } from 'lucide-react';
+import { ArrowBigUp, Bot, Check, CircleMinus, CirclePlus, CornerDownRight, Flag, Loader2, MessageCircle, MoreVertical, Pencil, Reply, Send, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useComments } from '../../hooks/useComments';
 import { useCommentLike } from '../../hooks/useCommentLike';
 import { useAuth } from '../../context/AuthContext';
@@ -68,11 +69,14 @@ function initials(label: string): string {
 /** Per-comment kebab menu: flag (any logged-in user) + edit/delete (author). */
 function CommentMenu({
   isAuthor,
+  canDelete,
   onFlag,
   onEdit,
   onDelete,
 }: {
   isAuthor: boolean;
+  /** Authors and staff (moderator/admin) can delete a comment. */
+  canDelete: boolean;
   onFlag: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -116,30 +120,30 @@ function CommentMenu({
           className="absolute right-0 top-full z-20 mt-1 min-w-[9rem] rounded-md border border-scam-line bg-scam-850 py-1 shadow-xl"
         >
           {isAuthor && (
-            <>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  onEdit();
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
-              >
-                <Pencil size={14} /> Edit
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  onDelete();
-                }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-risk-high transition hover:bg-scam-800"
-              >
-                <Trash2 size={14} /> Delete
-              </button>
-            </>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onEdit();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-scam-muted transition hover:bg-scam-800 hover:text-scam-text"
+            >
+              <Pencil size={14} /> Edit
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                onDelete();
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-risk-high transition hover:bg-scam-800"
+            >
+              <Trash2 size={14} /> Delete
+            </button>
           )}
           <button
             type="button"
@@ -201,7 +205,7 @@ function CommentItem({
   const removed = comment.status === 'removed' || comment.status === 'hidden';
   const children = childrenByParent.get(comment.id) ?? [];
   const hasReplies = children.length > 0;
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, isModerator } = useAuth();
   const queryClient = useQueryClient();
   const isAuthor = !!user && user.id === comment.authorId;
   const like = useCommentLike(comment.id);
@@ -289,7 +293,10 @@ function CommentItem({
 
   if (collapsed) {
     return (
-      <div className={isReply ? 'mt-2' : ''}>
+      <div
+        id={`comment-${comment.id}`}
+        className={`scroll-mt-24 ${isReply ? 'mt-2' : ''}`}
+      >
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -325,7 +332,10 @@ function CommentItem({
   const showChildren = hasReplies && showReplies;
 
   return (
-    <div className={isReply ? 'mt-2' : ''}>
+    <div
+      id={`comment-${comment.id}`}
+      className={`scroll-mt-24 ${isReply ? 'mt-2' : ''}`}
+    >
       <div className="flex items-stretch gap-2 min-w-0 sm:gap-3">
         {/* Left rail: collapse control (⊖) over a continuous thread guide-line
             that runs the full height of the body AND the nested replies. */}
@@ -400,6 +410,7 @@ function CommentItem({
               <div className="absolute right-0 top-0">
                 <CommentMenu
                   isAuthor={isAuthor}
+                  canDelete={isAuthor || isModerator}
                   onFlag={() => setFlagging(true)}
                   onEdit={() => {
                     setDraft(comment.body);
@@ -692,6 +703,18 @@ export function CommentList({
   const fetched = data?.pages.flatMap((p) => p.comments) ?? [];
   const comments = mergeComments(fetched, liveComments);
   const pendingReplyIds = useMemo(() => new Set(pendingReplies ?? []), [pendingReplies]);
+  const location = useLocation();
+
+  // Deep links from the admin console (`#comment-<id>`) may arrive before the
+  // asynchronous thread has rendered. Once comments are available, scroll the
+  // requested comment into view.
+  useEffect(() => {
+    if (!location.hash) return;
+    const target = document.getElementById(location.hash.slice(1));
+    if (target) {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [location.hash, comments.length]);
 
   if (isLoading) {
     return (
@@ -773,12 +796,7 @@ export function CommentList({
 /** Small pill describing the state of the post's live discussion stream. */
 function StreamStatusPill({ status }: { status: StreamStatus }) {
   if (status === 'live') {
-    return (
-      <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-trust-400/30 bg-trust-400/10 px-2 py-0.5 text-[11px] font-medium text-trust-300">
-        <Radio size={11} className="animate-pulse" aria-hidden="true" />
-        Live updates on
-      </span>
-    );
+    return null;
   }
   if (status === 'connecting') {
     return (

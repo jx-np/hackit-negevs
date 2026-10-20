@@ -16,6 +16,7 @@ import {
 } from 'react';
 import * as authApi from '../api/auth';
 import { clearTokens, getTokens, setTokens } from '../api/tokenStore';
+import { isAdminRole, isStaffRole } from '../lib/roles';
 import type { User } from '../types';
 
 interface AuthState {
@@ -23,11 +24,17 @@ interface AuthState {
   isLoggedIn: boolean;
   /** True while the initial session restore is in progress. */
   isLoading: boolean;
+  /** True for `moderator` or `admin` (staff console access). */
+  isModerator: boolean;
+  /** True only for `admin` (user/role management). */
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   /** Scaffolded demo login — creates a fake local session. */
   loginDemo: (partial?: Partial<User>) => void;
   logout: () => Promise<void>;
+  /** Re-read `/me` so role/permission changes propagate without a reload. */
+  refreshUser: () => Promise<void>;
 }
 
 // Persist user alongside tokens so we can render immediately while validating.
@@ -86,6 +93,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistUser(result.user);
   }, []);
 
+  /**
+   * Re-read the current profile from `/me`.
+   *
+   * Roles are embedded in the access token, so a promoted/demoted user can
+   * keep an old role until their token expires. Calling `/me` on load and
+   * after a token refresh keeps the UI permissions current. A transient
+   * failure (offline) leaves the existing session in place.
+   */
+  const refreshUser = useCallback(async () => {
+    if (!getTokens()) return;
+    try {
+      const u = await authApi.getMe();
+      setUser(u);
+      persistUser(u);
+    } catch {
+      /* keep the persisted session; the HTTP client handles hard 401s */
+    }
+  }, []);
+
+  // Re-validate the role whenever the HTTP client rotates the access token.
+  // If refresh is rejected (e.g. role change revoked the session) clear the
+  // local session so the UI returns to a signed-out state.
+  useEffect(() => {
+    const onSessionRefreshed = () => {
+      void refreshUser();
+    };
+    const onSessionExpired = () => {
+      setUser(null);
+      persistUser(null);
+    };
+    window.addEventListener('scamreg:session-refreshed', onSessionRefreshed);
+    window.addEventListener('scamreg:session-expired', onSessionExpired);
+    return () => {
+      window.removeEventListener(
+        'scamreg:session-refreshed',
+        onSessionRefreshed,
+      );
+      window.removeEventListener('scamreg:session-expired', onSessionExpired);
+    };
+  }, [refreshUser]);
+
   const register = useCallback(
     async (email: string, password: string, displayName: string) => {
       const result = await authApi.register({ email, password, displayName });
@@ -120,12 +168,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isLoggedIn: user !== null,
       isLoading,
+      isModerator: isStaffRole(user?.role),
+      isAdmin: isAdminRole(user?.role),
       login,
       register,
       loginDemo,
       logout,
+      refreshUser,
     }),
-    [user, isLoading, login, register, loginDemo, logout],
+    [user, isLoading, login, register, loginDemo, logout, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

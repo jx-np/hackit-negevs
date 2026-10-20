@@ -12,6 +12,7 @@ import { AppearanceProvider } from './context/AppearanceContext';
 import { AuthProvider } from './context/AuthContext';
 import { SavedFeedsProvider } from './context/SavedFeedsContext';
 import { AuthPage } from './routes/AuthPage';
+import { CreditsPage } from './routes/CreditsPage';
 import { ForumPage } from './routes/ForumPage';
 import { HelpPage } from './routes/HelpPage';
 import { LandingPage } from './routes/LandingPage';
@@ -24,6 +25,12 @@ import { ReportUserPage } from './routes/ReportUserPage';
 import { RulesPage } from './routes/RulesPage';
 import { StaySafePage } from './routes/StaySafePage';
 import { VerifiedDatabasePage } from './routes/VerifiedDatabasePage';
+import { AdminCommentsPage } from './routes/admin/AdminCommentsPage';
+import { AdminOverviewPage } from './routes/admin/AdminOverviewPage';
+import { AdminPage } from './routes/admin/AdminPage';
+import { AdminPostsPage } from './routes/admin/AdminPostsPage';
+import { AdminReportsPage } from './routes/admin/AdminReportsPage';
+import { AdminUsersPage } from './routes/admin/AdminUsersPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,7 +64,15 @@ function AnimatedRoutes() {
           <Route path="/verified" element={<VerifiedDatabasePage />} />
           <Route path="/report-user" element={<ReportUserPage />} />
           <Route path="/me/posts" element={<MyPostsPage />} />
+          <Route path="/admin" element={<AdminPage />}>
+            <Route index element={<AdminOverviewPage />} />
+            <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="posts" element={<AdminPostsPage />} />
+            <Route path="comments" element={<AdminCommentsPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+          </Route>
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/credits" element={<CreditsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </motion.main>

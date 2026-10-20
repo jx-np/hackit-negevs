@@ -50,6 +50,17 @@ const Set<String> kSmsPackageNames = {
   'com.textra',
 };
 
+/// Chat apps whose notification title is the saved contact name when the
+/// sender is in the phone's contacts, and the bare phone number when not. For
+/// these the title itself says whether the sender is known.
+const Set<String> kPhoneIdentityPackages = {
+  'com.whatsapp',
+  'com.whatsapp.w4b',
+};
+
+bool identifiesByPhone(String packageName) =>
+    kPhoneIdentityPackages.contains(packageName);
+
 bool _isDebugSender(String packageName) =>
     kDebugMode && packageName == kDebugSenderPackage;
 

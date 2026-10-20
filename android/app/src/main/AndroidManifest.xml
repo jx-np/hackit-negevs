@@ -82,6 +82,10 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".ScamAlertDismissReceiver"
+            android:exported="false" />
+
         <service
             android:label="Scam Shield"
             android:name=".ScamNotificationListener"

@@ -601,7 +601,6 @@ void main() {
 
     test('chat apps get no sender hint and no contact lookup', () async {
       for (final package in [
-        'com.whatsapp',
         'org.telegram.messenger',
         'com.instagram.android',
         'com.discord',
@@ -621,6 +620,32 @@ void main() {
         expect(hints.strongSignalCount, 0, reason: package);
         expect(hints.looksTrivial(), isTrue, reason: package);
       }
+    });
+
+    test('whatsapp title tells saved contact from unknown number', () async {
+      Future<ScamHints> hintsForTitle(String title, String package) =>
+          ScamHintBuilder.fromRecord(
+            NotificationRecord(
+              packageName: package,
+              appLabel: 'WhatsApp',
+              title: title,
+              content: 'hi',
+              postedAt: DateTime(2026, 1, 1),
+            ),
+          );
+
+      expect(
+        (await hintsForTitle('Adli', 'com.whatsapp')).render(),
+        'sender=saved_contact, signals=0',
+      );
+      expect(
+        (await hintsForTitle('+44 7700 900123', 'com.whatsapp')).render(),
+        'sender=unsaved_international, signals=1',
+      );
+      expect(
+        (await hintsForTitle('+65 9123 4567', 'com.whatsapp.w4b')).render(),
+        'sender=unsaved_local, signals=0',
+      );
     });
 
     test('chat app sender never counts as a strong signal', () async {
@@ -736,6 +761,61 @@ void main() {
     test('looksTrivial is false once a money ask appears', () {
       final hints = hintsFor('Alex', 'can you pay the 50 fee?');
       expect(hints.looksTrivial(), isFalse);
+    });
+
+    test('offering to pay is not a money ask', () {
+      for (final text in [
+        'Where can i pay you',
+        'how do I pay?',
+        'we pay you back tonight',
+        'Can you pay me back',
+        'hey, can you pay me back?',
+        'pay me back tomorrow ok',
+        'when can I pay you back',
+        'Is there a fee for cancelling?',
+      ]) {
+        final hints = hintsFor('Alex', text);
+        expect(hints.moneyAsk, isFalse, reason: text);
+        expect(hints.looksTrivial(), isTrue, reason: text);
+      }
+      expect(hintsFor('Alex', 'Please pay 2.99 now').moneyAsk, isTrue);
+      expect(hintsFor('Alex', 'You must pay the fee').moneyAsk, isTrue);
+    });
+
+    test('a payment word still counts when it carries a number or a demand',
+        () {
+      for (final text in [
+        'Pay the customs fee to release your parcel.',
+        'can you pay the 50 fee?',
+        'Could you transfer 500 to me? I will pay back.',
+        'Can you send a gift card for me?',
+        'Hi. How are you? A deposit is required today.',
+      ]) {
+        expect(hintsFor('Alex', text).moneyAsk, isTrue, reason: text);
+      }
+    });
+
+    test('friends settling a debt is not a money ask even with an amount', () {
+      for (final text in [
+        'Can you pay me back \$20?',
+        'you owe me \$20',
+        'I owe you \$15, will paynow tonight',
+        'pay me back SGD 12 later',
+        'Yo u still own me \$12',
+        'you still owe me \$12 lah',
+      ]) {
+        final hints = hintsFor('Alex', text);
+        expect(hints.moneyAsk, isFalse, reason: text);
+        expect(hints.looksTrivial(), isTrue, reason: text);
+      }
+      expect(
+        hintsFor('Alex', 'You owe \$450 in unpaid fines. Pay now.').moneyAsk,
+        isTrue,
+      );
+      expect(
+        hintsFor('Alex', 'Pay me back \$20. Send a gift card now').moneyAsk,
+        isTrue,
+      );
     });
 
     test('looksTrivial is false for an unsaved international sender', () {

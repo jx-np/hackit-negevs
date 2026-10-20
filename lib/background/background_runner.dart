@@ -454,6 +454,15 @@ class BackgroundRunner {
       return const [];
     }
     final cutoff = DateTime.now().subtract(_threadWindow);
+    // A conversation can be context-cleared without being deleted (swiping the
+    // scam-alert notification away keeps the row visible on the Safety tab).
+    // Anything captured at or before that moment must not prime the model, so
+    // the next message in the chat starts a fresh thread. A storage failure here
+    // must not skip evaluation, so fall back to "never cleared".
+    DateTime? clearedAt;
+    try {
+      clearedAt = await _log.threadClearedAt(key);
+    } catch (_) {}
     // _log.all() is newest-first. Collect the matching earlier messages, then
     // reverse to oldest-first for the prompt.
     final prior = <String>[];
@@ -461,6 +470,7 @@ class BackgroundRunner {
       if (entry.id == currentId) continue;
       if (entry.record.conversationKey != key) continue;
       if (entry.capturedAt.isBefore(cutoff)) continue;
+      if (clearedAt != null && !entry.capturedAt.isAfter(clearedAt)) continue;
       final text = entry.record.content.trim();
       if (text.isEmpty) continue;
       prior.add(text);
@@ -554,6 +564,15 @@ class BackgroundRunner {
         // reports an alert (or clears the list) so the count on the protected
         // screen drops to match what is actually still listed.
         await _syncAlerts();
+        return _statusMap();
+      case 'clearThreadContext':
+        // Swiping the scam-alert notification away clears the conversation's
+        // multi-turn context but leaves its rows in the log, so the alert stays
+        // visible under Recent alerts on the Safety tab.
+        final clearId = (call.arguments as Map?)?['id'] as String? ?? '';
+        if (clearId.isNotEmpty) {
+          await _log.clearThreadContext(clearId);
+        }
         return _statusMap();
       case 'testEvaluate':
         final text = (call.arguments as Map?)?['text'] as String? ?? '';

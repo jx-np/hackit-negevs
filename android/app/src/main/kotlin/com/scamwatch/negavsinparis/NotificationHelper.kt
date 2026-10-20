@@ -203,6 +203,16 @@ object NotificationHelper {
         }
         val reportPending = PendingIntent.getActivity(context, 1003, reportIntent, piFlags)
 
+        // Fires when the user swipes the alert out of the drawer. It clears the
+        // conversation's model context without removing the logged alert, so the
+        // notification stops priming future verdicts while the Safety tab keeps
+        // showing what was detected.
+        val dismissIntent = Intent(context, ScamAlertDismissReceiver::class.java).apply {
+            if (!logId.isNullOrEmpty()) putExtra(EXTRA_REPORT_ID, logId)
+        }
+        val dismissPending =
+            PendingIntent.getBroadcast(context, 1005, dismissIntent, piFlags)
+
         // System-mediated fallback: lets the system launch the warning over the
         // lock screen / current app even when a direct background activity
         // start is blocked. Android 14+ may withhold this permission; the
@@ -260,6 +270,7 @@ object NotificationHelper {
             )
             .setAutoCancel(true)
             .setContentIntent(reportPending)
+            .setDeleteIntent(dismissPending)
             .setFullScreenIntent(fullScreenPending, true)
             .addAction(0, "Report as scam", reportPending)
 

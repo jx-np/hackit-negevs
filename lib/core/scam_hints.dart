@@ -318,12 +318,59 @@ class ScamHintBuilder {
     r'\b(urgent(ly)?|immediately|asap|last chance|final notice|final warning|last warning|act now|overdue|within \d+\s?(h|hr|hrs|hours|min|minutes)|expires?|suspended|locked|blocked|legal action|arrest)\b',
     caseSensitive: false,
   );
-  // A currency amount needs an explicit marker ($50, S$50, SGD 50). A bare "s"
-  // followed by a digit ("has 5 slots") must not count as money.
-  static final RegExp _money = RegExp(
-    r'\b(pay|payment|fee|transfer|deposit|gift ?cards?|crypto|usdt|bitcoin|top.?up)\b|\$\s?\d|\bsgd\s?\d',
+  // Money that is a scam tell on its own. A currency amount needs an explicit
+  // marker ($50, S$50, SGD 50): a bare "s" followed by a digit ("has 5 slots")
+  // must not count as money.
+  static final RegExp _moneyStrong = RegExp(
+    r'\b(gift ?cards?|crypto|usdt|bitcoin)\b',
     caseSensitive: false,
   );
+  static final RegExp _moneyAmount = RegExp(
+    r'\$\s?\d|\bsgd\s?\d',
+    caseSensitive: false,
+  );
+  // Friends settling a debt: "pay me back $20", "you owe me $20", "I owe you
+  // $15". An amount in such a sentence is chat. "You owe $450 in fines" and
+  // "we owe you a refund" are not matched on purpose.
+  static final RegExp _peerSettle = RegExp(
+    r"\bpay(ing)?\s+(me|him|her|them|us|you|u|ya)\s+back\b|\b(you|u|ya)\s+(?:still\s+|also\s+|already\s+|now\s+)?(?:owe|own)\s+(?:me|us)\b|\bowe[sd]?\s+(?:me|us)\b|\bi\s+(?:still\s+)?owe\s+(?:you|u)\b|\bi(?:'ll|'d| will)\s+pay\s+(you|u|ya)\b",
+    caseSensitive: false,
+  );
+  // Payment words that only count as an ask in the right sentence, see
+  // [_hasMoneyAsk].
+  static final RegExp _moneyWord = RegExp(
+    r'\b(pay|payment|fee|transfer|deposit|top.?up)\b',
+    caseSensitive: false,
+  );
+  // Friends settling up: "I'll pay", "we pay you", "pay me back".
+  static final RegExp _peerPay = RegExp(
+    r"\b(i|we)(?:'ll|'d|'m| will| can| shall)?\s+pay\b|\bpay\s+(you|u|ya)\b|\bpay(ing)?\s+(me|him|her|them|us)\s+back\b",
+    caseSensitive: false,
+  );
+  static final RegExp _question = RegExp(
+    r'\?|\b(can|could|would|will|should|shall)\s+(you|i|we|u)\b|^\W*(where|how|when|what|do|did|is|are)\b',
+    caseSensitive: false,
+  );
+  static final RegExp _sentenceBreak = RegExp(r'(?<=[!?\n])|(?<=\.)(?=\s)');
+
+  /// A strong money tell anywhere, or a payment word in a sentence that is a
+  /// concrete ask: it carries a number, or it is a statement rather than a
+  /// question. "Where can I pay you" and "can you pay me back" are chat;
+  /// "pay the customs fee" and "can you pay the 50 fee?" are asks.
+  static bool _hasMoneyAsk(String message) {
+    if (_moneyStrong.hasMatch(message)) return true;
+    for (final sentence in message.split(_sentenceBreak)) {
+      if (_peerSettle.hasMatch(sentence)) continue;
+      if (_moneyAmount.hasMatch(sentence)) return true;
+      if (!_moneyWord.hasMatch(sentence) || _peerPay.hasMatch(sentence)) {
+        continue;
+      }
+      if (sentence.contains(RegExp(r'\d')) || !_question.hasMatch(sentence)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   // "click here", "tap now", "verify now", "open the link" — an imperative
   // aimed at a link, the usual first half of a two-message lure.
@@ -515,7 +562,7 @@ class ScamHintBuilder {
       deliversCode: deliversCode,
       apkOrRemoteApp: _apk.hasMatch(message),
       urgency: _urgent.hasMatch(message),
-      moneyAsk: _money.hasMatch(message),
+      moneyAsk: _hasMoneyAsk(message),
       movesOffPlatform: _offPlatform.hasMatch(message),
       brandMentioned: _brands.hasMatch(message),
       callbackRequest: _callback.hasMatch(message),
@@ -616,9 +663,11 @@ class ScamHintBuilder {
   /// as saved. Contact lookup failures (no permission, etc.) degrade to
   /// "not saved" rather than throwing.
   ///
-  /// Only SMS-style apps get a sender hint. For a chat app the title is the
-  /// other user's display name, so the contacts are not consulted at all and
-  /// no `sender=` token is produced.
+  /// SMS-style apps get a sender hint resolved against the contacts. WhatsApp
+  /// also gets one, read from the title alone: it shows the saved contact name,
+  /// or the bare number when the sender is not saved. Other chat apps get no
+  /// `sender=` token, since their title is a display name with no number behind
+  /// it.
   ///
   /// [priorMessages] are earlier messages of the same thread (see [build]).
   static Future<ScamHints> fromRecord(
@@ -627,14 +676,21 @@ class ScamHintBuilder {
     List<String> priorMessages = const [],
   }) async {
     final isSms = isSmsApp(record.packageName);
+    final byPhone = identifiesByPhone(record.packageName);
     final sender = record.title.trim();
-    final isSaved = isSms ? await _isSavedContact(sender) : false;
+    // WhatsApp shows the saved contact name, or the bare number when the
+    // sender is not in the contacts, so the title alone tells which it is.
+    final isSaved = isSms
+        ? await _isSavedContact(sender)
+        : byPhone
+            ? sender.isNotEmpty && !ContactDirectory.looksLikePhone(sender)
+            : false;
     return build(
       sender: sender,
       message: record.content,
       isSavedContact: isSaved,
       homeCountryCode: homeCountryCode,
-      isSmsSender: isSms,
+      isSmsSender: isSms || byPhone,
       priorMessages: priorMessages,
     );
   }

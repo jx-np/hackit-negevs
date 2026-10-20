@@ -617,7 +617,7 @@ export function PostCard({ post }: { post: Post }) {
   const { isSaved, toggleSave } = useSavedFeeds();
   const saved = isSaved(post.id);
   const reaction = useReaction(post);
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isModerator } = useAuth();
   const isMine = useIsMyPost(post.id) || !!post.isMine;
   const authorName = useAuthorName(post.author.name, isMine);
   const queryClient = useQueryClient();
@@ -725,7 +725,9 @@ export function PostCard({ post }: { post: Post }) {
             <PostMenu
               onReport={() => setReportOpen(true)}
               onEdit={isLoggedIn && isMine ? () => setEditOpen(true) : undefined}
-              onDelete={isLoggedIn && isMine ? handleDelete : undefined}
+              onDelete={
+                isLoggedIn && (isMine || isModerator) ? handleDelete : undefined
+              }
             />
           </div>
         </div>

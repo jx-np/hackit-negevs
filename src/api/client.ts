@@ -79,6 +79,9 @@ async function tryRefresh(): Promise<boolean> {
     });
     if (!res.ok) {
       clearTokens();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('scamreg:session-expired'));
+      }
       return false;
     }
     const data = (await res.json()) as ApiRefreshResponse;
@@ -87,9 +90,19 @@ async function tryRefresh(): Promise<boolean> {
       refreshToken: data.refresh_token,
       expiresIn: data.expires_in,
     });
+    // The new access token may carry a role that changed since login (role
+    // changes revoke refresh sessions, but the 15-minute access-token window
+    // can overlap). Ask the auth layer to re-read /me so the UI/permissions
+    // never rely on a permanently cached role.
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('scamreg:session-refreshed'));
+    }
     return true;
   } catch {
     clearTokens();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('scamreg:session-expired'));
+    }
     return false;
   }
 }

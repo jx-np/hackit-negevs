@@ -9,6 +9,7 @@ const GROUPS = [
       { to: '/', label: 'The app' },
       { to: '/check', label: 'Number check' },
       { to: '/help', label: 'Get help' },
+      { to: '/credits', label: 'Credits' },
     ],
   },
   {

@@ -1,6 +1,9 @@
 import { ShieldAlert, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useNews } from '../../hooks/useNews';
 import { usePosts } from '../../hooks/usePosts';
+import { iconForNews } from '../../lib/newsIcon';
 import type { Post, RiskLevel } from '../../types';
 import { UpvoteBadge } from './UpvoteBadge';
 
@@ -80,9 +83,18 @@ export function RecentReports({ onSeeAll }: RecentReportsProps) {
     .filter(isRecent)
     .slice(0, 6);
 
+  // Active alerts come from the news API; the signed-in user's locale wins,
+  // otherwise the hook falls back to the browser language and then English.
+  const { user } = useAuth();
+  const {
+    data: alerts,
+    isLoading: alertsLoading,
+    isError: alertsError,
+  } = useNews(user?.locale);
+
   return (
     <aside
-      className="w-full lg:sticky lg:top-[6.5rem] lg:mt-[97px] lg:w-[310px] lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
+      className="forum-sidebar-scroll w-full lg:sticky lg:top-[6.5rem] lg:mt-[97px] lg:w-[310px] lg:shrink-0 lg:self-start lg:max-h-[calc(100vh-7.5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pb-6"
       aria-label="Recently reported scams"
     >
       {/* Recently reported */}
@@ -131,24 +143,43 @@ export function RecentReports({ onSeeAll }: RecentReportsProps) {
               Active Threat Alerts
             </span>
           </div>
-          <ul className="mt-3 space-y-3">
-            <li>
-              <p className="text-sm font-medium text-scam-text">
-                Bank "account locked" phishing texts
-              </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-scam-muted">
-                Spoofed sender IDs · do not tap links
-              </p>
-            </li>
-            <li>
-              <p className="text-sm font-medium text-scam-text">
-                Crypto "double your deposit" DMs
-              </p>
-              <p className="mt-0.5 text-xs leading-relaxed text-scam-muted">
-                Targeting new investors on social apps
-              </p>
-            </li>
+          <ul className="mt-3 space-y-3" aria-busy={alertsLoading}>
+            {alertsLoading &&
+              Array.from({ length: 2 }).map((_, i) => (
+                <li key={i} className="space-y-1.5" aria-hidden>
+                  <div className="h-4 w-3/4 animate-pulse rounded bg-scam-750" />
+                  <div className="h-3 w-full animate-pulse rounded bg-scam-750" />
+                </li>
+              ))}
+
+            {!alertsLoading &&
+              alerts?.map((article) => {
+                const Icon = iconForNews(article.icon);
+                return (
+                  <li key={article.id} className="flex gap-2.5">
+                    <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-risk-high/10 text-risk-high">
+                      <Icon size={14} aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-scam-text">
+                        {article.title}
+                      </p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-scam-muted">
+                        {article.text}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
           </ul>
+
+          {!alertsLoading && (alertsError || !alerts?.length) && (
+            <p className="mt-3 text-xs leading-relaxed text-scam-muted">
+              {alertsError
+                ? 'Threat alerts are unavailable right now.'
+                : 'No active threat alerts.'}
+            </p>
+          )}
         </div>
       </div>
     </aside>

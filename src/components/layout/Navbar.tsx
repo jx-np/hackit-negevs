@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { LogOut, Menu, ShieldCheck, X } from 'lucide-react';
+import { LayoutDashboard, LogOut, Menu, ShieldCheck, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -28,7 +28,7 @@ export function BrandMark({ size = 'md' }: { size?: 'sm' | 'md' }) {
 export function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, user, logout } = useAuth();
+  const { isLoggedIn, isModerator, user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = isLoggedIn
@@ -80,6 +80,17 @@ export function Navbar() {
           </div>
 
           <span className="mx-1 hidden h-6 w-px bg-scam-line md:block" aria-hidden />
+
+          {isModerator && (
+            <NavLink
+              to="/admin"
+              aria-label="Admin dashboard"
+              className="sr-focus inline-flex items-center gap-1.5 rounded-lg border border-risk-med/40 bg-risk-med/10 px-2.5 py-2 text-sm font-semibold text-risk-med transition hover:border-risk-med/70 hover:bg-risk-med/20"
+            >
+              <LayoutDashboard size={16} aria-hidden />
+              <span className="hidden lg:inline">Admin</span>
+            </NavLink>
+          )}
 
           {isLoggedIn ? (
             <div className="flex items-center gap-2">
@@ -138,6 +149,21 @@ export function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+            {isModerator && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  `sr-focus mt-1 flex items-center gap-2 rounded-lg border border-risk-med/40 px-3 py-2.5 text-base font-semibold transition ${
+                    isActive
+                      ? 'bg-risk-med/20 text-risk-med'
+                      : 'text-risk-med hover:bg-risk-med/10'
+                  }`
+                }
+              >
+                <LayoutDashboard size={17} aria-hidden />
+                Admin dashboard
+              </NavLink>
+            )}
           </div>
         </div>
       )}
